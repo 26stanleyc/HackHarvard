@@ -323,3 +323,18 @@ Checks:
 - `uv run pytest -q` → 210 passed; ruff clean.
 - **Deployed** (with the user's approval, 2026-10-17 15:05 EDT): `chalk apply --await --force` to team "Hello" `Default/production` (`hllr1480fa66`). Diff: 2 resolvers added (`forecast_inputs_offline`, `forecast_inputs_online`), 2 changed (`forecast_grid_day`, `grid_hours_online`), 19 features added, nothing removed.
 - **Live check** (`ChalkForecastProvider` called directly, no fallback, vs `LocalForecastProvider`): all four demo days answered by Chalk with max absolute difference **0** on all nine fields; bid features (2 bids per day) identical. Chalk execution now ~0.9–1.4 s per forecast (M4: ~0.5 s); wall time ~1.1 s (first call 2.7 s). The Chalk and local providers serve the same M10 model again.
+
+## Scenario savings for the pitch (2026-10-17)
+
+`backend/scripts/scenario_savings.py` (rule in its docstring, fixed before any result): every day of the forecast's test period 2024-10-01..12-31 (92 days, out of sample), K = 10 synthetic company populations per day (`make_population`, N = 30, fresh seeds per day), flexible load = 5 / 10 / 20 % of the day's actual peak (headline 10 %), no background. Planned on the M10 forecast, scored on actuals, calibrated params; strategies exactly as the adoption chart. Saved = E(baseline) − E(coordinated). Results: `docs/results/scenario_savings_q4_2024.json` (+ `_runs.csv`, 2,760 runs).
+
+| Flexible load | Saved vs everyone picking the cleanest slot | Saved vs each company self-optimizing | Saved vs business as usual |
+|---|---|---|---|
+| 5 % of peak | mean −115 t/day, median −42; better in 45 % of runs, worse in 52 % | mean +61, median 0; 48 % / 37 % | mean +586, median +334; 65 % / 28 % |
+| **10 % of peak** (~32 GWh/day) | **mean +214 t/day, median +13; 50 % / 48 %** | **mean +308, median +70; 54 % / 37 %** | **mean +1,482, median +865; 72 % / 25 %** |
+| 20 % of peak | mean +1,407, median +1,079; 64 % / 36 % | mean +958, median +667; 62 % / 33 % | mean +3,211, median +2,634; 83 % / 17 % |
+
+Reading:
+- Coordination's average gain over the self-optimizing baselines is positive at 10 % and 20 % but not reliable run to run: at 10 % it is close to a coin flip against the cleanest-slot baseline. It grows with the amount of flexible load (more herding to avoid).
+- Coordination never loses to self-optimizing on the forecast it plans on (fallback); every loss on actuals comes from forecast error.
+- Shifting at all (vs business as usual) is the larger and steadier effect.
