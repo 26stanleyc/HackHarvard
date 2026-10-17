@@ -111,3 +111,29 @@ Holdout validation (104 days, never used in fitting):
 - **Herding gate re-run on the calibrated simulator: GO, 6/7** (same rule, days, seeds; `herding_gate_calibrated.json`; ratio of means also 6/7). Primary gap % at 5/10/15/20/30%: 02-03 30.6/13.6/−5.8/−20.5/8.0; 03-18 72.0/99.4/98.2/93.7/69.0; 03-27 70.0/64.1/64.4/72.9/48.3; 04-24 0.0/−486/81.1/208.1/99.1 (passes at 12.5%); 04-27 n/a/99.6/53.2/42.2/21.1; 09-03 fails (realized ≥ predicted at every share); 11-29 157.1/88.4/206.6/125.7/−43.2 (mostly forecast error; without it 5/7). **The conclusion does not flip.**
 
 Checks: `uv run pytest -q` → 102 passed (day sets disjoint; fit never loads holdout/demo/gate days; params round-trip; adopted params serve every training hour; constraints respected; calibration.json keys finite; probe-margin tests). Ruff clean. Validation (b) uses EIA-930 fuel mix × eGRID factors (CAMPD skipped: `DATA_GOV_API_KEY` pending).
+
+## M5. Coordinator and settlement — PASS (2026-10-17)
+
+- **Code:** `clearinghouse/settlement.py` (coalition game, exact and Monte Carlo Shapley, receipt games, payouts with proration, leave-one-out) and `clearinghouse/clearing.py` (`clear` returns every ClearResponse field except `forecast`, added in M6; `evaluate`; background population; coordinator trace; `BidValidationError` with per-bid messages for 422). Planning always uses the forecast simulator, scoring the actual-day simulator, calibrated params.
+- **Background population:** `make_population(background_pct, forecast peak demand, seed=4242)` scheduled by strategy 2 on the forecast; fixed load in every strategy, coalition, plan and score; not in the payout game.
+- **Coordinated (strategy 4)** = the settlement game's full-coalition plan: greedy over all user bids with background fixed, planning-time fallback to strategy-3 schedules if E_plan(greedy) > E_plan(all strategy 3).
+- **Settlement (B5):** baseline = all bids at strategy 3 (each planned assuming the other user bids at default, so it does not depend on membership). For coalition S: greedy for members against background + non-members' strategy 3, same per-coalition fallback. v(S) = E_actual(all strategy 3) − E_actual(S). Exact Shapley over 2^n coalitions for n ≤ 8; Monte Carlo (128 permutations, fixed seed) above.
+- **Decisions (orchestrator, no contract change):**
+  - Receipts' `vs_default_t` = φ_i[u3] + shapley_i and `vs_independent_average_t` = φ_i[u3] − φ_i[u2] + shapley_i, where u3(S)/u2(S) = E(all default) − E(S at strategy 3/2, others default). Exact, cheap (pure simulator calls), and they sum to E(default) − E(coordinated) and E(strategy 2) − E(coordinated).
+  - Leave-one-out = leaving the coalition, not the market: the company stays and runs strategy 3 alone; computed from the same 2^n values (B5) and checked against a direct re-clear with that company as a fixed non-member.
+  - Payout = max(0, share) × carbon price, prorated to the pool when short.
+  - Trace: consecutive same-(bid, hour) placements merged, then ≤ 200 groups (one entry per bid-hour per group); Σ trace MWh per (bid, hour) equals the coordinated schedule exactly. If the fallback fires, the trace is built from the strategy-3 schedules.
+  - `/api/evaluate`: bids without a submitted schedule are filled with their default schedule; when infeasible, the response carries per-bid errors plus the all-default scores so the shape stays valid.
+  - Greedy round-robin tie-break is (deadline, earliest, energy, max MW, id) and loads are summed with `math.fsum`, so identical bids get identical shares regardless of ids. Single-bid runs are unaffected: the calibrated herding gate re-run is byte-identical apart from timestamps.
+
+Checks (`uv run pytest -q` → 140 passed; ruff clean):
+- Every schedule (4 strategies + every coalition plan) satisfies its bid.
+- Shapley efficiency within 1e-6 (also in each leave-one-out game); receipt identities within 1e-6.
+- Symmetry: identical bids get identical shares; a zero-energy bid gets exactly 0.
+- Strategy 4 never worse than strategy 3 on the forecast (20 random training-day scenarios, every coalition); fallback fired in 4/20 full coalitions and 31/372 coalitions.
+- Proration sums exactly to the pool; negative shares pay $0.
+- Leave-one-out equals direct recomputation within 1e-6.
+- Deterministic: identical input → byte-identical JSON.
+- 8-bid clear: 1.36 s (target < 5 s); 1 / 3 / 5 bids: 0.004 / 0.020 / 0.11 s.
+
+**Honest results (planned on yesterday-as-forecast, scored on actuals; not tuned):** with the 3 fixture bids, coordination does not beat strategy 3 on actuals — on 2024-01-16 coordinated = strategy 3 (v ≡ 0); on 2024-04-11 v(N) = 0; on 2024-08-20 it beats strategy 3 on the forecast by 97 t but loses on actuals by 341 t (forecast error), so every share is negative and pays $0. With 8 larger bids, coordination beats strategy 3 on actuals on 2024-01-16 (+668 t) and 2024-08-20 (+296 t); on 2024-04-11 the fallback fired.

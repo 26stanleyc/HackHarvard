@@ -132,13 +132,27 @@ def independent_average(bids: list[Bid], plan_sim: DaySimulator, other_added_24=
 # --- coordinator core (strategy 4) and strategy 3 --------------------------------------------
 
 
+def greedy_order_key(b: Bid) -> tuple:
+    """Round-robin order of :func:`greedy_place`: earliest deadline first, ties by earliest_hour,
+    then by the bid's parameters (energy, max MW), then id.
+
+    Ordering by parameters before id (M5) keeps bids with identical parameters ADJACENT in every
+    subset of bids, so the greedy's load trajectory depends only on the multiset of bid
+    parameters, not on ids. That makes the settlement game symmetric: two identical bids get
+    identical Shapley shares. It only changes results when two bids share (deadline, earliest);
+    single-bid runs (strategy 3) are unaffected.
+    """
+    return (b.deadline_hour, b.earliest_hour, b.energy_mwh, b.max_mw, b.id)
+
+
 def greedy_place(plan_sim: DaySimulator, fixed_added_24, bids: list[Bid],
                  block_frac: float = 0.01, record_trace: bool = False
                  ) -> Schedule | tuple[Schedule, list[dict]]:
     """Greedy block placement minimizing incremental simulated emissions (design B3, strategy 4).
 
     Blocks of ``block_frac`` x each bid's energy are placed round-robin across bids ordered by
-    earliest deadline (ties: earliest_hour, then id). Each block goes to the feasible slot (inside
+    earliest deadline (ties: earliest_hour, energy_mwh, max_mw, then id; see
+    :func:`greedy_order_key`). Each block goes to the feasible slot (inside
     the window, with MW headroom; a partial block if headroom is short) with the lowest
     incremental CO2 per MWh given ``fixed_added_24`` plus every block already placed (for full
     blocks this is the lowest incremental CO2); ties -> earliest slot. A bid's last block is its
@@ -150,8 +164,7 @@ def greedy_place(plan_sim: DaySimulator, fixed_added_24, bids: list[Bid],
     added = _bg(fixed_added_24).copy()
     co2 = plan_sim.hourly_co2_at(_ALL_HOURS, added)
     sched = {b.id: np.zeros(HOURS) for b in bids}
-    order = sorted((b for b in bids if b.energy_mwh > 0),
-                   key=lambda b: (b.deadline_hour, b.earliest_hour, b.id))
+    order = sorted((b for b in bids if b.energy_mwh > 0), key=greedy_order_key)
     remaining = {b.id: float(b.energy_mwh) for b in order}
     block = {b.id: block_frac * b.energy_mwh for b in order}
     windows = {b.id: np.arange(b.earliest_hour, b.deadline_hour) for b in order}
