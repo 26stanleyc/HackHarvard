@@ -1,0 +1,42 @@
+{
+  "region": "ERCOT",
+  "days": [
+    {
+      "date": "2024-03-19",
+      "label": "Windy spring night",
+      "description": "High overnight wind, mild demand; wind curtailment likely in West Texas."
+    },
+    {
+      "date": "2024-05-07",
+      "label": "Sunny mild day",
+      "description": "Strong midday solar with moderate demand."
+    },
+    {
+      "date": "2024-08-20",
+      "label": "Summer heat peak",
+      "description": "Near-record afternoon and evening demand; gas peakers on the margin."
+    },
+    {
+      "date": "2024-01-16",
+      "label": "Cold winter morning",
+      "description": "Cold snap with a high morning heating peak and low solar."
+    }
+  ],
+  "default_day": "2024-03-19",
+  "carbon_price_default": 50.0,
+  "pool_default_usd": 100000.0,
+  "background_pct_default": 5.0,
+  "max_bids": 8,
+  "calibration": {
+    "coal_gas_split_error": 0.081,
+    "mef_simulated": 0.64,
+    "mef_observed": 0.59,
+    "fossil_co2_error": 0.112
+  },
+  "data_sources": [
+    "EIA-930 hourly demand and net generation by fuel (balancing authority ERCO)",
+    "EPA eGRID2023 plant data (capacity, heat rate, CO2 rate)",
+    "EIA monthly fuel costs for Texas power plants",
+    "ERCOT wind and solar production with potential output (curtailment), if available"
+  ]
+}

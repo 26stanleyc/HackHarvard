@@ -1,0 +1,177 @@
+{
+  "feasible": true,
+  "errors": [],
+  "hourly_co2_t": [
+    17655.0,
+    16095.0,
+    14586.0,
+    14040.0,
+    14430.0,
+    16485.0,
+    18345.0,
+    21410.0,
+    21830.0,
+    21090.0,
+    19017.0,
+    18725.5,
+    18939.0,
+    19429.0,
+    20689.0,
+    22750.0,
+    26280.0,
+    29160.0,
+    31320.0,
+    30240.0,
+    27360.0,
+    24294.0,
+    22621.0,
+    19695.0
+  ],
+  "total_co2_t": 506485.5,
+  "marginal_resource": [
+    {
+      "kind": "fossil",
+      "plant_name": "Martin Lake",
+      "fuel": "coal",
+      "co2_t_per_mwh": 0.99
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Martin Lake",
+      "fuel": "coal",
+      "co2_t_per_mwh": 0.99
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": "wind",
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": "wind",
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": "wind",
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Martin Lake",
+      "fuel": "coal",
+      "co2_t_per_mwh": 0.99
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Wolf Hollow",
+      "fuel": "gas",
+      "co2_t_per_mwh": 0.43
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Wolf Hollow",
+      "fuel": "gas",
+      "co2_t_per_mwh": 0.43
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Wolf Hollow",
+      "fuel": "gas",
+      "co2_t_per_mwh": 0.43
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Wolf Hollow",
+      "fuel": "gas",
+      "co2_t_per_mwh": 0.43
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Panda Temple",
+      "fuel": "gas",
+      "co2_t_per_mwh": 0.39
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Panda Temple",
+      "fuel": "gas",
+      "co2_t_per_mwh": 0.39
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Panda Temple",
+      "fuel": "gas",
+      "co2_t_per_mwh": 0.39
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Panda Temple",
+      "fuel": "gas",
+      "co2_t_per_mwh": 0.39
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Panda Temple",
+      "fuel": "gas",
+      "co2_t_per_mwh": 0.39
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Panda Temple",
+      "fuel": "gas",
+      "co2_t_per_mwh": 0.39
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Cedar Bayou",
+      "fuel": "gas",
+      "co2_t_per_mwh": 0.58
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Cedar Bayou",
+      "fuel": "gas",
+      "co2_t_per_mwh": 0.58
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Cedar Bayou",
+      "fuel": "gas",
+      "co2_t_per_mwh": 0.58
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Cedar Bayou",
+      "fuel": "gas",
+      "co2_t_per_mwh": 0.58
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Cedar Bayou",
+      "fuel": "gas",
+      "co2_t_per_mwh": 0.58
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Cedar Bayou",
+      "fuel": "gas",
+      "co2_t_per_mwh": 0.58
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Oak Grove",
+      "fuel": "coal",
+      "co2_t_per_mwh": 0.97
+    },
+    {
+      "kind": "fossil",
+      "plant_name": "Oak Grove",
+      "fuel": "coal",
+      "co2_t_per_mwh": 0.97
+    }
+  ]
+}
