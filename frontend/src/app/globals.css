@@ -94,3 +94,25 @@ input[type="range"] {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* Caption swap in the scroll-scrubbed herding explainer (HerdingScroll.tsx). */
+@keyframes herding-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.herding-fade {
+  animation: herding-fade 380ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .herding-fade {
+    animation: none;
+  }
+}

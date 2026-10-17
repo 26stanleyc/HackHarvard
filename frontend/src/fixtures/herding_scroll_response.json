@@ -1,0 +1,4236 @@
+{
+  "forecast": {
+    "source": "local",
+    "latency_ms": 0.06908300565555692,
+    "hourly": {
+      "demand": [
+        59988.4273398673,
+        57765.84893354545,
+        56263.596783909255,
+        55685.29858063756,
+        55753.312353853464,
+        56994.08662927382,
+        57499.15372038804,
+        60414.650101496125,
+        63923.092652775966,
+        68460.26312926372,
+        73158.66436582987,
+        77840.51774733467,
+        81527.34525989108,
+        83153.48070848502,
+        84205.5624484263,
+        84640.54593526527,
+        84738.86087404878,
+        84029.01343487814,
+        81142.74695680055,
+        78039.32473935788,
+        75715.57232398384,
+        71511.9560751403,
+        66908.44199348867,
+        63053.90477857713
+      ],
+      "wind": [
+        13083.140411481534,
+        12961.453900010965,
+        12740.312705226483,
+        12291.130589449982,
+        11405.571135700091,
+        10934.033481887382,
+        10270.523098307849,
+        7879.911906043215,
+        7272.211827444115,
+        6558.560320492806,
+        6238.19828220834,
+        6238.19828220834,
+        6238.19828220834,
+        6238.19828220834,
+        6558.560320492806,
+        6558.560320492806,
+        7272.211827444115,
+        8506.579693625972,
+        9208.646408393455,
+        10441.378947179372,
+        13243.301946104877,
+        13924.365709292535,
+        14120.020347763613,
+        14120.020347763613
+      ],
+      "solar": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1667.6168176672047,
+        10963.58509607043,
+        17061.808864860894,
+        18740.19287065175,
+        19453.28888209607,
+        19586.943655551106,
+        19606.5080757811,
+        19884.45715930624,
+        19016.74289555297,
+        17948.12745621817,
+        16357.13613737184,
+        12772.754392639332,
+        4328.481325909526,
+        97.64031634222077,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "avg_intensity": [
+        0.3682025509509689,
+        0.3554175056009303,
+        0.3514996003416836,
+        0.3540844787291002,
+        0.3619560459569902,
+        0.3688629511299161,
+        0.3619427212132149,
+        0.3080424111023988,
+        0.2576126259152011,
+        0.2864169746814392,
+        0.30951148609366647,
+        0.3310024004862597,
+        0.33997128263560644,
+        0.3404057545390458,
+        0.34587899781424813,
+        0.3541977059053529,
+        0.35899624293421534,
+        0.3684579662770813,
+        0.40575703773963245,
+        0.4241472846313515,
+        0.40736104298523607,
+        0.4006275538123752,
+        0.3911381728731305,
+        0.3861459259219062
+      ]
+    }
+  },
+  "strategies": {
+    "default": {
+      "schedule": {
+        "b1": [
+          500.0,
+          500.0,
+          500.0,
+          500.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b2": [
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b3": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b4": [
+          80.0,
+          80.0,
+          80.0,
+          80.0,
+          80.0,
+          80.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "hourly_co2_t": [
+        20472.85780033557,
+        20995.934607013274,
+        21665.10104190597,
+        22279.38269161773,
+        20444.969797883507,
+        20933.043390061528,
+        24519.483196027417,
+        27431.689644085975,
+        26187.16338481336,
+        26875.319314655582,
+        30568.402611125886,
+        32571.9490126165,
+        32710.02314573923,
+        30916.29173552643,
+        31076.258898089804,
+        30727.90475173969,
+        32142.89728054903,
+        33105.06720782364,
+        34579.59187595746,
+        33225.185082770404,
+        31761.039579587028,
+        31853.584041646212,
+        28527.388753257503,
+        25721.336600370658
+      ],
+      "total_co2_t": 671291.8654451994,
+      "marginal_resource": [
+        {
+          "kind": "fossil",
+          "plant_name": "Temple Power Station",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.422200651359418
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Martin Lake",
+          "fuel": "coal",
+          "co2_t_per_mwh": 1.1214526766517585
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Martin Lake",
+          "fuel": "coal",
+          "co2_t_per_mwh": 1.1214526766517585
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Martin Lake",
+          "fuel": "coal",
+          "co2_t_per_mwh": 1.1214526766517585
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Temple Power Station",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.422200651359418
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Victoria Power Station",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.42385354392140145
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Johnson County Generation Facility",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.4349012528236159
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "San Miguel",
+          "fuel": "coal",
+          "co2_t_per_mwh": 1.2926350119294934
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Colorado Bend Energy Center",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.4600874527129392
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Barney M. Davis",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.46498534894902527
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Cedar Bayou",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.577433752755577
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Lake Hubbard",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6264907330968602
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Lake Hubbard",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6264907330968602
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Cedar Bayou",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.577433752755577
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Cedar Bayou",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.577433752755577
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Cedar Bayou",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.577433752755577
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Stryker Creek",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5924821511190138
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Ray Olinger",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6376767878364525
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Trinidad",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6898708167393928
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Ray Olinger",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6376767878364525
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "O W Sommers",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5913722092696247
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "O W Sommers",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5913722092696247
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Winchester Power Park",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5293597082490407
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "V H Braunig",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.457714254610772
+        }
+      ]
+    },
+    "independent_average": {
+      "schedule": {
+        "b1": [
+          500.0,
+          500.0,
+          0.0,
+          0.0,
+          500.0,
+          500.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b2": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          300.0,
+          300.0,
+          0.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b3": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          150.0,
+          150.0,
+          150.0,
+          0.0,
+          0.0,
+          150.0,
+          150.0,
+          150.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b4": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          80.0,
+          80.0,
+          80.0,
+          0.0,
+          0.0,
+          80.0,
+          80.0,
+          80.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "hourly_co2_t": [
+        20300.922557902737,
+        20835.054258529122,
+        20888.99555365883,
+        21292.504336164184,
+        20622.294071454464,
+        21265.77675546612,
+        24025.51174062921,
+        27237.79439229655,
+        26223.879534589436,
+        26912.5181425715,
+        30614.597311346333,
+        32477.97540265197,
+        32897.97036566829,
+        31222.677405419225,
+        31385.37270481863,
+        31033.944640700145,
+        32320.641925884735,
+        33105.06720782364,
+        34579.59187595746,
+        33225.185082770404,
+        31761.039579587028,
+        31853.584041646212,
+        28527.388753257503,
+        25721.336600370658
+      ],
+      "total_co2_t": 670331.6242411644,
+      "marginal_resource": [
+        {
+          "kind": "fossil",
+          "plant_name": "Temple Power Station",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.422200651359418
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Temple Power Station",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.422200651359418
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Victoria Power Station",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.42385354392140145
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Martin Lake",
+          "fuel": "coal",
+          "co2_t_per_mwh": 1.1214526766517585
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Temple Power Station",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.422200651359418
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Martin Lake",
+          "fuel": "coal",
+          "co2_t_per_mwh": 1.1214526766517585
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "J K Spruce",
+          "fuel": "coal",
+          "co2_t_per_mwh": 1.0977143453293539
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "San Miguel",
+          "fuel": "coal",
+          "co2_t_per_mwh": 1.2926350119294934
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Colorado Bend Energy Center",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.4600874527129392
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Red Gate Power Plant",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.4623835400205024
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Cedar Bayou",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.577433752755577
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Lake Hubbard",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6264907330968602
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Ector County Energy Center",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6290485435131679
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Sim Gideon",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5875180303181501
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Sim Gideon",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5875180303181501
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Cedar Bayou",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.577433752755577
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Victoria Port Power II Peaking Facility",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.611022307699286
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Ray Olinger",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6376767878364525
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Trinidad",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6898708167393928
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Ray Olinger",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6376767878364525
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "O W Sommers",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5913722092696247
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "O W Sommers",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5913722092696247
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Winchester Power Park",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5293597082490407
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "V H Braunig",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.457714254610772
+        }
+      ]
+    },
+    "independent_marginal": {
+      "schedule": {
+        "b1": [
+          0.0,
+          500.0,
+          500.0,
+          500.0,
+          200.0,
+          0.0,
+          300.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b2": [
+          0.0,
+          0.0,
+          300.0,
+          300.0,
+          300.0,
+          84.0,
+          0.0,
+          300.0,
+          300.0,
+          288.0,
+          300.0,
+          0.0,
+          0.0,
+          288.0,
+          288.0,
+          180.0,
+          0.0,
+          0.0,
+          0.0,
+          36.0,
+          36.0,
+          0.0,
+          300.0,
+          300.0
+        ],
+        "b3": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          150.0,
+          150.0,
+          135.0,
+          150.0,
+          0.0,
+          0.0,
+          150.0,
+          150.0,
+          15.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b4": [
+          0.0,
+          0.0,
+          80.0,
+          80.0,
+          80.0,
+          0.0,
+          0.0,
+          80.0,
+          80.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          9.6,
+          0.0,
+          0.0,
+          0.0,
+          70.3999999999991
+        ]
+      },
+      "hourly_co2_t": [
+        19894.284336364864,
+        20835.054258529122,
+        21665.10104190597,
+        22279.38269161773,
+        20529.40992815539,
+        20807.87315181958,
+        24354.826044228015,
+        27535.100445040334,
+        26223.879534589436,
+        26862.764710233958,
+        30568.402611125886,
+        32294.98839396255,
+        32710.02314573923,
+        31169.207719233375,
+        31331.32104602936,
+        30840.504333527027,
+        32142.89728054903,
+        33105.06720782364,
+        34579.59187595746,
+        33249.77389970938,
+        31782.328979120735,
+        31853.584041646212,
+        28685.919361666278,
+        25890.873960278484
+      ],
+      "total_co2_t": 671192.1599988531,
+      "marginal_resource": [
+        {
+          "kind": "fossil",
+          "plant_name": "Midlothian Energy",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.4195498543966761
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Temple Power Station",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.422200651359418
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Martin Lake",
+          "fuel": "coal",
+          "co2_t_per_mwh": 1.1214526766517585
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Martin Lake",
+          "fuel": "coal",
+          "co2_t_per_mwh": 1.1214526766517585
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Temple Power Station",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.422200651359418
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Temple Power Station",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.422200651359418
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "J K Spruce",
+          "fuel": "coal",
+          "co2_t_per_mwh": 1.0977143453293539
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Quail Run Energy Center",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.47874100752057047
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Colorado Bend Energy Center",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.4600874527129392
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Barney M. Davis",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.46498534894902527
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Cedar Bayou",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.577433752755577
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Victoria Port Power II Peaking Facility",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.611022307699286
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Lake Hubbard",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6264907330968602
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "SJRR Power Peaking Facility",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5858188712794042
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Sim Gideon",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5875180303181501
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Cedar Bayou",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.577433752755577
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Stryker Creek",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5924821511190138
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Ray Olinger",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6376767878364525
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Trinidad",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6898708167393928
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Ray Olinger",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6376767878364525
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "O W Sommers",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5913722092696247
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "O W Sommers",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5913722092696247
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Roland C. Dansby Power Plant",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5368086110077928
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "V H Braunig",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.457714254610772
+        }
+      ]
+    },
+    "coordinated": {
+      "schedule": {
+        "b1": [
+          160.0,
+          500.0,
+          500.0,
+          500.0,
+          240.0,
+          100.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b2": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          300.0,
+          108.0,
+          0.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          156.0,
+          0.0,
+          300.0,
+          300.0,
+          300.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          300.0,
+          36.0,
+          300.0,
+          300.0
+        ],
+        "b3": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          150.0,
+          150.0,
+          135.0,
+          150.0,
+          0.0,
+          0.0,
+          150.0,
+          147.0,
+          18.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b4": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          52.79999999999999,
+          4.8,
+          0.0,
+          80.0,
+          80.0,
+          1.599999999999147,
+          47.99999999999999,
+          0.0,
+          0.0,
+          4.8,
+          24.0,
+          4.8,
+          0.0,
+          0.0,
+          0.0,
+          9.6,
+          9.6,
+          0.0,
+          80.0,
+          80.0
+        ]
+      },
+      "hourly_co2_t": [
+        19961.412313068333,
+        20835.054258529122,
+        21238.949024778303,
+        21853.230674490063,
+        20534.814096492795,
+        20862.25259571467,
+        24025.51174062921,
+        27535.100445040334,
+        26223.879534589436,
+        26869.08851097966,
+        30596.119431258154,
+        32388.97367832999,
+        32710.02314573923,
+        31178.908606279667,
+        31350.70914102986,
+        30914.30036712919,
+        32142.89728054903,
+        33105.06720782364,
+        34579.59187595746,
+        33226.81753534727,
+        31944.128415576906,
+        31874.87344117992,
+        28728.8640505469,
+        25895.26801712275
+      ],
+      "total_co2_t": 670575.835388182,
+      "marginal_resource": [
+        {
+          "kind": "fossil",
+          "plant_name": "Twin Oaks",
+          "fuel": "coal",
+          "co2_t_per_mwh": 1.1461154303235932
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Temple Power Station",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.422200651359418
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Martin Lake",
+          "fuel": "coal",
+          "co2_t_per_mwh": 1.1214526766517585
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Martin Lake",
+          "fuel": "coal",
+          "co2_t_per_mwh": 1.1214526766517585
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Temple Power Station",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.422200651359418
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Victoria Power Station",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.42385354392140145
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "J K Spruce",
+          "fuel": "coal",
+          "co2_t_per_mwh": 1.0977143453293539
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Quail Run Energy Center",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.47874100752057047
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Colorado Bend Energy Center",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.4600874527129392
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Barney M. Davis",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.46498534894902527
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Cedar Bayou",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.577433752755577
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Lake Hubbard",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6264907330968602
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Lake Hubbard",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6264907330968602
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "SJRR Power Peaking Facility",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5858188712794042
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Sim Gideon",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5875180303181501
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Cedar Bayou",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.577433752755577
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Stryker Creek",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5924821511190138
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Ray Olinger",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6376767878364525
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Trinidad",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6898708167393928
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Ray Olinger",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.6376767878364525
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Stryker Creek",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5924821511190138
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "O W Sommers",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5913722092696247
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "Freeport LP Pretreatment Facility",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.5315650769747167
+        },
+        {
+          "kind": "fossil",
+          "plant_name": "V H Braunig",
+          "fuel": "gas",
+          "co2_t_per_mwh": 0.457714254610772
+        }
+      ]
+    }
+  },
+  "herding": {
+    "independent_average": {
+      "predicted_t": 1106.5045418833615,
+      "realized_t": 960.2412040350027,
+      "gap_t": 146.2633378483588
+    },
+    "independent_marginal": {
+      "predicted_t": 181.1023531574756,
+      "realized_t": 99.70544634631369,
+      "gap_t": 81.3969068111619
+    }
+  },
+  "coordinator_trace": [
+    {
+      "step": 0,
+      "bid_id": "b1",
+      "hour": 4,
+      "mwh": 20.0,
+      "incremental_co2_t": 8.444013027186884
+    },
+    {
+      "step": 0,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.1165951501825475
+    },
+    {
+      "step": 0,
+      "bid_id": "b4",
+      "hour": 19,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 1,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 36.0,
+      "incremental_co2_t": 15.199223448940756
+    },
+    {
+      "step": 1,
+      "bid_id": "b1",
+      "hour": 4,
+      "mwh": 20.0,
+      "incremental_co2_t": 8.444013027186884
+    },
+    {
+      "step": 1,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.0657351117588405
+    },
+    {
+      "step": 2,
+      "bid_id": "b4",
+      "hour": 19,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.8616855356667656
+    },
+    {
+      "step": 2,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 36.0,
+      "incremental_co2_t": 15.199223448940756
+    },
+    {
+      "step": 2,
+      "bid_id": "b1",
+      "hour": 4,
+      "mwh": 20.0,
+      "incremental_co2_t": 8.444013027186884
+    },
+    {
+      "step": 3,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.04601563988399
+    },
+    {
+      "step": 3,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.0265631265283446
+    },
+    {
+      "step": 3,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 36.0,
+      "incremental_co2_t": 15.199223448937119
+    },
+    {
+      "step": 4,
+      "bid_id": "b1",
+      "hour": 4,
+      "mwh": 20.0,
+      "incremental_co2_t": 8.444013027186884
+    },
+    {
+      "step": 4,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.04601563988399
+    },
+    {
+      "step": 4,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.0265631265283446
+    },
+    {
+      "step": 5,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 36.0,
+      "incremental_co2_t": 15.199223448940756
+    },
+    {
+      "step": 5,
+      "bid_id": "b1",
+      "hour": 4,
+      "mwh": 20.0,
+      "incremental_co2_t": 8.444013027186884
+    },
+    {
+      "step": 5,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.04601563988399
+    },
+    {
+      "step": 6,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.0298483341284737
+    },
+    {
+      "step": 6,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 36.0,
+      "incremental_co2_t": 15.258727581171115
+    },
+    {
+      "step": 6,
+      "bid_id": "b1",
+      "hour": 5,
+      "mwh": 20.0,
+      "incremental_co2_t": 8.477070878427185
+    },
+    {
+      "step": 7,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.04601563988399
+    },
+    {
+      "step": 7,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.034497010823543
+    },
+    {
+      "step": 7,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 36.0,
+      "incremental_co2_t": 15.258727581171115
+    },
+    {
+      "step": 8,
+      "bid_id": "b1",
+      "hour": 5,
+      "mwh": 20.0,
+      "incremental_co2_t": 8.477070878427185
+    },
+    {
+      "step": 8,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.046015639880352
+    },
+    {
+      "step": 8,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.034497010823543
+    },
+    {
+      "step": 9,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 36.0,
+      "incremental_co2_t": 15.258727581167477
+    },
+    {
+      "step": 9,
+      "bid_id": "b1",
+      "hour": 4,
+      "mwh": 20.0,
+      "incremental_co2_t": 8.477070878430823
+    },
+    {
+      "step": 9,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.04601563988399
+    },
+    {
+      "step": 10,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.034497010823543
+    },
+    {
+      "step": 10,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 36.0,
+      "incremental_co2_t": 15.258727581171115
+    },
+    {
+      "step": 10,
+      "bid_id": "b1",
+      "hour": 4,
+      "mwh": 20.0,
+      "incremental_co2_t": 8.477070878427185
+    },
+    {
+      "step": 11,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.04601563988399
+    },
+    {
+      "step": 11,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.034497010823543
+    },
+    {
+      "step": 11,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 12.0,
+      "incremental_co2_t": 5.086242527057038
+    },
+    {
+      "step": 12,
+      "bid_id": "b1",
+      "hour": 4,
+      "mwh": 20.0,
+      "incremental_co2_t": 8.477070878427185
+    },
+    {
+      "step": 12,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.04601563988399
+    },
+    {
+      "step": 12,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.034497010823543
+    },
+    {
+      "step": 13,
+      "bid_id": "b2",
+      "hour": 5,
+      "mwh": 36.0,
+      "incremental_co2_t": 15.258727581171115
+    },
+    {
+      "step": 13,
+      "bid_id": "b1",
+      "hour": 4,
+      "mwh": 20.0,
+      "incremental_co2_t": 8.477070878427185
+    },
+    {
+      "step": 13,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.04601563988399
+    },
+    {
+      "step": 14,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.034497010823543
+    },
+    {
+      "step": 14,
+      "bid_id": "b2",
+      "hour": 5,
+      "mwh": 36.0,
+      "incremental_co2_t": 15.258727581171115
+    },
+    {
+      "step": 14,
+      "bid_id": "b1",
+      "hour": 4,
+      "mwh": 20.0,
+      "incremental_co2_t": 8.477070878427185
+    },
+    {
+      "step": 15,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.04601563988399
+    },
+    {
+      "step": 15,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.034497010823543
+    },
+    {
+      "step": 15,
+      "bid_id": "b2",
+      "hour": 5,
+      "mwh": 36.0,
+      "incremental_co2_t": 15.258727581171115
+    },
+    {
+      "step": 16,
+      "bid_id": "b1",
+      "hour": 4,
+      "mwh": 20.0,
+      "incremental_co2_t": 8.477070878427185
+    },
+    {
+      "step": 16,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.04601563988399
+    },
+    {
+      "step": 16,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.0127246496631415
+    },
+    {
+      "step": 17,
+      "bid_id": "b2",
+      "hour": 8,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.18406255953232
+    },
+    {
+      "step": 17,
+      "bid_id": "b1",
+      "hour": 5,
+      "mwh": 20.0,
+      "incremental_co2_t": 8.477070878427185
+    },
+    {
+      "step": 17,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.04601563988399
+    },
+    {
+      "step": 18,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.034497010823543
+    },
+    {
+      "step": 18,
+      "bid_id": "b2",
+      "hour": 8,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.18406255953232
+    },
+    {
+      "step": 18,
+      "bid_id": "b1",
+      "hour": 5,
+      "mwh": 20.0,
+      "incremental_co2_t": 18.276819513230294
+    },
+    {
+      "step": 19,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.04601563988399
+    },
+    {
+      "step": 19,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1578750079388556
+    },
+    {
+      "step": 19,
+      "bid_id": "b2",
+      "hour": 8,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.18406255953596
+    },
+    {
+      "step": 20,
+      "bid_id": "b1",
+      "hour": 4,
+      "mwh": 20.0,
+      "incremental_co2_t": 20.96353226975407
+    },
+    {
+      "step": 20,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.04601563988399
+    },
+    {
+      "step": 20,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1578750079388556
+    },
+    {
+      "step": 21,
+      "bid_id": "b2",
+      "hour": 8,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.18406255953232
+    },
+    {
+      "step": 21,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 21,
+      "bid_id": "b3",
+      "hour": 8,
+      "mwh": 6.0,
+      "incremental_co2_t": 2.69734375992266
+    },
+    {
+      "step": 22,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1578750079352176
+    },
+    {
+      "step": 22,
+      "bid_id": "b2",
+      "hour": 8,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.18406255953596
+    },
+    {
+      "step": 22,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 23,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.14078707441513
+    },
+    {
+      "step": 23,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1578750079352176
+    },
+    {
+      "step": 23,
+      "bid_id": "b2",
+      "hour": 8,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.18406255953232
+    },
+    {
+      "step": 24,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 24,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.140787074418768
+    },
+    {
+      "step": 24,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1578750079388556
+    },
+    {
+      "step": 25,
+      "bid_id": "b2",
+      "hour": 8,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.18406255953596
+    },
+    {
+      "step": 25,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 25,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.14078707441513
+    },
+    {
+      "step": 26,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1578750079388556
+    },
+    {
+      "step": 26,
+      "bid_id": "b2",
+      "hour": 8,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.18406255953232
+    },
+    {
+      "step": 26,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 27,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.140787074418768
+    },
+    {
+      "step": 27,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1578750079388556
+    },
+    {
+      "step": 27,
+      "bid_id": "b2",
+      "hour": 8,
+      "mwh": 12.0,
+      "incremental_co2_t": 5.394687519841682
+    },
+    {
+      "step": 28,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 28,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.14078707441513
+    },
+    {
+      "step": 28,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1578750079388556
+    },
+    {
+      "step": 29,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.563148297664156
+    },
+    {
+      "step": 29,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 29,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.140787074418768
+    },
+    {
+      "step": 30,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1578750079388556
+    },
+    {
+      "step": 30,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.563148297664156
+    },
+    {
+      "step": 30,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 31,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.140787074418768
+    },
+    {
+      "step": 31,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1578750079388556
+    },
+    {
+      "step": 31,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.563148297664156
+    },
+    {
+      "step": 32,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 32,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.14078707441513
+    },
+    {
+      "step": 32,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1578750079352176
+    },
+    {
+      "step": 33,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.563148297667794
+    },
+    {
+      "step": 33,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 33,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.14078707441513
+    },
+    {
+      "step": 34,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1578750079352176
+    },
+    {
+      "step": 34,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.563148297667794
+    },
+    {
+      "step": 34,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 35,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.14078707441513
+    },
+    {
+      "step": 35,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1578750079388556
+    },
+    {
+      "step": 35,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.563148297664156
+    },
+    {
+      "step": 36,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 36,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.140787074418768
+    },
+    {
+      "step": 36,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1578750079388556
+    },
+    {
+      "step": 37,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.563148297664156
+    },
+    {
+      "step": 37,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 37,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.131441005800298
+    },
+    {
+      "step": 38,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1578750079352176
+    },
+    {
+      "step": 38,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.399626239439385
+    },
+    {
+      "step": 38,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 39,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.099906559862575
+    },
+    {
+      "step": 39,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1578750079388556
+    },
+    {
+      "step": 39,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 12.0,
+      "incremental_co2_t": 5.466542079811916
+    },
+    {
+      "step": 40,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 40,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.099906559862575
+    },
+    {
+      "step": 40,
+      "bid_id": "b4",
+      "hour": 8,
+      "mwh": 3.200000000000017,
+      "incremental_co2_t": 1.4385833386259037
+    },
+    {
+      "step": 41,
+      "bid_id": "b2",
+      "hour": 9,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.70771970900023
+    },
+    {
+      "step": 41,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 41,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.099906559858937
+    },
+    {
+      "step": 42,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1866168319247663
+    },
+    {
+      "step": 42,
+      "bid_id": "b2",
+      "hour": 9,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.64580744073828
+    },
+    {
+      "step": 42,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 43,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.099906559862575
+    },
+    {
+      "step": 43,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1866168319247663
+    },
+    {
+      "step": 43,
+      "bid_id": "b2",
+      "hour": 9,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.64580744073828
+    },
+    {
+      "step": 44,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 44,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 6.0,
+      "incremental_co2_t": 2.733271039905958
+    },
+    {
+      "step": 44,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1866168319247663
+    },
+    {
+      "step": 45,
+      "bid_id": "b2",
+      "hour": 9,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.64580744073828
+    },
+    {
+      "step": 45,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 45,
+      "bid_id": "b3",
+      "hour": 9,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.161451860181842
+    },
+    {
+      "step": 46,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1866168319284043
+    },
+    {
+      "step": 46,
+      "bid_id": "b2",
+      "hour": 9,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.64580744073828
+    },
+    {
+      "step": 46,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 47,
+      "bid_id": "b3",
+      "hour": 9,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.16145186018548
+    },
+    {
+      "step": 47,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1866168319211283
+    },
+    {
+      "step": 47,
+      "bid_id": "b2",
+      "hour": 9,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.706866060518223
+    },
+    {
+      "step": 48,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 48,
+      "bid_id": "b3",
+      "hour": 9,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.1843945895416255
+    },
+    {
+      "step": 48,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1866168319284043
+    },
+    {
+      "step": 49,
+      "bid_id": "b2",
+      "hour": 9,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.737578358173778
+    },
+    {
+      "step": 49,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 49,
+      "bid_id": "b3",
+      "hour": 9,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.184394589545263
+    },
+    {
+      "step": 50,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1866168319247663
+    },
+    {
+      "step": 50,
+      "bid_id": "b2",
+      "hour": 9,
+      "mwh": 36.0,
+      "incremental_co2_t": 16.737578358173778
+    },
+    {
+      "step": 50,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 51,
+      "bid_id": "b3",
+      "hour": 9,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.184394589545263
+    },
+    {
+      "step": 51,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1866168319247663
+    },
+    {
+      "step": 51,
+      "bid_id": "b2",
+      "hour": 9,
+      "mwh": 12.0,
+      "incremental_co2_t": 5.579192786059139
+    },
+    {
+      "step": 52,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 52,
+      "bid_id": "b3",
+      "hour": 9,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.1843945895416255
+    },
+    {
+      "step": 52,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1866168319247663
+    },
+    {
+      "step": 53,
+      "bid_id": "b2",
+      "hour": 23,
+      "mwh": 36.0,
+      "incremental_co2_t": 17.251234226307133
+    },
+    {
+      "step": 53,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 53,
+      "bid_id": "b3",
+      "hour": 9,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.184394589545263
+    },
+    {
+      "step": 54,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1866168319284043
+    },
+    {
+      "step": 54,
+      "bid_id": "b2",
+      "hour": 23,
+      "mwh": 36.0,
+      "incremental_co2_t": 17.251234226307133
+    },
+    {
+      "step": 54,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 55,
+      "bid_id": "b3",
+      "hour": 9,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.184394589545263
+    },
+    {
+      "step": 55,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1866168319211283
+    },
+    {
+      "step": 55,
+      "bid_id": "b2",
+      "hour": 23,
+      "mwh": 36.0,
+      "incremental_co2_t": 17.284186282857263
+    },
+    {
+      "step": 56,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 56,
+      "bid_id": "b3",
+      "hour": 9,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.1843945895416255
+    },
+    {
+      "step": 56,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1866168319284043
+    },
+    {
+      "step": 57,
+      "bid_id": "b2",
+      "hour": 23,
+      "mwh": 36.0,
+      "incremental_co2_t": 17.734288902396656
+    },
+    {
+      "step": 57,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 57,
+      "bid_id": "b3",
+      "hour": 9,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.184394589545263
+    },
+    {
+      "step": 58,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1866168319247663
+    },
+    {
+      "step": 58,
+      "bid_id": "b2",
+      "hour": 23,
+      "mwh": 36.0,
+      "incremental_co2_t": 17.73428890239302
+    },
+    {
+      "step": 58,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 59,
+      "bid_id": "b3",
+      "hour": 9,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.1843945895416255
+    },
+    {
+      "step": 59,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1866168319247663
+    },
+    {
+      "step": 59,
+      "bid_id": "b2",
+      "hour": 23,
+      "mwh": 36.0,
+      "incremental_co2_t": 17.540172374796384
+    },
+    {
+      "step": 60,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 60,
+      "bid_id": "b3",
+      "hour": 9,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.184394589545263
+    },
+    {
+      "step": 60,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1866168319247663
+    },
+    {
+      "step": 61,
+      "bid_id": "b2",
+      "hour": 23,
+      "mwh": 36.0,
+      "incremental_co2_t": 17.479763405935955
+    },
+    {
+      "step": 61,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 61,
+      "bid_id": "b3",
+      "hour": 9,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.1843945895416255
+    },
+    {
+      "step": 62,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.1866168319284043
+    },
+    {
+      "step": 62,
+      "bid_id": "b2",
+      "hour": 23,
+      "mwh": 36.0,
+      "incremental_co2_t": 17.479763405939593
+    },
+    {
+      "step": 62,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 63,
+      "bid_id": "b3",
+      "hour": 9,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.184394589545263
+    },
+    {
+      "step": 63,
+      "bid_id": "b4",
+      "hour": 7,
+      "mwh": 3.200000000000017,
+      "incremental_co2_t": 1.457744554612873
+    },
+    {
+      "step": 63,
+      "bid_id": "b2",
+      "hour": 23,
+      "mwh": 12.0,
+      "incremental_co2_t": 5.826587801981077
+    },
+    {
+      "step": 64,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 64,
+      "bid_id": "b3",
+      "hour": 9,
+      "mwh": 9.0,
+      "incremental_co2_t": 4.184394589545263
+    },
+    {
+      "step": 64,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.33063512078661
+    },
+    {
+      "step": 65,
+      "bid_id": "b2",
+      "hour": 22,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.096753181955137
+    },
+    {
+      "step": 65,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 65,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 66,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.330635120793886
+    },
+    {
+      "step": 66,
+      "bid_id": "b2",
+      "hour": 22,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.142145174515463
+    },
+    {
+      "step": 66,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 67,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 67,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.330635120790248
+    },
+    {
+      "step": 67,
+      "bid_id": "b2",
+      "hour": 22,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.219239596845
+    },
+    {
+      "step": 68,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 68,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 68,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.330635120793886
+    },
+    {
+      "step": 69,
+      "bid_id": "b2",
+      "hour": 22,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.219239596848638
+    },
+    {
+      "step": 69,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 69,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 70,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.330635120793886
+    },
+    {
+      "step": 70,
+      "bid_id": "b2",
+      "hour": 22,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.219239596845
+    },
+    {
+      "step": 70,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 71,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 71,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.33063512078661
+    },
+    {
+      "step": 71,
+      "bid_id": "b2",
+      "hour": 22,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.219239596845
+    },
+    {
+      "step": 72,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 72,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 72,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.330635120793886
+    },
+    {
+      "step": 73,
+      "bid_id": "b2",
+      "hour": 22,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.219239596848638
+    },
+    {
+      "step": 73,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 73,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 74,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.330635120790248
+    },
+    {
+      "step": 74,
+      "bid_id": "b2",
+      "hour": 22,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.219239596845
+    },
+    {
+      "step": 74,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 75,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 75,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.330635120793886
+    },
+    {
+      "step": 75,
+      "bid_id": "b2",
+      "hour": 22,
+      "mwh": 12.0,
+      "incremental_co2_t": 6.739746532282879
+    },
+    {
+      "step": 76,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 76,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 76,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.330635120793886
+    },
+    {
+      "step": 77,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099197865
+    },
+    {
+      "step": 77,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 77,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 78,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.33063512078661
+    },
+    {
+      "step": 78,
+      "bid_id": "b2",
+      "hour": 20,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099197865
+    },
+    {
+      "step": 78,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 79,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 79,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.333358502277406
+    },
+    {
+      "step": 79,
+      "bid_id": "b2",
+      "hour": 10,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 80,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 80,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 80,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.338201050519274
+    },
+    {
+      "step": 81,
+      "bid_id": "b2",
+      "hour": 10,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099197865
+    },
+    {
+      "step": 81,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 81,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 82,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.338201050519274
+    },
+    {
+      "step": 82,
+      "bid_id": "b2",
+      "hour": 10,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 82,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 83,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 83,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.338201050522912
+    },
+    {
+      "step": 83,
+      "bid_id": "b2",
+      "hour": 10,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 84,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 84,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 84,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.338201050522912
+    },
+    {
+      "step": 85,
+      "bid_id": "b2",
+      "hour": 10,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 85,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 85,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 86,
+      "bid_id": "b4",
+      "hour": 23,
+      "mwh": 3.200000000000017,
+      "incremental_co2_t": 1.5588007003461826
+    },
+    {
+      "step": 86,
+      "bid_id": "b2",
+      "hour": 10,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099197865
+    },
+    {
+      "step": 86,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 87,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 87,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.6958986129102414
+    },
+    {
+      "step": 87,
+      "bid_id": "b2",
+      "hour": 10,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 88,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 88,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 88,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.6958986129138793
+    },
+    {
+      "step": 89,
+      "bid_id": "b2",
+      "hour": 10,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 89,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 89,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 90,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.6958986129102414
+    },
+    {
+      "step": 90,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 90,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 91,
+      "bid_id": "b3",
+      "hour": 10,
+      "mwh": 6.0,
+      "incremental_co2_t": 3.4646025165347965
+    },
+    {
+      "step": 91,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.6958986129175173
+    },
+    {
+      "step": 91,
+      "bid_id": "b2",
+      "hour": 10,
+      "mwh": 12.0,
+      "incremental_co2_t": 6.929205033065955
+    },
+    {
+      "step": 92,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 92,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 92,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.6958986129138793
+    },
+    {
+      "step": 93,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099197865
+    },
+    {
+      "step": 93,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 93,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 94,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.6958986129102414
+    },
+    {
+      "step": 94,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 94,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 95,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 95,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.6958986129138793
+    },
+    {
+      "step": 95,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 96,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 96,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 96,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.6958986129138793
+    },
+    {
+      "step": 97,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 97,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 97,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 98,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.6958986129102414
+    },
+    {
+      "step": 98,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099197865
+    },
+    {
+      "step": 98,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 99,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 99,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.6958986129138793
+    },
+    {
+      "step": 99,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 100,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 100,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 100,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.6958986129175173
+    },
+    {
+      "step": 101,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 101,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 101,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 102,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.6958986129102414
+    },
+    {
+      "step": 102,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 102,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 103,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 103,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.6958986129138793
+    },
+    {
+      "step": 103,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 12.0,
+      "incremental_co2_t": 6.929205033065955
+    },
+    {
+      "step": 104,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 104,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 104,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.6958986129102414
+    },
+    {
+      "step": 105,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 105,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 105,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 106,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.6958986129138793
+    },
+    {
+      "step": 106,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 106,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 107,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 107,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.6958986129138793
+    },
+    {
+      "step": 107,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 108,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 108,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 108,
+      "bid_id": "b4",
+      "hour": 22,
+      "mwh": 3.200000000000017,
+      "incremental_co2_t": 1.7972657419413736
+    },
+    {
+      "step": 109,
+      "bid_id": "b2",
+      "hour": 15,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 109,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 109,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 110,
+      "bid_id": "b4",
+      "hour": 10,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013226382
+    },
+    {
+      "step": 110,
+      "bid_id": "b2",
+      "hour": 15,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 110,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 111,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 111,
+      "bid_id": "b4",
+      "hour": 10,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013222744
+    },
+    {
+      "step": 111,
+      "bid_id": "b2",
+      "hour": 15,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 112,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 112,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 112,
+      "bid_id": "b4",
+      "hour": 15,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013226382
+    },
+    {
+      "step": 113,
+      "bid_id": "b2",
+      "hour": 15,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099197865
+    },
+    {
+      "step": 113,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 113,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 114,
+      "bid_id": "b4",
+      "hour": 13,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013226382
+    },
+    {
+      "step": 114,
+      "bid_id": "b2",
+      "hour": 15,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 114,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 115,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 6.0,
+      "incremental_co2_t": 3.4646025165347965
+    },
+    {
+      "step": 115,
+      "bid_id": "b4",
+      "hour": 20,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013226382
+    },
+    {
+      "step": 115,
+      "bid_id": "b2",
+      "hour": 15,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 116,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 116,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 116,
+      "bid_id": "b4",
+      "hour": 20,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013226382
+    },
+    {
+      "step": 117,
+      "bid_id": "b2",
+      "hour": 15,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 117,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 117,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 118,
+      "bid_id": "b4",
+      "hour": 14,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013226382
+    },
+    {
+      "step": 118,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 118,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906584457
+    },
+    {
+      "step": 119,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 119,
+      "bid_id": "b4",
+      "hour": 10,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.77168201323002
+    },
+    {
+      "step": 119,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 120,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 21.954286906588095
+    },
+    {
+      "step": 120,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 120,
+      "bid_id": "b4",
+      "hour": 10,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013226382
+    },
+    {
+      "step": 121,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099197865
+    },
+    {
+      "step": 121,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 22.429053533032857
+    },
+    {
+      "step": 121,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 122,
+      "bid_id": "b4",
+      "hour": 10,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013226382
+    },
+    {
+      "step": 122,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 12.0,
+      "incremental_co2_t": 6.929205033065955
+    },
+    {
+      "step": 122,
+      "bid_id": "b1",
+      "hour": 5,
+      "mwh": 20.0,
+      "incremental_co2_t": 22.429053533032857
+    },
+    {
+      "step": 123,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 123,
+      "bid_id": "b4",
+      "hour": 10,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013222744
+    },
+    {
+      "step": 123,
+      "bid_id": "b2",
+      "hour": 15,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 124,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 22.429053533036495
+    },
+    {
+      "step": 124,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 124,
+      "bid_id": "b4",
+      "hour": 10,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.77168201323002
+    },
+    {
+      "step": 125,
+      "bid_id": "b2",
+      "hour": 15,
+      "mwh": 12.0,
+      "incremental_co2_t": 6.929205033065955
+    },
+    {
+      "step": 125,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 22.429053533036495
+    },
+    {
+      "step": 125,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 126,
+      "bid_id": "b4",
+      "hour": 10,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013226382
+    },
+    {
+      "step": 126,
+      "bid_id": "b2",
+      "hour": 20,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 126,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 22.429053533032857
+    },
+    {
+      "step": 127,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 127,
+      "bid_id": "b4",
+      "hour": 10,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013226382
+    },
+    {
+      "step": 127,
+      "bid_id": "b2",
+      "hour": 20,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 128,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 22.429053533036495
+    },
+    {
+      "step": 128,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774798557
+    },
+    {
+      "step": 128,
+      "bid_id": "b4",
+      "hour": 10,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013222744
+    },
+    {
+      "step": 129,
+      "bid_id": "b2",
+      "hour": 20,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 129,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 22.429053533032857
+    },
+    {
+      "step": 129,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 130,
+      "bid_id": "b4",
+      "hour": 14,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013226382
+    },
+    {
+      "step": 130,
+      "bid_id": "b2",
+      "hour": 20,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 130,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 22.429053533036495
+    },
+    {
+      "step": 131,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 131,
+      "bid_id": "b4",
+      "hour": 14,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013222744
+    },
+    {
+      "step": 131,
+      "bid_id": "b2",
+      "hour": 20,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099197865
+    },
+    {
+      "step": 132,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 22.429053533036495
+    },
+    {
+      "step": 132,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 132,
+      "bid_id": "b4",
+      "hour": 14,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013226382
+    },
+    {
+      "step": 133,
+      "bid_id": "b2",
+      "hour": 20,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 133,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 5.196903774802195
+    },
+    {
+      "step": 133,
+      "bid_id": "b4",
+      "hour": 14,
+      "mwh": 4.8,
+      "incremental_co2_t": 2.771682013226382
+    },
+    {
+      "step": 134,
+      "bid_id": "b2",
+      "hour": 20,
+      "mwh": 36.0,
+      "incremental_co2_t": 20.787615099201503
+    },
+    {
+      "step": 134,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 3.0,
+      "incremental_co2_t": 1.7323012582673982
+    },
+    {
+      "step": 134,
+      "bid_id": "b4",
+      "hour": 9,
+      "mwh": 1.599999999999147,
+      "incremental_co2_t": 0.7438923714726116
+    },
+    {
+      "step": 135,
+      "bid_id": "b2",
+      "hour": 20,
+      "mwh": 12.0,
+      "incremental_co2_t": 6.929205033065955
+    },
+    {
+      "step": 135,
+      "bid_id": "b2",
+      "hour": 11,
+      "mwh": 144.0,
+      "incremental_co2_t": 85.31742976114037
+    },
+    {
+      "step": 135,
+      "bid_id": "b2",
+      "hour": 21,
+      "mwh": 36.0,
+      "incremental_co2_t": 21.329357440285094
+    },
+    {
+      "step": 136,
+      "bid_id": "b2",
+      "hour": 11,
+      "mwh": 12.0,
+      "incremental_co2_t": 7.109785813427152
+    }
+  ],
+  "fallback_fired": false,
+  "settlement": {
+    "baseline": "independent_marginal",
+    "method": "exact",
+    "coalitions_evaluated": 16,
+    "total_avoided_t": 616.3246106711449,
+    "pool_usd": 100000.0,
+    "prorated": false,
+    "per_bid": [
+      {
+        "bid_id": "b1",
+        "shapley_t": 338.5790972647179,
+        "payout_usd": 16928.954863235896,
+        "vs_default_t": 367.9868929602671,
+        "vs_independent_average_t": -51.48949801261193
+      },
+      {
+        "bid_id": "b2",
+        "shapley_t": 143.32723368741182,
+        "payout_usd": 7166.361684370591,
+        "vs_default_t": 212.3308168675867,
+        "vs_independent_average_t": -66.34765499309287
+      },
+      {
+        "bid_id": "b3",
+        "shapley_t": 0.534471845816976,
+        "payout_usd": 26.723592290848803,
+        "vs_default_t": 65.09725242375863,
+        "vs_independent_average_t": -126.68646046493082
+      },
+      {
+        "bid_id": "b4",
+        "shapley_t": 133.88380787319812,
+        "payout_usd": 6694.1903936599065,
+        "vs_default_t": 70.61509476584614,
+        "vs_independent_average_t": 0.31246645309147425
+      }
+    ],
+    "leave_one_out": {
+      "b1": {
+        "total_avoided_t": 0.0,
+        "per_bid": [
+          {
+            "bid_id": "b2",
+            "shapley_t": 5.891898643206027,
+            "payout_usd": 294.59493216030137
+          },
+          {
+            "bid_id": "b3",
+            "shapley_t": 0.6126305697058948,
+            "payout_usd": 30.63152848529474
+          },
+          {
+            "bid_id": "b4",
+            "shapley_t": -6.504529212911923,
+            "payout_usd": 0.0
+          }
+        ]
+      },
+      "b2": {
+        "total_avoided_t": 204.6956814326113,
+        "per_bid": [
+          {
+            "bid_id": "b1",
+            "shapley_t": 201.14376222051214,
+            "payout_usd": 10057.188111025607
+          },
+          {
+            "bid_id": "b3",
+            "shapley_t": 1.2838732600794172,
+            "payout_usd": 64.19366300397085
+          },
+          {
+            "bid_id": "b4",
+            "shapley_t": 2.268045952019747,
+            "payout_usd": 113.40229760098734
+          }
+        ]
+      },
+      "b3": {
+        "total_avoided_t": 616.4879759676987,
+        "per_bid": [
+          {
+            "bid_id": "b1",
+            "shapley_t": 338.65725598860683,
+            "payout_usd": 16932.862799430342
+          },
+          {
+            "bid_id": "b2",
+            "shapley_t": 144.07663510167427,
+            "payout_usd": 7203.831755083714
+          },
+          {
+            "bid_id": "b4",
+            "shapley_t": 133.75408487741757,
+            "payout_usd": 6687.704243870879
+          }
+        ]
+      },
+      "b4": {
+        "total_avoided_t": 210.30698079487775,
+        "per_bid": [
+          {
+            "bid_id": "b1",
+            "shapley_t": 198.1907601786079,
+            "payout_usd": 9909.538008930394
+          },
+          {
+            "bid_id": "b2",
+            "shapley_t": 11.711471766233442,
+            "payout_usd": 585.5735883116721
+          },
+          {
+            "bid_id": "b3",
+            "shapley_t": 0.4047488500364125,
+            "payout_usd": 20.237442501820624
+          }
+        ]
+      }
+    }
+  }
+}

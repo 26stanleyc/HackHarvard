@@ -6,6 +6,7 @@ import { fmtInt, fmtSignedT, fmtT } from "@/lib/format";
 import { STRATEGY_LABEL } from "@/lib/theme";
 import type { AdoptionChartResponse, Calibration, Forecast, MetaResponse } from "@/lib/types";
 import { AdoptionChart, adoptionReadout } from "./AdoptionChart";
+import { HerdingScroll } from "./HerdingScroll";
 import { Button, Details, Source } from "./ui";
 
 export function StoryScreen({
@@ -31,6 +32,8 @@ export function StoryScreen({
           companies and pay each one for the carbon it helps avoid.
         </h1>
       </header>
+
+      <HerdingScroll />
 
       <section className="card p-4 sm:p-6">
         <h3 className="mb-4 text-lg font-semibold text-ink">Daily CO2 as more load becomes flexible</h3>
