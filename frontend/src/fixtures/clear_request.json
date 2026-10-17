@@ -1,0 +1,35 @@
+{
+  "day": "2024-03-19",
+  "bids": [
+    {
+      "id": "b1",
+      "name": "Lone Star EV Fleet Aggregator",
+      "load_type": "ev_fleet",
+      "energy_mwh": 2400.0,
+      "earliest_hour": 0,
+      "deadline_hour": 8,
+      "max_mw": 500.0
+    },
+    {
+      "id": "b2",
+      "name": "Hill Country Data Center",
+      "load_type": "data_center",
+      "energy_mwh": 2400.0,
+      "earliest_hour": 0,
+      "deadline_hour": 24,
+      "max_mw": 300.0
+    },
+    {
+      "id": "b3",
+      "name": "Houston Office Portfolio (pre-cooling)",
+      "load_type": "office",
+      "energy_mwh": 600.0,
+      "earliest_hour": 6,
+      "deadline_hour": 18,
+      "max_mw": 150.0
+    }
+  ],
+  "background_pct": 5.0,
+  "carbon_price": 50.0,
+  "pool_usd": 100000.0
+}

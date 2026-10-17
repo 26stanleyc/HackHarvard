@@ -16,3 +16,16 @@ Checks:
 - `git check-ignore .env` → `.env`; `git status` shows no secrets.
 - Fixture schema tests pass (part of pytest).
 - `npm run build` and `npm run lint` → pass.
+
+## M7. Frontend core in fixture mode — PASS (2026-10-17)
+
+Built in parallel with the backend track (per "Mapping to a team"; it depends only on M0's fixtures).
+
+- Step flow: Story (adoption chart + credibility strip) → Bids (presets/custom, client-side feasibility mirroring `bid_feasibility_error`, background/carbon price/pool, day picker, example scenario) → Coordinator (Acts 1-3, Act 3 replays `coordinator_trace` with play/pause/scrub; plant-on-the-margin hover/tap per hour; Beat-the-coordinator paint grid scored via `/api/evaluate`) → Results (strategy comparison, herding callout, operator-view receipts, leave-the-coalition toggles from `settlement.leave_one_out` with no request).
+- Mode: `NEXT_PUBLIC_API_MODE=fixture|live` (default fixture), `NEXT_PUBLIC_API_BASE` (default `http://localhost:8000`). Fixture mode shows a persistent "Fixture mode — mock data" badge. `scripts/sync-fixtures.mjs` copies `fixtures/*.json` into `frontend/src/fixtures/` before dev/build.
+- Live-mode error paths (422 per bid, 5xx, backend down) exercised against a throwaway mock server; inputs are kept in each case. Real-backend checks are M8.
+
+Checks:
+- `npm run build`, `npm run lint`, `npm run typecheck` → clean (re-run by orchestrator).
+- Browser preview: every screen renders from fixtures; all three acts play (trace 30/30); hover shows marginal plants; paint + score works; leave toggle updates payouts with no network request; no app console errors.
+- Layout at 1440 and 375 wide, no horizontal scroll; screenshots in `docs/screenshots/m7-*.png`.

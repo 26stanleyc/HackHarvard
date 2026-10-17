@@ -1,0 +1,38 @@
+[
+  {
+    "name": "EV fleet aggregator",
+    "load_type": "ev_fleet",
+    "energy_mwh": 2400.0,
+    "earliest_hour": 0,
+    "deadline_hour": 8,
+    "max_mw": 500.0,
+    "size_reference": "Aggregator of overnight depot charging (illustrative ~500 MW; mock)"
+  },
+  {
+    "name": "Hyperscale data center (batch jobs)",
+    "load_type": "data_center",
+    "energy_mwh": 2400.0,
+    "earliest_hour": 0,
+    "deadline_hour": 24,
+    "max_mw": 300.0,
+    "size_reference": "Large campuses are commonly 100-300+ MW (illustrative; mock)"
+  },
+  {
+    "name": "Office portfolio (pre-cooling)",
+    "load_type": "office",
+    "energy_mwh": 600.0,
+    "earliest_hour": 6,
+    "deadline_hour": 18,
+    "max_mw": 150.0,
+    "size_reference": "Downtown office HVAC portfolio (illustrative ~150 MW; mock)"
+  },
+  {
+    "name": "Cold storage warehouses",
+    "load_type": "cold_storage",
+    "energy_mwh": 480.0,
+    "earliest_hour": 0,
+    "deadline_hour": 24,
+    "max_mw": 60.0,
+    "size_reference": "Regional cold-chain refrigeration cluster (illustrative ~60 MW; mock)"
+  }
+]

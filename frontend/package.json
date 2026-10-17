@@ -3,10 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "sync-fixtures": "node scripts/sync-fixtures.mjs",
+    "predev": "node scripts/sync-fixtures.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/sync-fixtures.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "next": "16.4.2",
