@@ -46,6 +46,38 @@ class GridHour:
 
 
 @features
+class ForecastInput:
+    """Forecasts published for one fixed-CST hourly slot (M10 model inputs), by VALID slot.
+
+    ``clearinghouse.data.forecast_inputs``: ERCOT STWPF/WGRPP/COP HSL and STPPF/PVGRPP/COP HSL from
+    the latest posting before 00:00 CST on the slot's day, and Open-Meteo GFS forecasts with lead
+    >= 48 h. Unlike ``GridHour``, the feature time is not the slot: it is the latest of the row's
+    source times (ERCOT wind and solar postings, latest GFS run init + 12 h), i.e. when the whole
+    row was published. The per-source times are kept so the model code masks each source on its
+    own, as the app does.
+    """
+
+    id: str  # "ERCO:2024-10-14T15" (region : CST valid-slot start)
+    region: str
+    date_cst: str  # CST date of the valid slot
+    hour_cst: int
+    published_at: FeatureTime  # max of the three source times below (UTC)
+    ercot_stwpf: float | None
+    ercot_wgrpp: float | None
+    ercot_wind_cophsl: float | None
+    ercot_stppf: float | None
+    ercot_pvgrpp: float | None
+    ercot_solar_cophsl: float | None
+    om_wind100: float | None
+    om_wind_power: float | None
+    om_ghi: float | None
+    om_temp: float | None
+    ercot_wind_posted_utc: datetime | None
+    ercot_solar_posted_utc: datetime | None
+    om_run_init_max_utc: datetime
+
+
+@features
 class GridDay:
     """Day-ahead forecast for one region and target CST date (queried at its issue time)."""
 
@@ -56,6 +88,9 @@ class GridDay:
 
     # History visible at query time (point-in-time filtered by GridHour.ts).
     hours: DataFrame[GridHour] = has_many(lambda: GridHour.region == GridDay.region)
+    # Forecasts published before as_of for D and D-1 (om_temp_prev reads D-1).
+    forecast_inputs: DataFrame[ForecastInput] = has_many(
+        lambda: ForecastInput.region == GridDay.region)
 
     # Windowed aggregations ending at query time (= as_of): the app's mean24h / mean168h /
     # max24h / min24h features. Output FQNs e.g. grid_day.demand_mean__86400__.

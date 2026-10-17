@@ -7,16 +7,18 @@ the app's stack (see `docs/progress.md`, M0). Status: **deployed** (2026-10-17) 
 team "Hello", project `Default`, environment `production` (`hllr1480fa66`). Live online queries
 return forecasts and bid features identical to `LocalForecastProvider`'s on all four demo days
 (max difference 0); a forecast query takes ~0.5 s of Chalk execution, bid features ~20-100 ms.
+That deployment is the **M4** snapshot. The committed `src/vendor/` is now **M10** (forecast
+inputs wired in, below); the live project serves M4 until the next `chalk apply`.
 
 ## What it defines
 
 | File | Contents |
 |---|---|
-| `src/features.py` | `GridHour` (one EIA-930 hourly slot; `ts` = slot **end**), `GridDay` (target day keyed `"ERCO:YYYY-MM-DD"`, `as_of` = 00:00 CST on D, `hours` has-many, windowed 1d/7d aggregations, 24-value forecast outputs), `FlexBid` (raw bid fields as inputs plus derived features) |
-| `src/resolvers.py` | offline + online history resolvers, `forecast_grid_day` model-serving resolver (loads the **same** trained artifacts as the app), `flex_bid_features` |
+| `src/features.py` | `GridHour` (one EIA-930 hourly slot; `ts` = slot **end**), `ForecastInput` (M10 forecasts published for one valid slot; feature time `published_at`), `GridDay` (target day keyed `"ERCO:YYYY-MM-DD"`, `as_of` = 00:00 CST on D, `hours` and `forecast_inputs` has-many, windowed 1d/7d aggregations, 24-value forecast outputs), `FlexBid` (raw bid fields as inputs plus derived features) |
+| `src/resolvers.py` | offline + online history and forecast-input resolvers, `forecast_grid_day` model-serving resolver (loads the **same** trained artifacts as the app), `flex_bid_features` |
 | `sql/grid_hours.chalk.sql.example` | production data path: SQL resolver over a PostgreSQL table (inactive until a source exists) |
 | `training_data.py` | point-in-time offline query for leakage-free training data |
-| `sync_from_app.py` | vendors the app's forecast code, artifacts and history into `src/vendor/` (generated, gitignored) |
+| `sync_from_app.py` | vendors the app's forecast code, artifacts, history and forecast inputs into `src/vendor/` (generated, gitignored) |
 | `chalk.yaml`, `requirements.txt` | project config ([docs](https://docs.chalk.ai/docs/configuration)) |
 
 One implementation serves both paths: `sync_from_app.py` copies
@@ -44,6 +46,16 @@ only slots that ended by then (`training_data.py`). This is the app's leakage ru
 (slot start < as_of, equivalently slot end <= as_of), which `tests/test_forecast.py` checks on the
 local feature builder. The online model resolver also re-filters `ts <= as_of` and asserts the
 leakage check before predicting.
+
+M10 forecast inputs (`ForecastInput`, from `data/processed/forecast_inputs.parquet`) are indexed
+by **valid** slot and were published before the day starts: ERCOT postings before 00:00 CST on D,
+Open-Meteo GFS runs with lead >= 48 h. Their feature time `published_at` is the latest of the
+row's source times (ERCOT wind and solar posting times, latest GFS run init + 12 h), so an
+offline query at the issue time sees only rows already published. `forecast_inputs_online`
+returns exactly the rows of D (model inputs) and D-1 (`om_temp_prev`) with
+`published_at <= as_of`; the vendored `add_forecast_inputs` / `build_features` then mask each
+source whose own time is not before `as_of`, as the app does. Every row of the table was fully
+published before its own day's issue time, so no source is dropped for any target day.
 
 Issue time: **00:00 CST on the target day D** (design B2 "next-24h"). All of D-1 is observed,
 so the persistence inputs (nuclear, hydro, other, storage, net imports, curtailment fraction:

@@ -1,4 +1,4 @@
-"""Vendor the app's forecast code, trained artifacts and history into ``src/vendor/``.
+"""Vendor the app's forecast code, trained artifacts, history and inputs into ``src/vendor/``.
 
 Run from ``backend/`` with the APP's environment, before ``chalk apply``:
 
@@ -8,11 +8,14 @@ Copies ``clearinghouse/forecast/{features,model,provider}.py`` (two import lines
 copies are self-contained), ``data/processed/forecast/*`` (models + feature_spec.json), and writes
 ``src/vendor/data/grid_hours.parquet`` (EIA-930 + curtailment in the ``GridHour`` schema, ``ts`` =
 slot END in UTC). ``src/vendor/`` is generated: it is gitignored.
+
+Also writes ``src/vendor/data/forecast_inputs.parquet`` (the M10 forecast inputs in the
+``ForecastInput`` schema; ``published_at`` = latest of the ERCOT wind / solar posting times and the
+latest GFS run init + ``OM_PUBLICATION_ALLOWANCE_H``, the source times the app's feature code uses).
 """
 
 from __future__ import annotations
 
-import json
 import shutil
 import sys
 from pathlib import Path
@@ -24,6 +27,8 @@ BACKEND = CHALK_DIR.parent
 sys.path.insert(0, str(BACKEND))
 
 from clearinghouse.data import load_curtailment, load_eia930  # noqa: E402
+from clearinghouse.data.forecast_inputs import load_forecast_inputs  # noqa: E402
+from clearinghouse.forecast import features as F  # noqa: E402
 
 VENDOR = CHALK_DIR / "src" / "vendor"
 SRC = BACKEND / "clearinghouse" / "forecast"
@@ -35,13 +40,6 @@ REWRITES = {
 
 
 def main() -> None:
-    spec = json.loads((BACKEND / "data" / "processed" / "forecast" / "feature_spec.json")
-                      .read_text())
-    if spec.get("model_set", "M4") != "M4":
-        # M10 models read forecast inputs (ERCOT postings, Open-Meteo forecasts) indexed by valid
-        # time; the Chalk resolvers only serve history with ts <= now, so they would get NaN.
-        raise SystemExit("the default forecast artifacts are M10 (forecast inputs), which this "
-                         "Chalk project does not serve yet; src/vendor/ keeps the M4 snapshot")
     if VENDOR.exists():
         shutil.rmtree(VENDOR)
     (VENDOR / "data").mkdir(parents=True)
@@ -71,7 +69,24 @@ def main() -> None:
         "wind_curtailed_mw": h["wind_curtailed_mw"], "solar_curtailed_mw": h["solar_curtailed_mw"],
     })
     out.to_parquet(VENDOR / "data" / "grid_hours.parquet", index=False)
-    print(f"vendored code + artifacts + {len(out)} hourly rows into {VENDOR}")
+
+    fi = load_forecast_inputs()
+    times = [fi["ercot_wind_posted_utc"], fi["ercot_solar_posted_utc"],
+             fi["om_run_init_max_utc"] + pd.Timedelta(hours=F.OM_PUBLICATION_ALLOWANCE_H)]
+    inputs = pd.DataFrame({
+        "id": "ERCO:" + fi["ts_cst"].dt.strftime("%Y-%m-%dT%H"),
+        "region": "ERCO",
+        "date_cst": fi["date_cst"].astype(str),
+        "hour_cst": fi["hour_cst"].astype(int),
+        "published_at": pd.concat(times, axis=1).max(axis=1),
+        **{c: fi[c] for c in F.EXOG_SERIES},
+        **{c: fi[c] for c in F.EXOG_SOURCE},
+    })
+    if inputs["published_at"].isna().any():
+        raise SystemExit("forecast-input row without any source time")
+    inputs.to_parquet(VENDOR / "data" / "forecast_inputs.parquet", index=False)
+    print(f"vendored code + artifacts + {len(out)} hourly rows + {len(inputs)} forecast-input "
+          f"rows into {VENDOR}")
 
 
 if __name__ == "__main__":

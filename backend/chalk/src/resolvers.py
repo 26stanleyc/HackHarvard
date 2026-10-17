@@ -1,4 +1,4 @@
-"""Chalk resolvers: EIA-930 history, the model-serving resolver, and bid features.
+"""Chalk resolvers: EIA-930 history, forecast inputs, the model-serving resolver, bid features.
 
 NOT imported by the app and not run by pytest. Written against Chalk's docs (not deployed).
 
@@ -8,9 +8,10 @@ NOT imported by the app and not run by pytest. Written against Chalk's docs (not
 * Online vs offline: https://docs.chalk.ai/docs/resolver-online-offline
 
 The forecasting code is the app's own (``clearinghouse/forecast/features.py`` and ``model.py``),
-vendored into ``src/vendor/`` together with the trained artifacts and a parquet copy of the
-processed EIA-930 + curtailment history by ``../sync_from_app.py``. One implementation, two
-serving paths: the Chalk path and the local path cannot drift apart.
+vendored into ``src/vendor/`` together with the trained artifacts and parquet copies of the
+processed EIA-930 + curtailment history and the M10 forecast inputs (ERCOT postings, Open-Meteo
+forecasts) by ``../sync_from_app.py``. One implementation, two serving paths: the Chalk path and
+the local path cannot drift apart.
 
 Hackathon data source: the history is a static file bundled with the deployment (Chalk has no
 Parquet source; https://docs.chalk.ai/docs/sql lists PostgreSQL/BigQuery/Snowflake/... sources).
@@ -28,13 +29,14 @@ import pandas as pd
 from chalk import offline, online
 from chalk.features import DataFrame, Features
 
-from src.features import FlexBid, GridDay, GridHour
+from src.features import FlexBid, ForecastInput, GridDay, GridHour
 from src.vendor import features as F
 from src.vendor import model as M
 from src.vendor.provider import BID_FEATURE_NAMES, ForecastResult, bid_features
 
 VENDOR = Path(__file__).resolve().parent / "vendor"
 HISTORY_FILE = VENDOR / "data" / "grid_hours.parquet"
+INPUTS_FILE = VENDOR / "data" / "forecast_inputs.parquet"
 HOURS = 24
 HOURLY_COLS = ("demand_mw", "wind_mw", "solar_mw", "nuclear_mw", "hydro_mw", "other_mw",
                "storage_mw", "net_imports_mw", "wind_curtailed_mw", "solar_curtailed_mw")
@@ -51,8 +53,25 @@ def _as_grid_hours(h: pd.DataFrame) -> DataFrame:
 
 
 @lru_cache(maxsize=1)
+def _forecast_inputs() -> pd.DataFrame:
+    return pd.read_parquet(INPUTS_FILE)
+
+
+def _as_forecast_inputs(fi: pd.DataFrame) -> DataFrame:
+    """Chalk DataFrame of ForecastInput rows ("forecast_input.published_at", ...)."""
+    return DataFrame(fi.rename(columns=lambda c: f"forecast_input.{c}"))
+
+
+def _utc(ts) -> pd.Timestamp:
+    a = pd.Timestamp(ts)
+    return a.tz_localize("UTC") if a.tzinfo is None else a.tz_convert("UTC")
+
+
+@lru_cache(maxsize=1)
 def _models():
-    return M.load(VENDOR / "artifacts")[0]
+    """Models and the specs they were trained with (M10: forecast-input features)."""
+    models, spec = M.load(VENDOR / "artifacts")
+    return models, M.specs_from(spec)
 
 
 # --- history -------------------------------------------------------------------------------
@@ -84,12 +103,46 @@ def grid_hours_online(id: GridDay.id, region: GridDay.region,
     forecast's issue time never reach the model. ``id`` is unused but must be an input: Chalk
     joins a has-many result back to its parent by the parent's primary key.
     """
-    a = pd.Timestamp(as_of)
-    a = a.tz_localize("UTC") if a.tzinfo is None else a.tz_convert("UTC")
+    a = _utc(as_of)
     h = _history()
     ts = pd.to_datetime(h["ts"], utc=True)
     h = h[(h["region"] == region) & (ts <= a) & (ts > a - pd.Timedelta(days=HISTORY_DAYS))]
     return _as_grid_hours(h)
+
+
+# --- forecast inputs (M10) -------------------------------------------------------------------
+
+
+@offline
+def forecast_inputs_offline() -> DataFrame[
+    ForecastInput.id, ForecastInput.region, ForecastInput.date_cst, ForecastInput.hour_cst,
+    ForecastInput.published_at, ForecastInput.ercot_stwpf, ForecastInput.ercot_wgrpp,
+    ForecastInput.ercot_wind_cophsl, ForecastInput.ercot_stppf, ForecastInput.ercot_pvgrpp,
+    ForecastInput.ercot_solar_cophsl, ForecastInput.om_wind100, ForecastInput.om_wind_power,
+    ForecastInput.om_ghi, ForecastInput.om_temp, ForecastInput.ercot_wind_posted_utc,
+    ForecastInput.ercot_solar_posted_utc, ForecastInput.om_run_init_max_utc,
+]:
+    """All rows; Chalk's point-in-time join filters them by ``published_at`` in offline queries."""
+    return _as_forecast_inputs(_forecast_inputs())
+
+
+def _inputs_for(region: str, date: str, as_of: pd.Timestamp) -> pd.DataFrame:
+    """The rows a forecast for ``date`` reads: valid slots of D and D-1, published by as_of."""
+    fi = _forecast_inputs()
+    prev = (pd.Timestamp(date) - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+    pub = pd.to_datetime(fi["published_at"], utc=True)
+    return fi[(fi["region"] == region) & fi["date_cst"].isin([prev, date]) & (pub <= as_of)]
+
+
+@online
+def forecast_inputs_online(id: GridDay.id, region: GridDay.region, date: GridDay.date,
+                           as_of: GridDay.as_of) -> GridDay.forecast_inputs:
+    """Forecasts for D's slots (the model inputs) and D-1's (``om_temp_prev``) published by as_of.
+
+    Same rule as ``grid_hours_online``: filtered on ``as_of``, not query time. The vendored
+    feature code then masks each source whose own time is not before as_of, as the app does.
+    """
+    return _as_forecast_inputs(_inputs_for(region, date, _utc(as_of)))
 
 
 # --- grid day --------------------------------------------------------------------------------
@@ -131,20 +184,32 @@ def _grid_from_hours(hours: pd.DataFrame, as_of: pd.Timestamp,
     return F.Grid(first_day=first_day, dates=dates, series=series), n_days - 1
 
 
-def _forecast(hours: pd.DataFrame, as_of: pd.Timestamp, date: str) -> dict[str, list[float]]:
-    """The app's gradient-boosting models (same artifacts) on point-in-time history.
+def _add_inputs(grid: F.Grid, rows: pd.DataFrame) -> None:
+    """``F.add_forecast_inputs`` as in LocalForecastProvider, on the grid's slots: ``rows`` (D-1
+    and D) placed by CST date and hour, NaN everywhere else (no other day is read)."""
+    slots = pd.DataFrame({"date_cst": np.repeat(grid.dates, HOURS),
+                          "hour_cst": np.tile(np.arange(HOURS), grid.n_days)})
+    slots["ts_utc"] = (pd.to_datetime(slots["date_cst"]) + pd.to_timedelta(
+        slots["hour_cst"] + 6, unit="h")).dt.tz_localize("UTC")  # fixed CST = UTC-6
+    F.add_forecast_inputs(grid, slots.merge(rows, on=["date_cst", "hour_cst"], how="left"))
+
+
+def _forecast(hours: pd.DataFrame, inputs: pd.DataFrame, as_of: pd.Timestamp,
+              date: str) -> dict[str, list[float]]:
+    """The app's gradient-boosting models (same artifacts) on point-in-time history and inputs.
 
     Issue time 00:00 CST on the target date: the persistence inputs are the previous CST day's
     same-hour actuals, all of which have ended by as_of (same rule as LocalForecastProvider).
     Plain function (not a resolver) so both resolvers below can call it.
     """
     grid, d = _grid_from_hours(hours, as_of, date)
-    models = _models()
+    _add_inputs(grid, inputs)
+    models, specs = _models()
     fc = {}
     for target in F.TARGETS:
         X, S = F.build_features(grid, target, np.array([d]))
-        assert not F.leakage_violations(X, S), "feature read a slot at/after as_of"
-        fc[target] = M.predict(models[target], M.SPECS[target], X)
+        assert not F.leakage_violations(X, S), "feature read a slot or input at/after as_of"
+        fc[target] = M.predict(models[target], specs[target], X)
     src = d * HOURS + np.arange(HOURS) - HOURS  # previous CST day, same hour
     assert (src < F.as_of_index(d)).all()
 
@@ -171,24 +236,26 @@ def _forecast(hours: pd.DataFrame, as_of: pd.Timestamp, date: str) -> dict[str, 
 @online
 def forecast_grid_day(
     id: GridDay.id, region: GridDay.region, date: GridDay.date, as_of: GridDay.as_of,
-    hours: GridDay.hours,
+    hours: GridDay.hours, forecast_inputs: GridDay.forecast_inputs,
 ) -> Features[
     GridDay.demand_mw, GridDay.wind_mw, GridDay.solar_mw, GridDay.nuclear_mw, GridDay.hydro_mw,
     GridDay.other_mw, GridDay.storage_mw, GridDay.net_imports_mw, GridDay.curtailed_mw,
 ]:
-    """Model serving: point-in-time ``hours`` from Chalk -> the 24-hour forecast."""
+    """Model serving: point-in-time ``hours`` and ``forecast_inputs`` -> the 24-hour forecast."""
     # Bare column names ("ts", not "grid_hour.ts"), as the vendored app code expects.
     h = hours.to_pandas(string_names=True, prefixed=False)
-    return GridDay(**_forecast(h, pd.Timestamp(as_of), date))
+    fi = forecast_inputs.to_pandas(string_names=True, prefixed=False)
+    return GridDay(**_forecast(h, fi, pd.Timestamp(as_of), date))
 
 
 @lru_cache(maxsize=32)
 def _cached_forecast(region: str, date: str) -> dict[str, list[float]]:
-    """Forecast for bid features (8 bids per clear share one day): bundled history, ts <= as_of."""
+    """Forecast for bid features (8 bids per clear share one day): bundled history, ts <= as_of,
+    and bundled forecast inputs (same rows as ``forecast_inputs_online``)."""
     _, _, as_of = _parse_grid_day_id(f"{region}:{date}")
     h = _history()
     h = h[(h["region"] == region) & (pd.to_datetime(h["ts"], utc=True) <= as_of)]
-    return _forecast(h, as_of, date)
+    return _forecast(h, _inputs_for(region, date, as_of), as_of, date)
 
 
 # --- bid features -----------------------------------------------------------------------------

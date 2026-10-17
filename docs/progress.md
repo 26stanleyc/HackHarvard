@@ -314,3 +314,11 @@ Checks:
 - This checkout has no `CHALK_*` keys, so everything above ran on the local M10 model.
 - `backend/chalk/sync_from_app.py` now refuses to vendor M10 artifacts, because the Chalk resolvers only serve history with `ts ≤ now`, so the forecast inputs (indexed by valid time) would be NaN.
 - Serving M10 from Chalk needs the forecast-input table as a Chalk feature with point-in-time posting/run times, plus a redeploy. That is a team decision; nothing was redeployed.
+
+**Follow-up (2026-10-17): the Chalk project now serves M10 (not yet deployed).**
+- `backend/chalk/src/features.py`: new `ForecastInput` feature class (the forecast-input table, one row per valid CST slot; feature time `published_at` = latest of the ERCOT wind/solar posting times and GFS run init + 12 h) and a `GridDay.forecast_inputs` has-many.
+- `backend/chalk/src/resolvers.py`: `forecast_inputs_offline` (all rows; point-in-time join on `published_at`) and `forecast_inputs_online` (exactly D's and D-1's rows with `published_at <= as_of`). `forecast_grid_day` and the bid-feature forecast pass them to the vendored `add_forecast_inputs` and use the specs saved with the artifacts, as `LocalForecastProvider` does.
+- `sync_from_app.py` guard lifted; it also writes `src/vendor/data/forecast_inputs.parquet`. Re-vendored: `src/vendor/` is the M10 code and models (history parquet unchanged).
+- Offline check (resolvers called directly in the Chalk venv, chalkpy 2.163.1, vs `LocalForecastProvider` in the app env): max absolute difference **0** on all nine forecast fields and on bid features (3 bids per day) for the four demo days and for every forecastable day 2023-12-16..2025-01-31 (413 days); each day received exactly 48 input rows (D-1 and D). Control: dropping the inputs changes the 2024-03-29 forecast by up to 15,121 MW (wind). Not covered offline: the Chalk engine's own has-many join and serialization (checked only by a live query after deploy).
+- `uv run pytest -q` → 210 passed; ruff clean.
+- **Not done:** `chalk apply`. Until it runs, the live Chalk deployment still serves M4.
