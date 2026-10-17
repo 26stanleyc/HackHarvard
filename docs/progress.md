@@ -51,3 +51,35 @@ Checks (`uv run pytest -q` → 53 passed; ruff clean):
 - Herding-gate days (7, used for nothing else): 2024-02-03, 03-18, 03-27, 04-24, 04-27, 09-03, 11-29.
 - Calibration: 248 train / 104 holdout (70/30 stratified by month). Demo, gate and holdout days are never trained on.
 - Forecast (M4): train before 2024-10-01 CST, test 2024-10-01..2024-12-31.
+
+## M2. Uncalibrated simulator and herding gate — GO (2026-10-17)
+
+- **Code:** `clearinghouse/params.py` (`SimParams`: per-fuel availability, per-fuel and optional per-month price scale; `DEFAULT_PARAMS`; `load_params()` reports calibrated vs default), `inputs.py` (`DayInputs`, `actual_inputs`, `yesterday_forecast_inputs`; fixed supply = everything except coal/gas/oil plus net imports), `simulator.py` (vectorized merit order: cumulative capacity/CO2 + `np.interp`, batch `[n,24]`, marginal resource, fuel split, average intensity, unserved energy), `population.py` (stated synthetic bid distribution), `strategies.py` (strategies 1-3, greedy coordinator core with trace, schedule validation, herding metric), `scripts/run_herding_gate.py` → `docs/results/herding_gate.json`.
+- **Uncalibrated defaults (stated before results):** availability coal 0.90, gas 0.90, oil 0.50; fuel price scales 1.0.
+- **Population:** 30 bids per draw — EV overnight 25%, EV evening 10%, data center batch 20%, office pre-cooling 20%, cold storage 10%, generic 15%; sizes LogNormal(0,1); energy = U(0.3,0.8) × max_mw × window (cold storage U(0.15,0.35)); scaled so Σ max_mw = share × the day's peak; seeds 1000-1004.
+
+Checks (`uv run pytest -q` → 89 passed; ruff clean):
+- Zero added load reproduces baseline exactly; adding load never lowers generation or emissions (200 random profiles × 2 days); 1 MWh beyond curtailment changes CO2 by the marginal plant's rate (rel tol 1e-6); load absorbed by curtailment adds 0 t; unserved energy recorded.
+- One simulated day: 0.0065 ms (target < 50 ms). Gate runtime 16 s.
+- All schedules satisfy their bids (energy within 0.1%, window, max MW); greedy deterministic.
+- Fixed-supply balance residual over 8,712 candidate hours: mean −0.03 MW, mean |r| 1.1 MW, max 113 MW.
+
+**Herding gate (pre-registered rule, uncalibrated simulator): GO — 7/7 days** (needed 4).
+
+| Day | Primary (strategy 3) gap % at 5 / 10 / 15 / 20 / 30% share | Smallest passing share |
+|---|---|---|
+| 02-03 | 37.8 / 9.3 / 12.3 / 17.7 / 34.8 | 5.0% |
+| 03-18 | 151.6 / 70.0 / 76.1 / 76.9 / 77.8 | 2.5% |
+| 03-27 | 75.1 / 56.7 / 54.6 / 57.2 / 64.6 | 2.5% |
+| 04-24 | 0.0 / 39.8 / 68.3 / 73.0 / 84.0 | 10.0% |
+| 04-27 | n/a / 118.6 / 57.2 / 41.6 / 44.6 | 7.5% |
+| 09-03 | 404.7 / 69.9 / 171.4 / 153.6 / 139.4 | 2.5% |
+| 11-29 | 66.7 / 74.1 / 81.1 / 83.0 / 91.3 | 2.5% |
+
+Gap % above 100% means realized savings were negative (coordinated-less shifting raised emissions). Strategy 2 (secondary) shows similar or larger gaps.
+
+Caveats and decisions (recorded honestly):
+- Aggregation: gap % per (day, share) = mean over draws of each draw's gap %, over draws with predicted > 0. The ratio-of-means check also gives GO 7/7.
+- 2024-09-03 passes mostly on forecast error (predicted savings ≈ 0 or negative); without it the result is 6/7, still GO.
+- Disclosure: one throwaway smoke test ran on gate day 2024-04-24 before the gate script existed; no parameter, distribution or logic changed afterwards.
+- **The uncalibrated baseline is far from actuals:** simulated fossil CO2 is 0.48-0.73 of actual on gate days and **no coal is dispatched** (with 2024 gas at $1.5-2.0/MMBtu nearly all gas capacity is cheaper than coal at published prices). Every marginal plant is gas. M3 must fix this with the named parameters and re-run the gate.
