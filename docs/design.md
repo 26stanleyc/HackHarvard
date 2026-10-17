@@ -317,6 +317,38 @@ The build is a sequence of milestones. Each one has deliverables and checks that
   - `.env` has never been committed (checked in git history).
   - Every number on screen traces to a data source or code (spot-check five).
 
+### M10. Weather inputs for the forecast (Backend; added after M9)
+Why: the M4 model has no weather inputs. Its wind forecast is weak (test MAE 4,089 MW, MAPE 61.7%), so plans made on the forecast can lose on the actual day. M10 adds forecasts that were already published at the issue time. The issue time stays 00:00 CST on target day D (`I`, M4).
+
+- **Deliverables:**
+  - **ERCOT's own forecasts, point in time.** NP4-732-CD (wind: STWPF, WGRPP, COP HSL, system-wide) and NP4-737-CD (solar: STPPF, PVGRPP, COP HSL, system-wide) via the ERCOT Public API (existing keys). For each target CST day D, keep the 24 CST slots of D from the latest posting whose `postedDatetime` (Central prevailing time, converted to UTC) is strictly before `I`. Search window `[I − 6 h, I)`. The posting time is stored for every row. Days with no such posting stay missing (NaN) and are listed. ERCOT forecasts are of uncurtailed potential output, while the EIA-930 target is after curtailment; the model learns that mapping.
+  - **Archived weather-model forecasts.** Open-Meteo Previous Runs API (free non-commercial tier, no key; data CC BY 4.0, credited as "Weather data by Open-Meteo.com" in the README and `/api/meta` `data_sources`). Model `gfs_global` (GFS 0.25°, 4 runs a day), chosen before any results because its archive starts earliest: temperature and radiation from 2024-01-20, 100 m wind from 2024-02-17 (ECMWF IFS starts in Feb/Mar 2024). Earlier training days get NaN for these features. Variables: `wind_speed_100m_previous_day2`, `shortwave_radiation_previous_day2`, `temperature_2m_previous_day2` only. Points: 6 capacity-weighted k-means centroids (fixed seed) of eGRID2023 ERCOT (`BACODE == "ERCO"`) wind plants, and 6 of solar plants, each weighted by its cluster's nameplate share. Demand uses the 2 m temperature at 4 load centers (Dallas–Fort Worth, Houston, San Antonio, Austin), weighted by 2020 Census metro population. Slot alignment: instantaneous variables use the mean of the values at the slot's start and end; radiation uses the value stamped at the slot end (Open-Meteo's mean over the preceding hour).
+  - **Lead-time rule (leakage).** `_previous_dayN` at valid time T uses each run's lead steps from N×24 h onward, so every run used was initialized at or before T − 24N h. The latest valid time read for day D is D+1 00:00 CST (end of slot 23) = D+1 06:00 UTC. With N = 2, every run used was initialized by D−1 06:00 UTC, 24 h before `I`; global runs are published within ~4-8 h. **Rejected: `_previous_day1`.** Its late-day slots can come from the 00 UTC run on D, which some models do not publish by 06:00 UTC (= `I`). Never used: `_previous_day0`, observed weather, reanalysis (ERA5 / Historical Weather API) or NOAA observations, since these are hindsight.
+  - **New features** (added to M4's, which are unchanged):
+    - wind: `ercot_stwpf`, `ercot_wgrpp`, `ercot_wind_cophsl` (MW); `om_wind100` (capacity-weighted mean 100 m wind speed); `om_wind_power` (capacity-weighted mean of a generic normalized power curve: 0 below 3 m/s, cubic to 1 at 12 m/s, 1 up to 25 m/s, 0 above).
+    - solar: `ercot_stppf`, `ercot_pvgrpp`, `ercot_solar_cophsl` (MW); `om_ghi` (capacity-weighted shortwave radiation).
+    - demand: `om_temp` (population-weighted 2 m temperature for the slot), `om_temp_prev` (the same slot on D−1, same lead rule), `om_temp_max` and `om_temp_min` (over D).
+  - **Model selection (training period only).** Same blocked monthly CV and folds as M4; M4 hyperparameters unchanged. For each target, candidate A = the M4 spec plus that target's new features. For wind and solar, candidate B = A with base = ERCOT's forecast (STWPF / STPPF), falling back to the M4 base on days with no posting. Each target uses whichever of {M4, A, B} has the lowest training-CV MAE. A target where M4 wins keeps its M4 model. The test period is never used for any choice.
+  - **Code:** `scripts/download_data.py` datasets `ercot_np4_pit` and `open_meteo`; processed table `backend/data/processed/forecast_inputs.parquet` (committed); `scripts/train_forecast.py` trains M4 (unchanged) and M10 and writes `docs/results/forecast_metrics.json` with both.
+- **Checks (pre-registered):**
+  - **No leakage, extended to every new feature:**
+    - Every ERCOT posting used for day D was posted before `I`; tested over every train and test day.
+    - A unit test shows that changing or adding postings at or after `I` leaves the extracted features unchanged.
+    - Every Open-Meteo value comes from a `_previous_day2` column, with the latest possible run initialization + 12 h before `I` for every value read for day D; tested over every train and test day.
+    - The processed table holds no `_previous_day0` / `_previous_day1` or observed columns.
+    - The existing M4 leakage tests still pass.
+  - **Same split as M4:** train on target days before 2024-10-01 CST, test on 2024-10-01..2024-12-31; no tuning on the test period.
+  - **Report:** test MAE / normalized MAE / MAPE for wind, solar and demand, for M10, M4 and yesterday-as-forecast. ERCOT STWPF / STPPF used directly are a reference only.
+  - **Adoption rule:** M10 becomes the default `LocalForecastProvider` model iff its test wind MAE is below M4's (4,089 MW). Otherwise M4 stays the default and M10 is only reported.
+  - **If adopted:**
+    - The M4 demand check still holds (demand MAPE below yesterday).
+    - One-day forecast under 500 ms.
+    - Re-run the calibrated herding gate (`run_herding_gate.py --params calibrated`). It plans on yesterday-as-forecast by its M2 definition, so it is expected to be unchanged; recorded either way.
+    - Regenerate the adoption chart and fixtures.
+    - Record the effect on the demo days (2024-03-29, 04-11, 08-20, 01-16) next to M4, whatever it is. Demo days fall inside the forecast's training period (M4 split), so their forecasts are in-sample for both models; out-of-fold CV error on those days is reported alongside.
+  - **No contract change:** the `ForecastProvider` interface and the B6 API contract stay the same.
+  - **Existing suites:** `uv run pytest -q`, ruff, and frontend lint / typecheck / build pass.
+
 ### Mapping to a team
 
 With 2-3 people: Backend takes M1-M6 in order; Frontend takes M7 right after M0 (using the fixtures) and then M8 once M6 passes; M9 is shared. Hour 0 for everyone: agree the API contract (B6), get keys (B7), pick the region, decide backend hosting. Feature freeze at hour 18; stretch goals (rolling re-plan replay, multi-user live bidding) only after M8 passes.
