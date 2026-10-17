@@ -272,6 +272,17 @@ The hackathon coordinator minimizes emissions only, so bill savings are a side e
   - packing one company's load into fewer hours can raise its own peak and demand charge.
 - **Pitch wording until this exists:** "can also lower electricity bills where customers pay time-of-use or real-time rates," not "will lower bills."
 
+### 3. Auto-bidding with federated flexibility forecasting (uses each company's history)
+
+In the hackathon, companies type their bids by hand. In production, bids would be generated from each company's own history, which is the concrete form of the "automate their operations" idea in section 1.
+
+- **Auto-generated bids:** a model trained on a company's past operations predicts tomorrow's flexibility (e.g., when an EV fleet's vehicles return and how much charge they need, or a data center's batch queue) and submits the bid automatically.
+- **Why federated learning fits here:** many companies have the same kind of prediction task, their histories are private (charging sessions reveal routes and operations), and each one's dataset is small while patterns are shared. Federated learning trains one shared flexibility forecaster per load type while each company's raw history stays on its own servers. (This differs from the coordinator, which needs only bids, which is why federated learning was dropped from the core design.)
+- **Fairer, harder-to-game payouts:** history sets each company's baseline from past usage, as demand response programs already do, instead of trusting self-reported bid windows (the known gaming weakness in B5).
+- **Reliability-aware scheduling:** history shows how reliably each company follows its schedule, so the coordinator can avoid depending heavily on companies that often miss their slots.
+- **What it does not help:** the grid forecast (company loads are tiny next to regional demand) or the core novelty claim (federated forecasting of EV charging demand is already published).
+- **Possible later demo:** Caltech's ACN-Data (real EV charging sessions from several sites; access likely needs a free token, verify in its docs). Treat each site as one company and train a federated model that predicts each site's next-day charging need and turns it into a bid. Estimated 4-6 hours; only after the core demo works.
+
 ## What I noticed about how you think
 
 - You attacked your own design: "is there a need to keep this data private tho?" That question cut federated learning, the most complex part, and made the pitch more honest.
