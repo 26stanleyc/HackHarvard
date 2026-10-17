@@ -20,6 +20,7 @@ import type {
   AdoptionChartResponse,
   Bid,
   BidError,
+  BidFeaturesBlock,
   ClearRequest,
   ClearResponse,
   EvaluateRequest,
@@ -80,6 +81,7 @@ const TIMEOUT_MS = {
   get: 10_000,
   clear: 30_000,
   evaluate: 10_000,
+  bidFeatures: 10_000,
 } as const;
 
 // --- 422 parsing ------------------------------------------------------------
@@ -241,6 +243,23 @@ export async function postClear(req: ClearRequest): Promise<ClearResponse> {
     body: JSON.stringify(req),
     timeoutMs: TIMEOUT_MS.clear,
     bids: req.bids,
+  });
+}
+
+/**
+ * POST /api/bid-features: bid profiles served by the forecast provider (Chalk when configured).
+ * Fixture mode has no recorded profiles for arbitrary bids, so it returns null.
+ */
+export async function postBidFeatures(
+  day: string,
+  bids: Bid[],
+): Promise<BidFeaturesBlock | null> {
+  if (API_MODE === "fixture") return null;
+  return request<BidFeaturesBlock>("/api/bid-features", {
+    method: "POST",
+    body: JSON.stringify({ day, bids }),
+    timeoutMs: TIMEOUT_MS.bidFeatures,
+    bids,
   });
 }
 

@@ -157,7 +157,12 @@ export function fmtLatency(ms: number): string {
 
 export function forecastSourceText(f: Forecast | null): string {
   if (!f) return "reported with each clear";
-  const src = f.source === "chalk" ? "Chalk model serving" : "local model (Chalk credentials pending)";
+  const src =
+    f.source === "chalk"
+      ? "Chalk model serving"
+      : f.fallback_reason
+        ? "local model (Chalk unavailable, fell back)"
+        : "local model (Chalk credentials pending)";
   return `${src} · ${fmtLatency(f.latency_ms)}`;
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useId } from "react";
-import { API_MODE, ApiError } from "@/lib/api";
+import { useEffect, useId, useRef, useState } from "react";
+import { API_MODE, ApiError, postBidFeatures } from "@/lib/api";
 import {
   customDraft,
   loadTypeLabel,
@@ -12,9 +12,9 @@ import {
   presetToDraft,
   type BidDraft,
 } from "@/lib/bids";
-import { fmtInt, fmtUsd, hh, windowLabel } from "@/lib/format";
+import { fmtInt, fmtPct, fmtUsd, hh, windowLabel } from "@/lib/format";
 import { companyColor } from "@/lib/theme";
-import type { MetaResponse, Preset } from "@/lib/types";
+import type { Bid, BidFeatures, BidFeaturesBlock, MetaResponse, Preset } from "@/lib/types";
 import { Button, ErrorBanner, LoadTypeTag, SectionTitle, Source } from "./ui";
 
 export interface Scenario {
@@ -33,6 +33,38 @@ export function scenarioErrors(s: Scenario): string[] {
   if (s.pool_usd.trim() === "" || !Number.isFinite(pool) || pool < 0)
     out.push("Payout pool must be a number >= 0.");
   return out;
+}
+
+const PROFILE_DEBOUNCE_MS = 400;
+
+/**
+ * Bid profiles from POST /api/bid-features for the bids that pass local checks, refetched
+ * (debounced) when the day or a bid changes. Served by Chalk when the backend has it configured.
+ */
+function useBidProfiles(day: string, bids: Bid[]) {
+  const [block, setBlock] = useState<BidFeaturesBlock | null>(null);
+  const [failed, setFailed] = useState(false);
+  const seq = useRef(0);
+  const key = JSON.stringify([day, bids]);
+  useEffect(() => {
+    if (API_MODE === "fixture") return;
+    const n = ++seq.current;
+    const [d, b] = JSON.parse(key) as [string, Bid[]];
+    if (b.length === 0) return;
+    const t = setTimeout(() => {
+      postBidFeatures(d, b)
+        .then((r) => {
+          if (n !== seq.current) return; // a newer request superseded this one
+          setBlock(r);
+          setFailed(false);
+        })
+        .catch(() => {
+          if (n === seq.current) setFailed(true);
+        });
+    }, PROFILE_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [key]);
+  return { block, failed };
 }
 
 export function BidBuilder({
@@ -65,6 +97,8 @@ export function BidBuilder({
   const errors = drafts.map(draftError);
   const sErr = scenarioErrors(scenario);
   const canRun = drafts.length > 0 && errors.every((e) => e === null) && sErr.length === 0 && !clearing;
+  const validBids = drafts.filter((_, i) => errors[i] === null).map(draftToBid);
+  const profiles = useBidProfiles(scenario.day, validBids);
   const serverErrByBid = new Map<string, string[]>();
   for (const e of clearError?.bidErrors ?? []) {
     if (e.bid_id) serverErrByBid.set(e.bid_id, [...(serverErrByBid.get(e.bid_id) ?? []), e.message]);
@@ -141,6 +175,10 @@ export function BidBuilder({
             </div>
           )}
 
+          {drafts.length > 0 && API_MODE !== "fixture" && (
+            <ProfileSourceNote block={profiles.block} failed={profiles.failed} />
+          )}
+
           {drafts.map((d, i) => (
             <BidCard
               key={d.id}
@@ -149,6 +187,7 @@ export function BidBuilder({
               error={errors[i]}
               serverErrors={serverErrByBid.get(d.id) ?? []}
               loadTypes={loadTypes}
+              profile={errors[i] === null ? (profiles.block?.per_bid[d.id] ?? null) : null}
               onChange={(patch) => update(d.id, patch)}
               onRemove={() => remove(d.id)}
             />
@@ -382,6 +421,7 @@ function BidCard({
   error,
   serverErrors,
   loadTypes,
+  profile,
   onChange,
   onRemove,
 }: {
@@ -390,6 +430,7 @@ function BidCard({
   error: string | null;
   serverErrors: string[];
   loadTypes: { value: string; label: string }[];
+  profile: BidFeatures | null;
   onChange: (patch: Partial<BidDraft>) => void;
   onRemove: () => void;
 }) {
@@ -460,6 +501,7 @@ function BidCard({
           </span>
         )}
       </div>
+      {profile && <BidProfile f={profile} />}
       {draft.size_reference && <p className="mt-1.5 text-[11px] text-muted">{draft.size_reference}</p>}
       {error && (
         <p className="mt-2 text-xs font-medium text-danger" data-testid={`bid-error-${draft.id}`}>
@@ -472,6 +514,59 @@ function BidCard({
         </p>
       ))}
     </div>
+  );
+}
+
+/** What the day's forecast says about this bid's window (served bid features). */
+function BidProfile({ f }: { f: BidFeatures }) {
+  const items: { label: string; value: string; title: string }[] = [];
+  if (f.window_mean_renewable_share !== null)
+    items.push({
+      label: "Wind + solar in window",
+      value: fmtPct(f.window_mean_renewable_share, 0),
+      title: "Forecast mean (wind + solar) / demand over the bid's window",
+    });
+  if (f.window_curtailed_mwh !== null)
+    items.push({
+      label: "Spare clean energy",
+      value: `${fmtInt(f.window_curtailed_mwh)} MWh`,
+      title: "Forecast curtailed wind + solar in the window: extra load here is absorbed with no fossil ramp",
+    });
+  if (f.window_lowest_net_load_hour !== null)
+    items.push({
+      label: "Lowest net load",
+      value: hh(f.window_lowest_net_load_hour),
+      title: "Hour in the window with the lowest forecast demand minus wind and solar",
+    });
+  if (f.slack_hours !== null)
+    items.push({
+      label: "Slack",
+      value: `${f.slack_hours.toFixed(1)} h`,
+      title: "Window length minus the hours needed at max power: room the coordinator has to move this bid",
+    });
+  if (items.length === 0) return null;
+  return (
+    <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-md bg-surface-2 px-3 py-2 sm:grid-cols-4" data-testid="bid-profile">
+      {items.map((it) => (
+        <div key={it.label} className="min-w-0" title={it.title}>
+          <dt className="truncate text-[10px] font-medium uppercase tracking-wider text-muted">{it.label}</dt>
+          <dd className="num text-sm text-ink">{it.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function ProfileSourceNote({ block, failed }: { block: BidFeaturesBlock | null; failed: boolean }) {
+  if (failed && !block) return <Source>bid profiles unavailable (POST /api/bid-features failed)</Source>;
+  if (!block) return <Source>bid profiles: loading…</Source>;
+  const src = block.source === "chalk" ? "Chalk online query (flex_bid features)" : "local model (Chalk credentials pending)";
+  const ms = block.latency_ms < 10 ? block.latency_ms.toFixed(1) : fmtInt(block.latency_ms);
+  return (
+    <Source>
+      bid profiles: {src} · {ms} ms · from the day&apos;s forecast, never actuals
+      {failed ? " · last refresh failed, showing previous" : ""}
+    </Source>
   );
 }
 

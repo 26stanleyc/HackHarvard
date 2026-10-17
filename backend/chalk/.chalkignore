@@ -1,0 +1,4 @@
+# Local helper scripts: run with the APP's environment / chalkpy client, not part of the deployment.
+sync_from_app.py
+training_data.py
+.venv/

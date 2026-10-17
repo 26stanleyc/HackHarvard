@@ -12,6 +12,8 @@ Endpoints (the contract in ``schemas.py`` is frozen; every response validates ag
   ``scripts/build_adoption_chart.py``)
 * ``POST /api/clear``          -> ``ClearResponse``
 * ``POST /api/evaluate``       -> ``EvaluateResponse``
+* ``POST /api/bid-features``   -> ``BidFeaturesBlock`` (bid profiles from the forecast provider;
+  ``/api/clear`` also returns them as ``bid_features``)
 * ``GET  /api/health``         -> ``{status, params_source, forecast_source}`` (extra, not in B6)
 
 Planning vs scoring (pinned M6 decision 1): for a request day ``D``,
@@ -72,6 +74,8 @@ from clearinghouse.presets import PRESETS
 from clearinghouse.schemas import (
     AdoptionChartResponse,
     Bid,
+    BidFeaturesBlock,
+    BidFeaturesRequest,
     ClearRequest,
     ClearResponse,
     EvaluateRequest,
@@ -139,7 +143,9 @@ def calibration() -> dict:
 
 
 def data_sources(forecast_source: str) -> list[str]:
-    fc = ("Forecast: Chalk model serving (day-ahead demand, wind and solar)"
+    fc = ("Forecast and bid features: Chalk online queries (day-ahead demand, wind and solar "
+          "from the gradient-boosted model served by Chalk; the local model answers if Chalk "
+          "fails, and each response says which served it)"
           if forecast_source == "chalk" else
           "Forecast: local gradient-boosted model on EIA-930 history, issued 00:00 CST on the "
           "day (day-ahead demand, wind, solar; Chalk credentials pending)")
@@ -181,17 +187,31 @@ class Engine:
         self._plan: dict[tuple[str, str], tuple[DaySimulator, list[float]]] = {}
         self._score: dict[str, DaySimulator] = {}
         self._background: dict[tuple[str, str, float], Background] = {}
+        self._last_fc: dict[str, ForecastResult] = {}
 
     @property
     def provider(self):
         return self._provider_factory()
 
-    def forecast(self, day: str) -> tuple[ForecastResult, float]:
-        """``(result, latency_ms)`` with latency = wall time of this get_forecast call."""
+    def forecast(self, day: str, fresh: bool = True) -> tuple[ForecastResult, float]:
+        """``(result, latency_ms)`` with latency = wall time of this get_forecast call.
+
+        ``fresh=False`` reuses the day's last served forecast (a past day's forecast never
+        changes), so ``/api/evaluate`` does not pay a Chalk round trip; ``/api/clear`` always
+        asks the provider, so its reported source and latency are from this request.
+        """
+        if not fresh:
+            with self._lock:
+                hit = self._last_fc.get(day)
+            if hit is not None and hit.source == self.provider.source:
+                return hit, 0.0
         provider = self.provider
         t0 = time.perf_counter()
         fc = provider.get_forecast(REGION_CODE, day)
-        return fc, (time.perf_counter() - t0) * 1000.0
+        latency = (time.perf_counter() - t0) * 1000.0
+        with self._lock:
+            self._last_fc[day] = fc
+        return fc, latency
 
     def plan_sim(self, fc: ForecastResult) -> tuple[DaySimulator, list[float], str]:
         key = (fc.date, _fingerprint(fc))
@@ -221,12 +241,19 @@ class Engine:
                 bg = self._background[key] = (vec, pop)
         return bg
 
-    def prepare(self, day: str, background_pct: float):
-        fc, latency = self.forecast(day)
+    def prepare(self, day: str, background_pct: float, fresh: bool = True):
+        fc, latency = self.forecast(day, fresh)
         plan, intensity, fp = self.plan_sim(fc)
         score = self.score_sim(day)
         bg = self.background(day, fp, background_pct, plan)
         return fc, latency, plan, intensity, score, bg
+
+    def bid_features(self, day: str, bids: list[Bid]) -> dict:
+        """Served bid features (``BidFeaturesBlock``): one provider call for all bids."""
+        t0 = time.perf_counter()
+        source, feats = self.provider.get_bid_features_many(bids, day)
+        return {"source": source, "latency_ms": (time.perf_counter() - t0) * 1000.0,
+                "per_bid": {b.id: f for b, f in zip(bids, feats, strict=True)}}
 
     def warm(self, day: str, background_pct: float = BACKGROUND_PCT_DEFAULT) -> None:
         self.prepare(day, background_pct)
@@ -389,8 +416,21 @@ def post_clear(req: ClearRequest) -> dict:
     body = clear(req.day, req.bids, req.background_pct, req.carbon_price, req.pool_usd, plan,
                  score, background=bg)
     forecast = {"source": fc.source, "latency_ms": float(latency),
-                "hourly": {**fc.api_hourly(), "avg_intensity": list(intensity)}}
-    return {"forecast": forecast, **body}
+                "hourly": {**fc.api_hourly(), "avg_intensity": list(intensity)},
+                "fallback_reason": fc.methods.get("fallback_reason")}
+    return {"forecast": forecast, **body, "bid_features": engine.bid_features(req.day, req.bids)}
+
+
+@app.post("/api/bid-features", response_model=BidFeaturesBlock)
+def post_bid_features(req: BidFeaturesRequest) -> dict:
+    """Bid profiles for the bid builder, served by the forecast provider (Chalk when configured).
+
+    Infeasible bids are allowed here (``feasible: false``): the builder shows the profile while
+    the bid is being edited.
+    """
+    check_day(req.day)
+    _check_bids(req.bids, check_feasible=False)
+    return get_engine().bid_features(req.day, req.bids)
 
 
 @app.post("/api/evaluate", response_model=EvaluateResponse)
@@ -399,6 +439,6 @@ def post_evaluate(req: EvaluateRequest) -> dict:
     _check_bids(req.bids, check_feasible=False)  # infeasible bids -> feasible=false (contract)
     _check_scenario(req.background_pct)
     engine = get_engine()
-    _fc, _lat, plan, _int, score, bg = engine.prepare(req.day, req.background_pct)
+    _fc, _lat, plan, _int, score, bg = engine.prepare(req.day, req.background_pct, fresh=False)
     return evaluate(req.day, req.bids, req.schedule, req.background_pct, plan, score,
                     background=bg)

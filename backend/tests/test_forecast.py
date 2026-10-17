@@ -23,6 +23,7 @@ from clearinghouse.forecast import features as F
 from clearinghouse.forecast import get_provider
 from clearinghouse.forecast import model as M
 from clearinghouse.forecast.chalk import ChalkError, ChalkForecastProvider
+from clearinghouse.forecast.fallback import FallbackProvider
 from clearinghouse.forecast.local import LocalForecastProvider
 from clearinghouse.forecast.provider import BID_FEATURE_NAMES, HOURLY_FIELDS
 
@@ -195,7 +196,10 @@ def test_all_chalk_vars_select_chalk_provider(monkeypatch, tmp_path):
     for name in config.CHALK_KEYS:
         monkeypatch.setenv(name, f"FAKE_{name}_q7")
     p = get_provider()  # constructing it makes no request
-    assert isinstance(p, ChalkForecastProvider) and p.source == "chalk"
+    assert isinstance(p, FallbackProvider) and p.source == "chalk"
+    assert isinstance(p.primary, ChalkForecastProvider)
+    assert isinstance(p.fallback, LocalForecastProvider)
+    assert get_provider() is p  # cached: the OAuth token and connections are reused
     assert "FAKE_" not in repr(p)
 
 
@@ -328,3 +332,42 @@ def test_chalk_errors_raise_without_leaking_secrets():
         p2.get_forecast("ERCO", "2024-10-14")
     for text in (str(e.value), str(e2.value), repr(p)):
         assert "secret-FAKE" not in text and "cid-FAKE" not in text
+
+
+# --- (f) Chalk failure falls back to the local model ---------------------------------------
+
+
+def test_chalk_failure_falls_back_to_local(local):
+    log: list[httpx.Request] = []
+    chalk = ChalkForecastProvider("cid-FAKE", "secret-FAKE", "prod",
+                                  transport=_chalk_mock(log, query_status=500))
+    p = FallbackProvider(chalk, local, cooldown_s=60)
+    r = p.get_forecast("ERCO", "2024-10-14")
+    assert r.source == "local"
+    assert r.methods["fallback_reason"].startswith("chalk ChalkError")
+    assert "secret-FAKE" not in r.methods["fallback_reason"]
+    np.testing.assert_array_equal(r.demand_mw, local.get_forecast("ERCO", "2024-10-14").demand_mw)
+    # within the cooldown Chalk is not called again
+    n = len(log)
+    r2 = p.get_forecast("ERCO", "2024-10-14")
+    assert len(log) == n and r2.source == "local" and "skipped" in r2.methods["fallback_reason"]
+    source, feats = p.get_bid_features_many(
+        [{"id": "b1", "energy_mwh": 400.0, "earliest_hour": 8, "deadline_hour": 18,
+          "max_mw": 100.0}], "2024-10-14")
+    assert source == "local" and len(log) == n and tuple(feats[0]) == BID_FEATURE_NAMES
+
+
+def test_chalk_ok_is_served_by_chalk(local):
+    log: list[httpx.Request] = []
+    p = FallbackProvider(ChalkForecastProvider("cid-FAKE", "secret-FAKE", "prod",
+                                               transport=_chalk_mock(log)), local)
+    r = p.get_forecast("ERCO", "2024-10-14")
+    assert r.source == "chalk" and "fallback_reason" not in r.methods
+    bids = [{"id": f"b{i}", "energy_mwh": 100.0, "earliest_hour": 0, "deadline_hour": 10,
+             "max_mw": 50.0} for i in range(5)]
+    source, feats = p.get_bid_features_many(bids, "2024-10-14")
+    assert source == "chalk" and len(feats) == 5
+    queried = sorted(json.loads(x.content)["inputs"]["flex_bid.id"] for x in log
+                     if x.url.path == "/v1/query/online" and b"flex_bid" in x.content)
+    assert queried == [b["id"] for b in bids]
+    assert [x.url.path for x in log].count("/v1/oauth/token") == 1

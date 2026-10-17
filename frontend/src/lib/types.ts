@@ -127,6 +127,34 @@ export interface Forecast {
   source: "chalk" | "local";
   latency_ms: number;
   hourly: ForecastHourly;
+  /** Set when Chalk is configured but failed, so the local model served this forecast. */
+  fallback_reason?: string | null;
+}
+
+// --- bid features (POST /api/bid-features, and ClearResponse.bid_features) ---
+
+/** Derived features of one bid, served by the forecast provider (Chalk when configured). */
+export interface BidFeatures {
+  window_hours: number;
+  min_run_hours: number | null;
+  slack_hours: number | null;
+  flexibility_ratio: number | null;
+  avg_power_mw: number | null;
+  feasible: boolean;
+  /** Day-specific (from the day's forecast, never actuals); null for an empty window. */
+  energy_share_of_day_demand: number | null;
+  max_mw_share_of_peak_demand: number | null;
+  /** Mean (wind + solar) / demand over the window, 0..1 */
+  window_mean_renewable_share: number | null;
+  window_curtailed_mwh: number | null;
+  window_lowest_net_load_hour: number | null;
+}
+
+export interface BidFeaturesBlock {
+  source: "chalk" | "local";
+  latency_ms: number;
+  /** bid_id -> features */
+  per_bid: Record<string, BidFeatures>;
 }
 
 export interface MarginalResource {
@@ -201,6 +229,8 @@ export interface ClearResponse {
   coordinator_trace: TraceStep[];
   fallback_fired: boolean;
   settlement: Settlement;
+  /** Absent in older recorded fixtures. */
+  bid_features?: BidFeaturesBlock | null;
 }
 
 // --- POST /api/evaluate -----------------------------------------------------

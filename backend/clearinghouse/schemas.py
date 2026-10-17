@@ -204,6 +204,44 @@ class Forecast(Model):
     source: Literal["chalk", "local"]
     latency_ms: NonNeg
     hourly: ForecastHourly
+    # Set when Chalk is configured but failed, so the local model served this forecast.
+    fallback_reason: str | None = None
+
+
+class BidFeatures(Model):
+    """Derived features of one bid (``provider.BID_FEATURE_NAMES``), served by the provider.
+
+    Day-specific fields use the day's forecast (never actuals) and are ``None`` when the bid's
+    window is empty.
+    """
+
+    window_hours: int
+    min_run_hours: float | None
+    slack_hours: float | None
+    flexibility_ratio: float | None
+    avg_power_mw: float | None
+    feasible: bool
+    energy_share_of_day_demand: float | None
+    max_mw_share_of_peak_demand: float | None
+    window_mean_renewable_share: float | None
+    window_curtailed_mwh: float | None
+    window_lowest_net_load_hour: int | None
+
+
+class BidFeaturesBlock(Model):
+    source: Literal["chalk", "local"]
+    latency_ms: NonNeg
+    per_bid: dict[str, BidFeatures]  # bid_id -> features
+
+
+class BidFeaturesRequest(Model):
+    day: str
+    bids: list[Bid]
+
+    @model_validator(mode="after")
+    def _unique(self) -> BidFeaturesRequest:
+        _check_unique_ids(self.bids)
+        return self
 
 
 class MarginalResource(Model):
@@ -279,6 +317,7 @@ class ClearResponse(Model):
     coordinator_trace: list[TraceStep]
     fallback_fired: bool
     settlement: Settlement
+    bid_features: BidFeaturesBlock | None = None  # optional: older recorded fixtures lack it
 
     @model_validator(mode="after")
     def _all_strategies(self) -> ClearResponse:

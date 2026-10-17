@@ -203,7 +203,7 @@ def test_clear_forecast_block_and_planning_inputs(example):
     direct = clear(day, req["bids"], req["background_pct"], req["carbon_price"], req["pool_usd"],
                    plan_sim, score_sim)
     assert json.dumps(direct, sort_keys=True) == json.dumps(
-        {k: v for k, v in body.items() if k != "forecast"}, sort_keys=True)
+        {k: v for k, v in body.items() if k not in ("forecast", "bid_features")}, sort_keys=True)
 
 
 def test_forecast_inputs_not_actuals():
@@ -221,6 +221,7 @@ def test_clear_deterministic(client):
     b = client.post("/api/clear", json=req).json()
     for x in (a, b):
         x["forecast"].pop("latency_ms")
+        x["bid_features"].pop("latency_ms")
     assert json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
 
 
@@ -379,3 +380,30 @@ def test_cors_env_origins(monkeypatch):
     origins = api_mod.cors_origins()
     assert origins[:2] == ["http://localhost:3000", "http://127.0.0.1:3000"]
     assert "https://demo.example.com" in origins and "http://x.test:3000" in origins
+
+
+# --- bid features (served by the forecast provider) ------------------------------------------
+
+
+def test_clear_returns_served_bid_features(example):
+    req, body = example
+    block = body["bid_features"]
+    assert block["source"] == get_provider().source and block["latency_ms"] >= 0
+    assert set(block["per_bid"]) == {b["id"] for b in req["bids"]}
+    for b in req["bids"]:
+        f = block["per_bid"][b["id"]]
+        assert f["feasible"] is True
+        assert f["window_hours"] == b["deadline_hour"] - b["earliest_hour"]
+        assert b["earliest_hour"] <= f["window_lowest_net_load_hour"] < b["deadline_hour"]
+
+
+def test_bid_features_endpoint_allows_infeasible(client):
+    bids = bids_json(2)
+    bids[1] = {**bids[1], "energy_mwh": bids[1]["max_mw"] * 100}
+    r = client.post("/api/bid-features", json={"day": default_day(), "bids": bids})
+    assert r.status_code == 200, r.text
+    per = r.json()["per_bid"]
+    assert per[bids[0]["id"]]["feasible"] is True
+    assert per[bids[1]["id"]]["feasible"] is False
+    r = client.post("/api/bid-features", json={"day": "1999-01-01", "bids": bids})
+    assert r.status_code == 422

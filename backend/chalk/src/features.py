@@ -21,8 +21,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from chalk import windowed
-from chalk.features import DataFrame, FeatureTime, Windowed, _, features, has_many
+from chalk import Windowed, windowed
+from chalk.features import DataFrame, FeatureTime, _, features, has_many
 
 
 @features

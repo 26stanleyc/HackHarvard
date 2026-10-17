@@ -30,6 +30,7 @@ public chalkpy client source (chalkpy 2.163.1 on PyPI: ``chalk/client/client_imp
 from __future__ import annotations
 
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import httpx
@@ -180,6 +181,16 @@ class ChalkForecastProvider(ForecastProvider):
         outputs = [f"{FLEX_BID}.{name}" for name in BID_FEATURE_NAMES]
         values, _ = self.online_query(inputs, outputs, query_name="clearinghouse_bid_features")
         return {name: values[f"{FLEX_BID}.{name}"] for name in BID_FEATURE_NAMES}
+
+    def get_bid_features_many(self, bids: list[Any], date: str | None = None
+                              ) -> tuple[str, list[dict[str, Any]]]:
+        """One online query per bid, run concurrently (httpx.Client is thread-safe)."""
+        if not bids:
+            return self.source, []
+        self._ensure_token()  # once, before the workers share it
+        with ThreadPoolExecutor(max_workers=min(len(bids), 8)) as pool:
+            out = list(pool.map(lambda b: self.get_bid_features(b, date), bids))
+        return self.source, out
 
     def close(self) -> None:
         self._http.close()

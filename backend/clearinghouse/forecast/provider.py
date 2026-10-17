@@ -177,3 +177,8 @@ class ForecastProvider(ABC):
     @abstractmethod
     def get_bid_features(self, bid: Any, date: str | None = None) -> dict[str, Any]:
         """Derived features of one bid; day-specific ones need ``date``."""
+
+    def get_bid_features_many(self, bids: list[Any], date: str | None = None
+                              ) -> tuple[Source, list[dict[str, Any]]]:
+        """``(source that served them, features per bid in order)``."""
+        return self.source, [self.get_bid_features(b, date) for b in bids]
