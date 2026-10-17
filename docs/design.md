@@ -146,13 +146,45 @@ Team of 3 (merge P2 and P3 for 2 people):
 
 - **Hour 0 (all):** confirm Chalk access; pick region; agree on the function signatures (`emissions`, `get_forecast`, `get_bid_features`).
 - **Hours 0-3, P1:** uncalibrated merit-order stack (eGRID + EIA-930) and the herding gate: strategies 1-3 on a synthetic bid population with naive (yesterday-as-forecast) inputs. If no herding gap appears at any plausible share, stop and rethink.
-- **Hours 3-6, P1:** calibration (fit named parameters, held-out validation (a) and (b), must-run floor).
+- **Hours 3-6, P1:** calibration (fit named parameters, held-out validation (a), (b) and (c), curtailment data if found in hour 1).
 - **Hours 0-6, P2:** Chalk setup, point-in-time training data, forecast model, serving. Hour 6 cutoff: if Chalk is not serving forecasts by then, switch to the local fallback and keep Chalk for features only.
 - **Hours 6-12, P2:** start the demo UI against mocked results that follow the agreed function signatures, so the frontend isn't squeezed into hours 12-18.
 - **Hours 3-14, P3:** strategies 1-4, herding metric, coalition runs, Shapley settlement, receipts (against the local fallback until Chalk is ready).
 - **Hours 12-18 (all):** wire to Chalk, replay a real day with 4-6 re-plans, build the UI around the chart and receipts.
 - **Hours 18-22:** stretch C only if success criteria are met; otherwise strengthen validation.
 - **Hours 22-24:** record fallback video, README with sources and calibration numbers, rehearse a 3-minute pitch.
+
+## Future Directions (post-hackathon, not in the 24h scope)
+
+These are for the pitch's long-term vision slide. None of them is built during the hackathon.
+
+### 1. Business model: energy-operations automation for flexible-load businesses (from teammate discussion)
+
+The clearinghouse is the wedge, not the whole business. The long-term product automates energy operations for businesses with flexible loads (EV fleets, data center batch jobs, building pre-cooling, cold storage, water pumping): the platform decides *when* their energy-heavy jobs run, so the business doesn't have to.
+
+- **Who pays:** only the businesses using the platform (B2B subscription or a share of savings). Power producers are not charged; they are not customers.
+- **Payouts to customers:** each business earns money back for the emissions its participation avoided, which gives it a reason to join and keep handing over flexibility (win for the customer, the platform and the climate).
+- **Where payout money comes from:** outside sources, not the platform's own subscription revenue (paying customers out of their own fees is only a discount):
+  - lower electricity bills (see section 2);
+  - demand response payments from utilities and grid operators (today paid via aggregators such as Voltus and CPower);
+  - avoided-emissions credits (voluntary carbon markets) and the value of corporate emissions reporting.
+- **Platform revenue:** subscription plus a cut of those payments.
+- **Considered and rejected:** general automation of businesses' internal and external tasks (grunt work, jobs). It is undifferentiated (crowded AI-agent/RPA market), requires knowing each customer's processes in detail, and doesn't connect to the grid problem unless the automated tasks use flexible energy. Automation stays limited to *when* energy-using jobs run.
+- **Physical constraint to state in the pitch:** businesses can't receive power from a specific renewable plant; electricity flows through a shared grid. The levers are timing (what the clearinghouse does) and renewable contracts on paper.
+
+### 2. Co-optimizing emissions and cost (electricity bill savings)
+
+The hackathon coordinator minimizes emissions only, so bill savings are a side effect, not a guarantee. A future version optimizes emissions and cost together, using ERCOT's public price data.
+
+- **How shifting lowers bills:**
+  - time-of-use rates (cheaper off-peak hours);
+  - real-time pricing (prices drop, sometimes below zero, when wind and solar are high);
+  - demand charges (spreading load lowers a business's monthly peak).
+- **Where it doesn't hold:**
+  - businesses on flat rates save nothing by shifting;
+  - clean and cheap hours don't always line up (some cheap night hours are fossil-heavy);
+  - packing one company's load into fewer hours can raise its own peak and demand charge.
+- **Pitch wording until this exists:** "can also lower electricity bills where customers pay time-of-use or real-time rates," not "will lower bills."
 
 ## What I noticed about how you think
 
