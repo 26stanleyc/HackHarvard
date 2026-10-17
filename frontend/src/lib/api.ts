@@ -2,11 +2,12 @@
  * API client for the Carbon Clearinghouse backend (docs/design.md, B6).
  *
  * Two modes, chosen at build time:
- *   NEXT_PUBLIC_API_MODE = "fixture" (default) | "live"
+ *   NEXT_PUBLIC_API_MODE = "live" (default) | "fixture"
  *   NEXT_PUBLIC_API_BASE = backend origin for live mode (default http://localhost:8000)
  *
- * Fixture mode serves the JSON files in src/fixtures/, which scripts/sync-fixtures.mjs
- * copies from the repo's top-level fixtures/ before every dev/build run.
+ * Fixture mode serves the JSON files in src/fixtures/ (real backend responses recorded for the
+ * example scenario), which scripts/sync-fixtures.mjs copies from the repo's top-level fixtures/
+ * before every dev/build run. It is always badged in the UI.
  */
 
 import adoptionFixture from "@/fixtures/adoption_chart.json";
@@ -30,7 +31,7 @@ import type {
 export type ApiMode = "fixture" | "live";
 
 export const API_MODE: ApiMode =
-  process.env.NEXT_PUBLIC_API_MODE === "live" ? "live" : "fixture";
+  process.env.NEXT_PUBLIC_API_MODE === "fixture" ? "fixture" : "live";
 
 export const API_BASE: string = (
   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000"
@@ -243,7 +244,7 @@ export async function postClear(req: ClearRequest): Promise<ClearResponse> {
   });
 }
 
-/** POST /api/evaluate. Fixture mode returns the recorded mock score. */
+/** POST /api/evaluate. Fixture mode returns the recorded score of the flat hand schedule. */
 export async function postEvaluate(req: EvaluateRequest): Promise<EvaluateResponse> {
   if (API_MODE === "fixture") {
     await delay(250);

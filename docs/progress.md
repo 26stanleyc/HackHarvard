@@ -180,3 +180,20 @@ Checks (`uv run pytest -q` → 185 passed; ruff clean):
 - Server boots; `scripts/smoke_api.sh` curl run of every endpoint (+ one infeasible clear → 422) — PASS.
 - Latency after warm-up: `/api/clear` 8 bids 1.25-1.27 s on each demo day (< 5 s); `/api/evaluate` 0.002 s (< 1 s) — PASS.
 - Fixtures regenerated from real responses; schema tests pass (incl. trace MWh = coordinated schedule); frontend build, lint, typecheck pass with them — PASS.
+
+## M8. Interactive features and live API — PASS (2026-10-17)
+
+- **Code (frontend only; backend unchanged):** `NEXT_PUBLIC_API_MODE` defaults to `live` (fixture mode via env, badged "Fixture mode — recorded data"); `frontend/README.md` rewritten. New `src/lib/explain.ts`: plain-language explanations computed from each clear response (curtailment-absorbed ties, planning-time fallback, settlement total ≤ 0, negative/zero shares, herding with predicted ≤ 0). Act 3 replays `coordinator_trace` by step groups and checks Σ replayed MWh against the coordinated schedule for every company and hour. Results add a value breakdown: coordinated vs default; value of a better signal (independent average − independent marginal); value of coordination (independent marginal − coordinated = `settlement.total_avoided_t`, the payout basis). Load-type labels incl. `water_pumping`. Adoption chart caption names the default day and population (from `adoption_chart_meta.json`, copied at build time and cross-checked against the chart); "reading the chart" sentences computed from the means. Credibility strip shows the real calibration numbers and "local model (Chalk credentials pending)" + latency.
+- **Orchestrator edit:** the story headline no longer claims coordination "recovers the savings" (results are mixed); it now reads "A clearinghouse coordinates competing companies, and pays each only for the carbon coordination actually helped avoid."
+
+Checks (built-in browser against the local backend):
+- Example scenario → run → three acts → receipts on 2024-03-29 (all strategies 96,347 t; curtailed renewables on the margin in all 18 load hours; $0 explained) and 2024-08-20 (coordinated 619,264 t, −258.4 t vs default; value of coordination +170 t = settlement total; $8,499 paid). Trace replay equals the coordinated schedule (511/171, 512/171, 38/38 entries/steps) — PASS.
+- Real eGRID names on hover/tap: W A Parish (03-29 h22); Martin Lake, Midlothian Energy, Temple, O W Sommers, Cedar Bayou, … (08-20); V H Braunig, Pearsall, Handley, Lake Hubbard, … (01-16) — PASS.
+- Hand-painted schedule → `POST /api/evaluate` 200, `total_co2_t` 619,597.69, shown as 619,598 t — PASS.
+- Leave the coalition (b1, 08-20): avoided 133.9 t, payouts = `leave_one_out.b1` exactly, no new network request — PASS.
+- Backend stopped: connection refused, error banner, inputs kept; after restart re-run 200 — PASS.
+- Day picker: one new `POST /api/clear` per curated day; default totals 96,347 / 299,000 / 619,522 / 714,561 t — PASS.
+- No app console errors on a fresh full run; no horizontal scroll at 1440 and 375; screenshots `docs/screenshots/m8-*.png` — PASS.
+- `npm run build`, `lint`, `typecheck` clean; backend 185 tests pass.
+
+Honest results recorded: 04-11 fallback fired (coordinated = independent marginal); 01-16 coordination −4.3 t vs the solo baseline. **Open design question for the team:** because negative Shapley shares pay $0 rather than being charged (design B5), total payouts can exceed the tons avoided (04-11: 0 t avoided, $3,585 paid; 01-16: −4.3 t, $48 paid). The UI states this plainly.

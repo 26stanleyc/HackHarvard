@@ -1,0 +1,98 @@
+{
+  "generated_utc": "2026-10-17T11:27:26+00:00",
+  "day": "2024-03-29",
+  "day_label": "Windy spring night",
+  "x_definition": "flexible load as % of the day's ACTUAL peak demand: sum of the population's max_mw = x% x peak (M2 pre-registered share definition)",
+  "actual_peak_mw": 47750.0,
+  "baseline_no_flex_co2_t": 96196.37817737678,
+  "k_draws": 5,
+  "n_bids": 30,
+  "seeds": [
+    1000,
+    1001,
+    1002,
+    1003,
+    1004
+  ],
+  "background": "none",
+  "planning": "forecast provider (local) inputs via inputs.forecast_inputs",
+  "scoring": "the day's actual EIA-930 + curtailment inputs",
+  "params_source": "calibrated",
+  "coordinated": "greedy over all population bids with the planning-time fallback to strategy 3 (settlement.CoalitionGame full-coalition plan)",
+  "mean": "mean over the K draws of total daily fossil CO2 (t)",
+  "band": "band_low / band_high = min / max over the K draws",
+  "fallback_fired_draws_per_x": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    2,
+    2,
+    2,
+    1,
+    0,
+    1,
+    1
+  ],
+  "population": {
+    "n_default": 30,
+    "load_types": {
+      "ev_fleet_overnight": {
+        "p": 0.25,
+        "duty": [
+          0.3,
+          0.8
+        ]
+      },
+      "ev_fleet_evening": {
+        "p": 0.1,
+        "duty": [
+          0.3,
+          0.8
+        ]
+      },
+      "data_center_batch": {
+        "p": 0.2,
+        "duty": [
+          0.3,
+          0.8
+        ]
+      },
+      "office_precooling": {
+        "p": 0.2,
+        "duty": [
+          0.3,
+          0.8
+        ]
+      },
+      "cold_storage": {
+        "p": 0.1,
+        "duty": [
+          0.15,
+          0.35
+        ]
+      },
+      "generic": {
+        "p": 0.15,
+        "duty": [
+          0.3,
+          0.8
+        ]
+      }
+    },
+    "windows": {
+      "ev_fleet_overnight": "earliest U{0..4}, deadline U{5..9}",
+      "ev_fleet_evening": "earliest U{16..19}, deadline 24",
+      "data_center_batch": "0-24",
+      "office_precooling": "earliest U{5..10}, deadline U{12..18}",
+      "cold_storage": "0-24",
+      "generic": "earliest U{0..20}, length U{3..12}, deadline min(24, earliest+length)"
+    },
+    "size": "max_mw ~ LogNormal(0, 1.0) relative, then scaled",
+    "energy": "duty x max_mw x window_hours",
+    "scaling": "sum(max_mw) = share_pct/100 x day's actual peak demand (energy scaled alike)"
+  },
+  "runtime_s": 6.0457219170057215
+}

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { API_BASE, API_MODE } from "@/lib/api";
+import { loadTypeColor, loadTypeLabel } from "@/lib/bids";
 
 /** Persistent label shown whenever numbers come from fixtures rather than the engine. */
 export function FixtureBadge() {
@@ -21,10 +22,10 @@ export function FixtureBadge() {
       data-testid="fixture-badge"
       data-mode="fixture"
       className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-warn/40 bg-warn-soft px-2.5 py-1 text-[11px] font-semibold text-warn"
-      title="Numbers come from hand-written fixtures in fixtures/, not from the engine. Set NEXT_PUBLIC_API_MODE=live to use the backend."
+      title="Numbers come from recorded backend responses in fixtures/ (example scenario only), not from a live engine. Unset NEXT_PUBLIC_API_MODE (or set it to live) to use the backend."
     >
       <span className="h-1.5 w-1.5 rounded-full bg-warn" aria-hidden />
-      Fixture mode — mock data
+      Fixture mode — recorded data
     </span>
   );
 }
@@ -211,5 +212,20 @@ export function Segmented<T extends string>({
         </button>
       ))}
     </div>
+  );
+}
+
+/** Small load-type tag (label + muted type color). Unknown types get a neutral tag. */
+export function LoadTypeTag({ type, className = "" }: { type: string; className?: string }) {
+  const color = loadTypeColor(type);
+  return (
+    <span
+      data-testid="load-type-tag"
+      className={`inline-flex items-center gap-1 whitespace-nowrap rounded border px-1.5 py-px text-[10px] font-medium ${className}`}
+      style={{ color, borderColor: `${color}55`, background: `${color}12` }}
+    >
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} aria-hidden />
+      {loadTypeLabel(type)}
+    </span>
   );
 }

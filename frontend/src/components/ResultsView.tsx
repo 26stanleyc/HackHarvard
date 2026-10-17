@@ -1,15 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Tooltip, XAxis, YAxis } from "recharts";
 import { API_MODE } from "@/lib/api";
-import { loadTypeLabel } from "@/lib/bids";
-import { activeRuns, fmtInt, fmtSignedT, fmtT, fmtUsd, hh, windowLabel } from "@/lib/format";
+import {
+  comparisons,
+  fallbackSentence,
+  herdingGapPct,
+  herdingNote,
+  isZeroT,
+  SHARE_EPS_T,
+  settlementNotes,
+  strategyTie,
+  tieSentence,
+} from "@/lib/explain";
+import { activeRuns, fmtAvoided, fmtInt, fmtShareT, fmtSignedT, fmtT, fmtUsd, hh, windowLabel } from "@/lib/format";
 import { STRATEGY_COLORS, STRATEGY_LABEL, STRATEGY_SHORT } from "@/lib/theme";
 import { STRATEGY_NAMES, type Bid, type ClearRequest, type ClearResponse, type HerdingMetric } from "@/lib/types";
 import type { ChartCompany } from "./LoadChart";
 import { forecastSourceText } from "./StoryScreen";
-import { SectionTitle, Source, Stat } from "./ui";
+import { LoadTypeTag, SectionTitle, Source, Stat } from "./ui";
 
 export function ResultsView({
   request,
@@ -32,6 +42,8 @@ export function ResultsView({
         Every number here comes from one clear: strategies scored on the actual day, the herding
         metric, and an exact Shapley settlement.
       </SectionTitle>
+      <ResultNotes response={response} />
+      <ValueBreakdown response={response} />
       <div className="grid gap-4 lg:grid-cols-2">
         <StrategyComparison response={response} />
         <HerdingCallout response={response} />
@@ -56,17 +68,24 @@ function StrategyComparison({ response }: { response: ClearResponse }) {
     avoided: def - response.strategies[s].total_co2_t,
     total: response.strategies[s].total_co2_t,
   }));
-  const totals = rows.map((r) => r.total);
-  const spreadPct = def !== 0 ? ((Math.max(...totals) - Math.min(...totals)) / def) * 100 : 0;
+  const tie = strategyTie(response);
+  const spreadPct = def !== 0 ? (tie.spread / def) * 100 : 0;
   return (
     <section className="card min-w-0 p-4 sm:p-5" data-testid="strategy-comparison">
       <div className="kicker mb-1">Strategy comparison</div>
       <h3 className="text-lg font-semibold text-ink">CO2 avoided vs default, by strategy</h3>
-      <p className="mt-1 text-xs text-muted">
-        Bars show tons avoided relative to Act 1. The four full-day totals (table) differ by
-        only {spreadPct.toFixed(2)}% because the companies are small next to the whole grid, so
-        the differences are the story.
+      <p className="mt-1 text-xs text-muted" data-testid="comparison-caption">
+        {tie.tied ? (
+          <>All four full-day totals are identical ({fmtInt(tie.total)} t), so every bar is 0. See the note above.</>
+        ) : (
+          <>
+            Bars show tons avoided relative to Act 1. The four full-day totals (table) differ by at most{" "}
+            {fmtT(tie.spread)} t ({spreadPct.toFixed(2)}% of the grid&apos;s daily CO2), so the bars show the
+            differences.
+          </>
+        )}
       </p>
+      {!tie.tied && (
       <BarChart
         responsive
         layout="vertical"
@@ -118,6 +137,7 @@ function StrategyComparison({ response }: { response: ClearResponse }) {
           />
         </Bar>
       </BarChart>
+      )}
       <table className="mt-2 w-full text-xs">
         <thead>
           <tr className="text-left text-muted">
@@ -142,7 +162,8 @@ function StrategyComparison({ response }: { response: ClearResponse }) {
 }
 
 function HerdingRow({ label, m }: { label: string; m: HerdingMetric }) {
-  const pct = m.predicted_t !== 0 ? (m.gap_t / m.predicted_t) * 100 : 0;
+  const pct = herdingGapPct(m);
+  const note = herdingNote(m);
   const realizedShare = m.predicted_t > 0 ? Math.max(0, Math.min(1, m.realized_t / m.predicted_t)) : 0;
   return (
     <div className="space-y-2">
@@ -150,11 +171,20 @@ function HerdingRow({ label, m }: { label: string; m: HerdingMetric }) {
       <div className="grid grid-cols-3 gap-2">
         <Stat label="Predicted" value={fmtT(m.predicted_t)} sub="t saved, sum of solo" />
         <Stat label="Realized" value={fmtT(m.realized_t)} sub="t saved, together" />
-        <Stat label="Gap" value={fmtT(m.gap_t)} sub={`t · ${pct.toFixed(0)}% of predicted`} tone={m.gap_t > 0 ? "bad" : "default"} />
+        <Stat
+          label="Gap"
+          value={fmtT(m.gap_t)}
+          sub={pct === null ? "t" : `t · ${pct.toFixed(0)}% of predicted`}
+          tone={m.gap_t > 0 && pct !== null ? "bad" : "default"}
+        />
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-danger-soft" aria-hidden>
-        <div className="h-full rounded-full bg-ink-2" style={{ width: `${realizedShare * 100}%` }} />
-      </div>
+      {note ? (
+        <p className="text-xs leading-relaxed text-ink-2" data-testid="herding-note">{note}</p>
+      ) : (
+        <div className="h-2 overflow-hidden rounded-full bg-danger-soft" aria-hidden>
+          <div className="h-full rounded-full bg-ink-2" style={{ width: `${realizedShare * 100}%` }} />
+        </div>
+      )}
     </div>
   );
 }
@@ -204,6 +234,12 @@ function Receipts({
   const full = new Map(st.per_bid.map((p) => [p.bid_id, p]));
   const totalPaid = Array.from(per.values()).reduce((a, p) => a + p.payout_usd, 0);
   const nameOf = (id: string) => bids.find((b) => b.id === id)?.name ?? id;
+  const allZero = Array.from(per.values()).every((p) => Math.abs(p.shapley_t) <= SHARE_EPS_T);
+  const sNotes = settlementNotes(
+    response,
+    Array.from(per.entries()).map(([bid_id, p]) => ({ bid_id, ...p })),
+    totalAvoided,
+  );
 
   const toggle = (id: string) => {
     if (leftOut === id) {
@@ -258,6 +294,12 @@ function Receipts({
         />
       </div>
 
+      {(sNotes.total || sNotes.payouts) && (
+        <p className="mb-3 max-w-3xl text-sm leading-relaxed text-ink-2" data-testid="settlement-note">
+          {sNotes.total} {sNotes.payouts}
+        </p>
+      )}
+
       {note && (
         <p className="mb-3 rounded-md border border-warn/30 bg-warn-soft px-3 py-2 text-xs text-warn" role="status">
           {note}
@@ -285,8 +327,8 @@ function Receipts({
                     <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: color }} aria-hidden />
                     <span className="truncate font-medium text-ink">{b.name}</span>
                   </div>
-                  <div className="mt-0.5 text-xs text-muted">
-                    {loadTypeLabel(b.load_type)} · <span className="num">{b.id}</span>
+                  <div className="mt-1 flex items-center gap-1.5 text-xs text-muted">
+                    <LoadTypeTag type={b.load_type} /> <span className="num">{b.id}</span>
                   </div>
                 </div>
                 <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-ink-2">
@@ -294,6 +336,7 @@ function Receipts({
                     type="checkbox"
                     role="switch"
                     checked={!out}
+                    aria-label={`${b.name}: ${out ? "left the coalition" : "in coalition"}`}
                     onChange={() => toggle(b.id)}
                     data-testid={`leave-toggle-${b.id}`}
                     className="h-4 w-4 accent-[var(--accent)]"
@@ -304,22 +347,25 @@ function Receipts({
 
               <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
                 <dt className="text-muted">Bid</dt>
-                <dd className="num text-right text-ink-2">
+                <dd className="num min-w-0 text-right text-ink-2">
                   <span className="whitespace-nowrap">
                     {fmtInt(b.energy_mwh)} MWh · ≤{fmtInt(b.max_mw)} MW
                   </span>{" "}
                   <span className="whitespace-nowrap">· {windowLabel(b.earliest_hour, b.deadline_hour)}</span>
                 </dd>
                 <dt className="text-muted">Assigned hours</dt>
-                <dd className="num text-right text-ink-2">
+                <dd className="num min-w-0 text-right text-ink-2">
                   {out
                     ? "own solo schedule"
                     : runs.length
                       ? runs.map((r, i) => (
-                          <span key={r.start} className="whitespace-nowrap">
-                            {hh(r.start)}–{hh(r.end)}
-                            {i < runs.length - 1 ? ", " : ""}
-                          </span>
+                          <Fragment key={r.start}>
+                            <span className="whitespace-nowrap">
+                              {hh(r.start)}–{hh(r.end)}
+                              {i < runs.length - 1 ? "," : ""}
+                            </span>
+                            {i < runs.length - 1 ? " " : ""}
+                          </Fragment>
                         ))
                       : "none"}
                 </dd>
@@ -338,38 +384,43 @@ function Receipts({
                   <div className="grid grid-cols-2 gap-3">
                     <Stat
                       label="Shapley share"
-                      value={p ? fmtT(p.shapley_t) : "—"}
+                      value={p ? fmtShareT(p.shapley_t) : "—"}
                       sub={
                         leftOut && p && f
                           ? `t · ${fmtSignedT(p.shapley_t - f.shapley_t)} vs full coalition`
                           : "t CO2 avoided"
                       }
-                      tone={p && p.shapley_t < 0 ? "bad" : "default"}
+                      tone={p && p.shapley_t < -SHARE_EPS_T ? "bad" : "default"}
                       testId={`shapley-${b.id}`}
                     />
                     <Stat
                       label="Payout"
                       value={p ? fmtUsd(p.payout_usd) : "—"}
-                      sub={p && p.shapley_t < 0 ? "negative share" : `at ${fmtUsd(request.carbon_price)}/t`}
+                      sub={p && p.shapley_t < -SHARE_EPS_T ? "negative share" : `at ${fmtUsd(request.carbon_price)}/t`}
                       tone={p && p.payout_usd > 0 ? "good" : "muted"}
                       testId={`payout-${b.id}`}
                     />
                   </div>
-                  {p && p.shapley_t < 0 && (
+                  {p && p.shapley_t < -SHARE_EPS_T && (
                     <p className="text-xs leading-relaxed text-ink-2">
-                      Negative share: on the actual day this company&apos;s participation raised the
-                      coalition&apos;s emissions slightly versus its solo schedule. Nobody is charged, so
-                      it is paid $0.
+                      Negative share ({fmtShareT(p.shapley_t)} t): on the actual day, averaged over every
+                      order of joining, this company&apos;s participation raised the coalition&apos;s
+                      emissions versus its solo schedule. Nobody is charged, so it is paid $0.
+                    </p>
+                  )}
+                  {p && Math.abs(p.shapley_t) <= SHARE_EPS_T && !allZero && (
+                    <p className="text-xs leading-relaxed text-ink-2">
+                      Share 0 t: coordinating this company changed nothing on the actual day, so it is paid $0.
                     </p>
                   )}
                   <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5 text-xs">
                     <dt className="text-muted">vs default</dt>
-                    <dd className="num text-right text-ink-2">
-                      {f ? `${fmtT(f.vs_default_t)} t avoided` : "—"}
+                    <dd className="num min-w-0 text-right text-ink-2">
+                      {f ? fmtAvoided(f.vs_default_t) : "—"}
                     </dd>
                     <dt className="text-muted">vs independent average</dt>
-                    <dd className="num text-right text-ink-2">
-                      {f ? `${fmtT(f.vs_independent_average_t)} t avoided` : "—"}
+                    <dd className="num min-w-0 text-right text-ink-2">
+                      {f ? fmtAvoided(f.vs_independent_average_t) : "—"}
                     </dd>
                   </dl>
                   {leftOut && (
@@ -393,6 +444,100 @@ function Receipts({
         the fact on actual grid conditions · Shapley shares sum to the coalition&apos;s avoided CO2
         {API_MODE === "fixture" ? " · fixture values" : ""}
       </Source>
+    </section>
+  );
+}
+
+/** Plain-language notes for tied strategies or a fired fallback, computed from the response. */
+function ResultNotes({ response }: { response: ClearResponse }) {
+  const notes = [tieSentence(response), fallbackSentence(response)].filter((x): x is string => x !== null);
+  if (!notes.length) return null;
+  return (
+    <div className="rounded-lg border border-line-strong bg-surface-2/70 px-4 py-3" role="note" data-testid="result-notes">
+      <div className="kicker mb-1">Why the numbers look like this</div>
+      <ul className="space-y-1 text-sm leading-relaxed text-ink-2">
+        {notes.map((n) => (
+          <li key={n}>{n}</li>
+        ))}
+      </ul>
+      <Source className="mt-1.5">computed from strategies.*.total_co2_t, strategies.*.marginal_resource and fallback_fired</Source>
+    </div>
+  );
+}
+
+function ValueStat({
+  label,
+  value,
+  formula,
+  testId,
+  emphasis,
+}: {
+  label: string;
+  value: number;
+  formula: string;
+  testId: string;
+  emphasis?: boolean;
+}) {
+  const zero = isZeroT(value);
+  return (
+    <div className={`min-w-0 p-4 ${emphasis ? "bg-accent-soft/50" : ""}`} data-testid={testId}>
+      <div className="text-[11px] font-medium uppercase tracking-wider text-muted">{label}</div>
+      <div className={`num mt-1 text-xl font-medium sm:text-2xl ${zero ? "text-ink" : value > 0 ? "text-accent" : "text-danger"}`}>
+        {zero ? "0" : fmtSignedT(value)} <span className="text-sm text-muted">t</span>
+      </div>
+      <div className="mt-0.5 text-xs text-muted">
+        {zero ? "no difference" : value > 0 ? "avoided" : "more CO2"} · <span className="font-mono">{formula}</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The novel comparison (design B3): value of a better signal (2 vs 3) and value of
+ * coordination (3 vs 4, the payout baseline), next to the plain vs-default numbers.
+ */
+function ValueBreakdown({ response }: { response: ClearResponse }) {
+  const c = comparisons(response);
+  const settled = response.settlement.total_avoided_t;
+  const matches = Math.abs(settled - c.coordination) < 0.05;
+  return (
+    <section className="card overflow-hidden" data-testid="value-breakdown">
+      <div className="px-4 pt-4 sm:px-5">
+        <div className="kicker mb-1">Where the savings come from</div>
+        <h3 className="text-lg font-semibold text-ink">A better signal vs coordination</h3>
+        <p className="mt-1 max-w-3xl text-sm text-ink-2">
+          Moving from the standard average-intensity signal to each company&apos;s best solo schedule is
+          the value of a better signal. Moving from those solo schedules to the coordinated plan is the
+          value of coordination, the part payouts are based on. Positive means CO2 avoided.
+        </p>
+      </div>
+      <div className="mt-3 grid divide-y divide-line border-t border-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <ValueStat label="Coordinated vs default" value={c.vsDefault} formula="default − coordinated" testId="value-vs-default" />
+        <ValueStat
+          label="Value of a better signal"
+          value={c.betterSignal}
+          formula="indep. average − indep. marginal"
+          testId="value-signal"
+        />
+        <ValueStat
+          label="Value of coordination"
+          value={c.coordination}
+          formula="indep. marginal − coordinated"
+          testId="value-coordination"
+          emphasis
+        />
+      </div>
+      <div className="border-t border-line px-4 py-2.5 text-xs text-ink-2 sm:px-5">
+        vs default: average signal <span className="num">{isZeroT(c.averageVsDefault) ? "0" : fmtSignedT(c.averageVsDefault)} t</span>,
+        marginal solo <span className="num">{isZeroT(c.marginalVsDefault) ? "0" : fmtSignedT(c.marginalVsDefault)} t</span>,
+        coordinated <span className="num">{isZeroT(c.vsDefault) ? "0" : fmtSignedT(c.vsDefault)} t</span>.{" "}
+        {matches ? (
+          <>Value of coordination equals the settlement total ({fmtSignedT(settled)} t), the amount shared by Shapley.</>
+        ) : (
+          <>Settlement total avoided: {fmtSignedT(settled)} t.</>
+        )}
+      </div>
+      <Source className="px-4 pb-3 sm:px-5">differences of strategies.*.total_co2_t, all scored on the actual day · settlement.total_avoided_t</Source>
     </section>
   );
 }

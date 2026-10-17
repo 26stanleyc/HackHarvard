@@ -3,8 +3,9 @@
 import { useId } from "react";
 import { API_MODE, ApiError } from "@/lib/api";
 import {
-  LOAD_TYPES,
   customDraft,
+  loadTypeLabel,
+  loadTypeOptions,
   draftError,
   draftToBid,
   nextBidId,
@@ -14,7 +15,7 @@ import {
 import { fmtInt, fmtUsd, hh, windowLabel } from "@/lib/format";
 import { companyColor } from "@/lib/theme";
 import type { MetaResponse, Preset } from "@/lib/types";
-import { Button, ErrorBanner, SectionTitle, Source } from "./ui";
+import { Button, ErrorBanner, LoadTypeTag, SectionTitle, Source } from "./ui";
 
 export interface Scenario {
   day: string;
@@ -78,6 +79,7 @@ export function BidBuilder({
   const update = (id: string, patch: Partial<BidDraft>) =>
     setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
   const remove = (id: string) => setDrafts((prev) => prev.filter((d) => d.id !== id));
+  const loadTypes = loadTypeOptions(presets);
 
   return (
     <div>
@@ -108,9 +110,12 @@ export function BidBuilder({
                   title={p.size_reference}
                   className="rounded-md border border-line bg-surface px-2.5 py-1.5 text-left text-xs text-ink-2 hover:border-line-strong hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <span className="font-medium text-ink">+ {p.name}</span>
-                  <span className="num ml-1.5 text-muted">
-                    {fmtInt(p.energy_mwh)} MWh · {fmtInt(p.max_mw)} MW
+                  <span className="flex items-center gap-1.5">
+                    <span className="font-medium text-ink">+ {p.name}</span>
+                    <LoadTypeTag type={p.load_type} />
+                  </span>
+                  <span className="num mt-0.5 block text-muted">
+                    {fmtInt(p.energy_mwh)} MWh · {fmtInt(p.max_mw)} MW · {windowLabel(p.earliest_hour, p.deadline_hour)}
                   </span>
                 </button>
               ))}
@@ -143,6 +148,7 @@ export function BidBuilder({
               draft={d}
               error={errors[i]}
               serverErrors={serverErrByBid.get(d.id) ?? []}
+              loadTypes={loadTypes}
               onChange={(patch) => update(d.id, patch)}
               onRemove={() => remove(d.id)}
             />
@@ -375,6 +381,7 @@ function BidCard({
   draft,
   error,
   serverErrors,
+  loadTypes,
   onChange,
   onRemove,
 }: {
@@ -382,6 +389,7 @@ function BidCard({
   draft: BidDraft;
   error: string | null;
   serverErrors: string[];
+  loadTypes: { value: string; label: string }[];
   onChange: (patch: Partial<BidDraft>) => void;
   onRemove: () => void;
 }) {
@@ -423,10 +431,10 @@ function BidCard({
             onChange={(e) => onChange({ load_type: e.target.value })}
             className="w-full rounded-md border border-line-strong bg-surface px-2 py-1.5 text-sm text-ink"
           >
-            {LOAD_TYPES.some((t) => t.value === draft.load_type) ? null : (
-              <option value={draft.load_type}>{draft.load_type}</option>
+            {loadTypes.some((t) => t.value === draft.load_type) ? null : (
+              <option value={draft.load_type}>{loadTypeLabel(draft.load_type)}</option>
             )}
-            {LOAD_TYPES.map((t) => (
+            {loadTypes.map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}
               </option>

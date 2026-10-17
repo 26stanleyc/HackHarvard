@@ -81,14 +81,47 @@ export function customDraft(id: string): BidDraft {
   };
 }
 
-export const LOAD_TYPES: { value: string; label: string }[] = [
-  { value: "ev_fleet", label: "EV fleet" },
-  { value: "data_center", label: "Data center" },
-  { value: "office", label: "Office building" },
-  { value: "cold_storage", label: "Cold storage" },
-  { value: "custom", label: "Custom" },
-];
+/**
+ * Known load types: label plus a muted tag color (used for the small load-type tag only;
+ * company identity is always the company color). Types the backend adds later (e.g. from
+ * /api/presets) fall back to a title-cased label and a neutral tag.
+ */
+export const LOAD_TYPE_META: Record<string, { label: string; color: string }> = {
+  ev_fleet: { label: "EV fleet", color: "#3d6fa8" },
+  data_center: { label: "Data center", color: "#6a5aa6" },
+  office: { label: "Office building", color: "#a0663a" },
+  cold_storage: { label: "Cold storage", color: "#2f8a8a" },
+  water_pumping: { label: "Water pumping", color: "#3f7f4f" },
+  custom: { label: "Custom", color: "#7d7c76" },
+};
+
+const NEUTRAL_TAG = "#7d7c76";
+
+function titleCaseType(v: string): string {
+  const s = v.replace(/_/g, " ").trim();
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : "Unspecified";
+}
 
 export function loadTypeLabel(v: string): string {
-  return LOAD_TYPES.find((t) => t.value === v)?.label ?? v.replace(/_/g, " ");
+  return LOAD_TYPE_META[v]?.label ?? titleCaseType(v);
+}
+
+export function loadTypeColor(v: string): string {
+  return LOAD_TYPE_META[v]?.color ?? NEUTRAL_TAG;
+}
+
+/** Static load types (kept for callers that do not have the presets). */
+export const LOAD_TYPES: { value: string; label: string }[] = Object.entries(LOAD_TYPE_META).map(
+  ([value, m]) => ({ value, label: m.label }),
+);
+
+/**
+ * Load-type options for the bid form: every known type plus any type that appears in the
+ * presets served by /api/presets, "custom" last.
+ */
+export function loadTypeOptions(presets: { load_type: string }[]): { value: string; label: string }[] {
+  const values = new Set<string>(Object.keys(LOAD_TYPE_META));
+  for (const p of presets) values.add(p.load_type);
+  values.delete("custom");
+  return [...values, "custom"].map((value) => ({ value, label: loadTypeLabel(value) }));
 }

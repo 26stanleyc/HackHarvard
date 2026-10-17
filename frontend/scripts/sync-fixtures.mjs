@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 // Copy the repo's API fixtures (../fixtures/*.json) into src/fixtures/ so the
 // frontend's fixture mode always serves the single source of truth.
+// Also copies the adoption chart's build metadata (population, draws, day) from
+// ../backend/data/processed/adoption_chart_meta.json, which the API contract does not carry,
+// so the chart caption can state how it was computed.
 // Runs automatically before `npm run dev` and `npm run build` (predev/prebuild).
 // If ../fixtures is missing (e.g. the frontend was copied out of the repo), the
 // committed copies in src/fixtures/ are kept and a warning is printed.
@@ -30,4 +33,16 @@ for (const f of files) {
     changed++;
   }
 }
-console.log(`[sync-fixtures] ${files.length} fixtures checked, ${changed} updated -> src/fixtures/`);
+const metaSrc = resolve(here, "..", "..", "backend", "data", "processed", "adoption_chart_meta.json");
+const metaDest = join(dest, "adoption_chart_meta.json");
+if (existsSync(metaSrc)) {
+  JSON.parse(readFileSync(metaSrc, "utf8"));
+  const same = existsSync(metaDest) && readFileSync(metaDest, "utf8") === readFileSync(metaSrc, "utf8");
+  if (!same) {
+    copyFileSync(metaSrc, metaDest);
+    changed++;
+  }
+} else {
+  console.warn(`[sync-fixtures] ${metaSrc} not found; keeping existing ${metaDest}`);
+}
+console.log(`[sync-fixtures] ${files.length} fixtures + adoption chart meta checked, ${changed} updated -> src/fixtures/`);

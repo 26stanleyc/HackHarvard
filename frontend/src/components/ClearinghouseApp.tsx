@@ -357,7 +357,7 @@ export function ClearinghouseApp() {
       <footer className="border-t border-line">
         <div className="mx-auto max-w-[1180px] px-4 py-5 text-xs leading-relaxed text-muted">
           The coordinator is an optimizer, not an LLM. Every number on screen comes from the API
-          ({API_MODE === "fixture" ? "fixture mode: hand-written mock responses in fixtures/" : `live: ${API_BASE}`}).
+          ({API_MODE === "fixture" ? "fixture mode: backend responses recorded in fixtures/ for the example scenario" : `live: ${API_BASE}`}).
           Bids are additional load on top of real EIA-930 demand; strategies are planned on the
           forecast and scored on the actual day.
         </div>

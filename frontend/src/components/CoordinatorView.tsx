@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { API_MODE, ApiError } from "@/lib/api";
+import { fallbackSentence, herdingGapPct, herdingNote, tieSentence } from "@/lib/explain";
 import { scheduleErrors } from "@/lib/feasibility";
-import { fmtInt, fmtSignedT, fmtT } from "@/lib/format";
+import { fmtInt, fmtNum1, fmtSignedT, fmtT } from "@/lib/format";
 import { STRATEGY_BLURB, STRATEGY_COLORS, STRATEGY_LABEL } from "@/lib/theme";
 import type {
   Bid,
@@ -12,6 +13,7 @@ import type {
   EvaluateResponse,
   MetaResponse,
   StrategyName,
+  TraceStep,
 } from "@/lib/types";
 import { LoadChart, MarginalStrip, type ChartCompany } from "./LoadChart";
 import { ScheduleGrid } from "./ScheduleGrid";
@@ -21,7 +23,7 @@ import { Button, ErrorBanner, Segmented, SectionTitle, Source, Stat } from "./ui
 export type Act = "1" | "2" | "beat" | "3";
 
 export interface TraceState {
-  /** number of trace steps applied (0..N) */
+  /** number of trace step GROUPS applied (0..N); entries sharing a `step` form one group */
   idx: number;
   /** furthest idx ever reached; Act 3 counts as run once max === N */
   max: number;
@@ -40,6 +42,31 @@ const ACTS: { id: Act; n: string; title: string; short: string }[] = [
   { id: "beat", n: "Your turn", title: "Beat the coordinator", short: "Beat the coordinator" },
   { id: "3", n: "Act 3", title: "Coordinated", short: "Coordinated" },
 ];
+
+/**
+ * Group consecutive trace entries that share a step number. The engine aggregates
+ * placements into at most ~200 steps, emitting one entry per (bid, hour) per step, so a
+ * step can hold several entries; the replay advances one step (group) at a time.
+ */
+export function traceGroups(steps: TraceStep[]): TraceStep[][] {
+  const groups: TraceStep[][] = [];
+  for (const st of steps) {
+    const last = groups[groups.length - 1];
+    if (last && last[0].step === st.step) last.push(st);
+    else groups.push([st]);
+  }
+  return groups;
+}
+
+/** Largest |replayed − coordinated| MWh over every (bid, hour). */
+function replayMismatch(replayed: Record<string, number[]>, target: Record<string, number[]>): number {
+  let m = 0;
+  const ids = new Set([...Object.keys(replayed), ...Object.keys(target)]);
+  for (const id of ids) {
+    for (let h = 0; h < 24; h++) m = Math.max(m, Math.abs((replayed[id]?.[h] ?? 0) - (target[id]?.[h] ?? 0)));
+  }
+  return m;
+}
 
 function niceCeil(x: number): number {
   if (x <= 0) return 100;
@@ -86,7 +113,8 @@ export function CoordinatorView({
   onNext: () => void;
 }) {
   const steps = response.coordinator_trace;
-  const N = steps.length;
+  const groups = useMemo(() => traceGroups(steps), [steps]);
+  const N = groups.length;
   const [playing, setPlaying] = useState(false);
   const [signal, setSignal] = useState<"independent_average" | "independent_marginal">(
     "independent_average",
@@ -126,27 +154,39 @@ export function CoordinatorView({
     return niceCeil(m * 1.05);
   }, [response, companies]);
 
-  const traceSchedule = useMemo(() => {
-    if (trace.idx >= N) return response.strategies.coordinated.schedule;
+  // Cumulative replay: every entry of every applied step group, summed per (bid, hour).
+  const replayed = useMemo(() => {
     const sch: Record<string, number[]> = {};
     for (const c of companies) sch[c.id] = new Array(24).fill(0);
-    for (let i = 0; i < trace.idx; i++) {
-      const st = steps[i];
-      if (!sch[st.bid_id]) sch[st.bid_id] = new Array(24).fill(0);
-      sch[st.bid_id][st.hour] += st.mwh;
-    }
-    return sch;
-  }, [trace.idx, N, steps, companies, response]);
-
-  const partial = useMemo(() => {
     let mwh = 0;
     let co2 = 0;
-    for (let i = 0; i < trace.idx && i < N; i++) {
-      mwh += steps[i].mwh;
-      co2 += steps[i].incremental_co2_t;
+    for (let g = 0; g < Math.min(trace.idx, N); g++) {
+      for (const st of groups[g]) {
+        if (!sch[st.bid_id]) sch[st.bid_id] = new Array(24).fill(0);
+        sch[st.bid_id][st.hour] += st.mwh;
+        mwh += st.mwh;
+        co2 += st.incremental_co2_t;
+      }
     }
-    return { mwh, co2 };
-  }, [trace.idx, N, steps]);
+    return { sch, mwh, co2 };
+  }, [trace.idx, N, groups, companies]);
+
+  // End-of-replay check: Σ replayed MWh per (bid, hour) must equal the coordinated schedule.
+  const replayCheck = useMemo(() => {
+    const full: Record<string, number[]> = {};
+    for (const st of steps) {
+      if (!full[st.bid_id]) full[st.bid_id] = new Array(24).fill(0);
+      full[st.bid_id][st.hour] += st.mwh;
+    }
+    const mismatch = replayMismatch(full, response.strategies.coordinated.schedule);
+    const mwh = steps.reduce((a, st) => a + st.mwh, 0);
+    return { mismatch, ok: mismatch <= 1e-6 * Math.max(1, mwh), mwh };
+  }, [steps, response]);
+
+  // If the replay ever disagreed with the schedule, the final frame shows the schedule itself.
+  const traceSchedule =
+    trace.idx >= N && !replayCheck.ok ? response.strategies.coordinated.schedule : replayed.sch;
+  const partial = { mwh: replayed.mwh, co2: replayed.co2 };
 
   const totalEnergy = bids.reduce((a, b) => a + b.energy_mwh, 0);
   const def = response.strategies.default;
@@ -308,9 +348,19 @@ export function CoordinatorView({
                 {trace.idx === 0 ? (
                   "The coordinator places blocks one at a time, round-robin by earliest deadline, each into the hour where it adds the least simulated CO2."
                 ) : trace.idx < N ? (
-                  <TraceLine step={steps[trace.idx - 1]} companies={companies} />
+                  <TraceLine group={groups[trace.idx - 1]} companies={companies} />
                 ) : (
-                  "All blocks placed. Final coordinated schedule shown."
+                  <span data-testid="trace-done">
+                    All blocks placed: {fmtInt(replayed.mwh)} MWh replayed from {steps.length} trace entries in {N} steps.{" "}
+                    {replayCheck.ok ? (
+                      <span className="text-accent">Matches the coordinated schedule hour by hour.</span>
+                    ) : (
+                      <span className="text-danger">
+                        Replay differs from the coordinated schedule by up to {replayCheck.mismatch.toFixed(3)} MWh; the schedule
+                        itself is shown.
+                      </span>
+                    )}
+                  </span>
                 )}
               </div>
             </div>
@@ -319,7 +369,8 @@ export function CoordinatorView({
           <Source className="mt-3">
             schedules: POST /api/clear strategies.{act === "beat" ? "default (start)" : s} · forecast:{" "}
             {forecastSourceText(response.forecast)} · scored on actual EIA-930 day
-            {act === "3" && ` · animation replays coordinator_trace (${N} steps, subsampled by the engine)`}
+            {act === "3" &&
+              ` · animation replays coordinator_trace (${steps.length} entries in ${N} steps, aggregated by the engine)`}
           </Source>
         </section>
 
@@ -373,21 +424,33 @@ function Legend({ companies }: { companies: ChartCompany[] }) {
   );
 }
 
-function TraceLine({
-  step,
-  companies,
-}: {
-  step: ClearResponse["coordinator_trace"][number];
-  companies: ChartCompany[];
-}) {
-  const c = companies.find((x) => x.id === step.bid_id);
+function TraceLine({ group, companies }: { group: TraceStep[]; companies: ChartCompany[] }) {
+  const mwh = group.reduce((a, s) => a + s.mwh, 0);
+  const co2 = group.reduce((a, s) => a + s.incremental_co2_t, 0);
+  const nameOf = (id: string) => companies.find((x) => x.id === id)?.name ?? id;
+  const hr = (h: number) => String(h).padStart(2, "0");
+  if (group.length === 1) {
+    const st = group[0];
+    return (
+      <span>
+        Step <span className="num">{st.step}</span>: placed{" "}
+        <span className="num font-medium text-ink">{fmtNum1(st.mwh)} MWh</span> of{" "}
+        <span className="font-medium text-ink">{nameOf(st.bid_id)}</span> in hour <span className="num">{hr(st.hour)}</span>,
+        adding <span className="num font-medium text-ink">{fmtT(st.incremental_co2_t)} t</span> CO2 (planned on the forecast).
+      </span>
+    );
+  }
   return (
     <span>
-      Step <span className="num">{step.step}</span>: placed{" "}
-      <span className="num font-medium text-ink">{fmtInt(step.mwh)} MWh</span> of{" "}
-      <span className="font-medium text-ink">{c?.name ?? step.bid_id}</span> in hour{" "}
-      <span className="num">{String(step.hour).padStart(2, "0")}</span>, adding{" "}
-      <span className="num font-medium text-ink">{fmtT(step.incremental_co2_t)} t</span> CO2.
+      Step <span className="num">{group[0].step}</span>: placed{" "}
+      <span className="num font-medium text-ink">{fmtNum1(mwh)} MWh</span> in {group.length} blocks (
+      {group.map((st, i) => (
+        <span key={`${st.bid_id}-${st.hour}`}>
+          {nameOf(st.bid_id)} → <span className="num">{hr(st.hour)}</span>
+          {i < group.length - 1 ? ", " : ""}
+        </span>
+      ))}
+      ), adding <span className="num font-medium text-ink">{fmtT(co2)} t</span> CO2 (planned on the forecast).
     </span>
   );
 }
@@ -417,7 +480,7 @@ function Co2Counter({
             value={`${fmtInt(partial.mwh)}`}
             sub={`of ${fmtInt(partial.totalEnergy)} MWh`}
           />
-          <Stat label="Added CO2 so far" value={fmtT(partial.co2)} sub="t, sum of block increments" />
+          <Stat label="Added CO2 so far" value={fmtT(partial.co2)} sub="t, sum of block increments (forecast)" />
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
@@ -466,7 +529,9 @@ function Narrative({
   }
   if (act === "2") {
     const m = h[signal];
-    const pct = m.predicted_t !== 0 ? (m.gap_t / m.predicted_t) * 100 : 0;
+    const pct = herdingGapPct(m);
+    const note = herdingNote(m);
+    const tie = tieSentence(response);
     return (
       <div className="card space-y-3 p-4 text-sm leading-relaxed text-ink-2">
         <div className="kicker">Act 2 · Everyone chases the clean hour</div>
@@ -474,8 +539,18 @@ function Narrative({
         <div className="grid grid-cols-3 gap-2 rounded-md bg-surface-2/70 p-3">
           <Stat label="Promised" value={fmtT(m.predicted_t)} sub="t, sum of solo savings" />
           <Stat label="Realized" value={fmtT(m.realized_t)} sub="t, all together" />
-          <Stat label="Gap" value={fmtT(m.gap_t)} sub={`t (${pct.toFixed(0)}% short)`} tone={m.gap_t > 0 ? "bad" : "default"} />
+          <Stat
+            label="Gap"
+            value={fmtT(m.gap_t)}
+            sub={pct === null ? "t" : `t (${pct.toFixed(0)}% short)`}
+            tone={m.gap_t > 0 && pct !== null ? "bad" : "default"}
+          />
         </div>
+        {(note || tie) && (
+          <p className="text-xs leading-relaxed text-ink-2" data-testid="act2-note">
+            {tie ?? note}
+          </p>
+        )}
         <p className="text-xs text-muted">
           Promised = what each company would save if it alone shifted. Realized = what they save
           when all shift at once. Toggle the signal to compare the standard tool with the best
@@ -511,14 +586,17 @@ function Narrative({
             </span>
             . This is the value of coordination that payouts are based on.
           </p>
+          {tieSentence(response) && (
+            <p className="text-xs leading-relaxed text-ink-2" data-testid="act3-note">
+              {tieSentence(response)}
+            </p>
+          )}
           <ScoreBoard response={response} evalState={evalState} act3Done={act3Done} />
         </>
       )}
-      <p className="text-xs text-muted">
-        Planning-time fallback{" "}
-        {response.fallback_fired
-          ? "fired: greedy was worse than the solo schedules on the forecast, so those were used."
-          : "not triggered: the greedy schedule beat the solo schedules on the forecast."}{" "}
+      <p className="text-xs text-muted" data-testid="fallback-note">
+        {fallbackSentence(response) ??
+          "Planning-time fallback not triggered: on the forecast the greedy schedule was no worse than the solo schedules."}{" "}
         Greedy is not guaranteed optimal.
       </p>
     </div>
@@ -563,7 +641,7 @@ function ScoreBoard({
               your schedule.
             </span>
           )}
-          {API_MODE === "fixture" && " (Fixture mode: your score is a fixed mock value.)"}
+          {API_MODE === "fixture" && " (Fixture mode: your score is the recorded score of a flat hand schedule, not your drag.)"}
         </div>
       )}
     </div>
@@ -657,7 +735,7 @@ function BeatPanel({
           />
           <Source className="mt-2">
             POST /api/evaluate · scored on the actual EIA-930 day, same rules as the strategies
-            {API_MODE === "fixture" ? " · fixture: fixed mock response, not computed from your drag" : ""}
+            {API_MODE === "fixture" ? " · fixture: recorded score of a flat hand schedule, not computed from your drag" : ""}
           </Source>
         </div>
       )}

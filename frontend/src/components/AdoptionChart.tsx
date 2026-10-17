@@ -187,30 +187,68 @@ function Legend() {
   );
 }
 
+/** Tolerance (t) for "equal" when reading the chart. */
+const READ_TOL_T = 1;
+
 /**
- * Data-driven reading of the chart (no hard-coded results): the first share at
- * which the average-signal strategy emits more than default, and the spread at
- * the largest share shown.
+ * Data-driven reading of the chart (no hard-coded results). Every field is computed from
+ * the /api/adoption-chart means.
  */
 export function adoptionReadout(data: AdoptionChartResponse) {
   const xs = data.x_pct_of_peak;
-  const d = data.strategies.default.mean_co2_t;
-  const ia = data.strategies.independent_average.mean_co2_t;
-  const im = data.strategies.independent_marginal.mean_co2_t;
-  const co = data.strategies.coordinated.mean_co2_t;
+  const m = (s: StrategyName) => data.strategies[s].mean_co2_t;
+  const d = m("default");
+  const ia = m("independent_average");
+  const im = m("independent_marginal");
+  const co = m("coordinated");
+  const last = xs.length - 1;
+
+  // Largest share up to which default, marginal-solo and coordinated add no CO2 over x = 0.
+  let flatUntil: number | null = null;
+  for (let i = 1; i < xs.length; i++) {
+    const flat = [d, im, co].every((ser) => Math.abs(ser[i] - ser[0]) < READ_TOL_T);
+    if (!flat) break;
+    flatUntil = xs[i];
+  }
+
   let crossIdx = -1;
   for (let i = 0; i < xs.length; i++) {
-    if (xs[i] > 0 && ia[i] > d[i]) {
+    if (xs[i] > 0 && ia[i] > d[i] + READ_TOL_T) {
       crossIdx = i;
       break;
     }
   }
-  const last = xs.length - 1;
+
+  const at = (i: number) => STRATEGY_NAMES.map((s) => ({ s, v: m(s)[i] }));
+  const argmax = (i: number) => at(i).reduce((a, b) => (b.v > a.v ? b : a)).s;
+  const argmin = (i: number) => at(i).reduce((a, b) => (b.v < a.v ? b : a)).s;
+  // Smallest share from which `s` stays the max (or min) strictly by READ_TOL_T through the end.
+  const runFrom = (s: StrategyName, pick: "max" | "min"): number => {
+    let from = last;
+    for (let i = last; i >= 0; i--) {
+      const others = STRATEGY_NAMES.filter((o) => o !== s).map((o) => m(o)[i]);
+      const ok = pick === "max" ? others.every((v) => m(s)[i] > v + READ_TOL_T) : others.every((v) => m(s)[i] < v - READ_TOL_T);
+      if (!ok) break;
+      from = i;
+    }
+    return xs[from];
+  };
+  const worst = argmax(last);
+  const lowest = argmin(last);
   return {
+    baseline: d[0],
+    flatUntil,
     crossesAt: crossIdx >= 0 ? xs[crossIdx] : null,
     maxX: xs[last],
+    worst,
+    worstFrom: runFrom(worst, "max"),
+    worstVsDefault: m(worst)[last] - d[last],
+    lowest,
+    lowestFrom: runFrom(lowest, "min"),
     iaVsDefault: ia[last] - d[last],
+    imVsDefault: im[last] - d[last],
     coVsDefault: co[last] - d[last],
     coVsIm: co[last] - im[last],
+    tol: READ_TOL_T,
   };
 }

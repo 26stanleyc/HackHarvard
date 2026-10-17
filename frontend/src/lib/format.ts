@@ -40,6 +40,19 @@ export function fmtSignedT(t: number): string {
   return t > 0 ? `+${s}` : `−${s}`;
 }
 
+/** Tons for Shapley shares: like fmtT, but keeps 2 decimals for small non-zero values. */
+export function fmtShareT(t: number): string {
+  const a = Math.abs(t);
+  if (a > 0 && a < 0.1) return t.toFixed(2);
+  return fmtT(t);
+}
+
+/** "120.9 t avoided" / "16.8 t more" (never "−16.8 t avoided"). */
+export function fmtAvoided(t: number): string {
+  if (Math.abs(t) < 0.05) return "0 t";
+  return t > 0 ? `${fmtT(t)} t avoided` : `${fmtT(-t)} t more`;
+}
+
 export function fmtInt(x: number): string {
   return nf0.format(x);
 }
