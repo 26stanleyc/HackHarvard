@@ -1,0 +1,1213 @@
+{
+  "generated_utc": "2026-10-17T11:02:46+00:00",
+  "coal_gas_split_error": 0.06907300677616386,
+  "mef_simulated": 0.6273268731328905,
+  "mef_observed": 0.5489546881872649,
+  "fossil_co2_error": 0.077266853462279,
+  "target": {
+    "metric": "fossil_co2_error (hourly fossil CO2 MAPE, holdout)",
+    "threshold": 0.15,
+    "met": true
+  },
+  "params": {
+    "label": "calibrated_m3",
+    "availability": {
+      "coal": 0.8214059084819855,
+      "gas": 0.83,
+      "oil": 0.5
+    },
+    "price_scale": {
+      "coal": 1.0,
+      "gas": 1.0,
+      "oil": 1.0
+    },
+    "monthly_price_scale": {
+      "1": {
+        "coal": 1.2048102503387867
+      },
+      "2": {
+        "coal": 0.5910491677206439
+      },
+      "3": {
+        "coal": 0.49311444469099136
+      },
+      "4": {
+        "coal": 0.48711851329177835
+      },
+      "5": {
+        "coal": 0.5686387232299023
+      },
+      "6": {
+        "coal": 0.7335509874714919
+      },
+      "7": {
+        "coal": 0.6365658484983411
+      },
+      "8": {
+        "coal": 0.5747293723950874
+      },
+      "9": {
+        "coal": 0.6244270513020528
+      },
+      "10": {
+        "coal": 0.6352191880286768
+      },
+      "11": {
+        "coal": 0.6170586209108797
+      },
+      "12": {
+        "coal": 0.9043732592097737
+      }
+    }
+  },
+  "params_source": "calibrated:backend/data/processed/calibrated_params.json",
+  "fitted_parameters": {
+    "availability": [
+      "coal",
+      "gas"
+    ],
+    "monthly_price_scale[month]['coal']": "months 1-12 (coal price relative to gas; gas fixed at 1.0)",
+    "n_fitted": 14,
+    "bounds": {
+      "availability": [
+        0.3,
+        1.0
+      ],
+      "coal_scale": [
+        0.1,
+        3.0
+      ]
+    },
+    "not_fitted": {
+      "availability['oil']": "availability['oil'] is not fitted and stays at the stated default 0.50: EIA-930 reports no ERCO oil generation in 2024 (treated as 0) and the 0.26 GW of oil plants sit at the top of the stack, so the objective depends on it only in hours where the coal + gas stack is exhausted, and then by at most 0.5 x 0.26 GW of capacity (see unserved_* and oil_mwh_sim).",
+      "price_scale": "1.0 for every fuel"
+    },
+    "coal_scale_plateaus": {
+      "1": [
+        1.204109434713391,
+        1.2055114738528068
+      ],
+      "2": [
+        0.5907477310798029,
+        0.5913507581734144
+      ],
+      "3": [
+        0.4928820195433153,
+        0.49334697944187295
+      ],
+      "4": [
+        0.4866988083279539,
+        0.4875385801883909
+      ],
+      "5": [
+        0.5683038494614079,
+        0.5689737943231922
+      ],
+      "6": [
+        0.7331544235322701,
+        0.7339477659125334
+      ],
+      "7": [
+        0.6365122619323134,
+        0.6366194395757039
+      ],
+      "8": [
+        0.5743368921396587,
+        0.575122120856778
+      ],
+      "9": [
+        0.6240593235493037,
+        0.6247949957388493
+      ],
+      "10": [
+        0.6349197830626009,
+        0.6355187341831927
+      ],
+      "11": [
+        0.6166996894333314,
+        0.6174177612936825
+      ],
+      "12": [
+        0.9042843825591523,
+        0.9044621445955444
+      ]
+    },
+    "plateau_note": "Each month's objective is piecewise constant in the coal scale; any value in the plateau gives the same merit order and output. The reported value is the plateau's geometric midpoint."
+  },
+  "selected_attempt": "1b",
+  "selection_rule": "attempt 1 (unconstrained) rejected for physical infeasibility (orchestrator decision). Attempt 1b (feasibility-constrained) is adopted whether or not it meets the target; only if it misses do attempts 2-5 (same constraints) run: first meeting the target, else lowest training objective among constrained attempts.",
+  "feasibility_constraints": {
+    "capacity_mw": {
+      "coal": 15601.300000000001,
+      "gas": 64945.0,
+      "oil": 257.9
+    },
+    "max_obs_coal_mw": 12815.0,
+    "max_obs_gas_mw": 48366.0,
+    "max_obs_fossil_mw": 61181.0,
+    "min_availability": {
+      "coal": 0.8214059084819855,
+      "gas": 0.744722457464008
+    },
+    "oil_available_mw": 128.95,
+    "rule": "coal_av x coal_cap >= max obs coal; gas_av x gas_cap >= max obs gas; coal_av x coal_cap + gas_av x gas_cap + 0.5 x oil_cap >= max obs coal+gas+oil (maxima over training hours)"
+  },
+  "adopted_unserved": {
+    "train": {
+      "days": 248,
+      "hours": 0,
+      "mwh": 0.0,
+      "hours_frac": 0.0
+    },
+    "holdout": {
+      "days": 104,
+      "hours": 0,
+      "mwh": 0.0,
+      "hours_frac": 0.0
+    },
+    "demo": {
+      "days": 4,
+      "hours": 0,
+      "mwh": 0.0,
+      "hours_frac": 0.0
+    },
+    "gate": {
+      "days": 7,
+      "hours": 0,
+      "mwh": 0.0,
+      "hours_frac": 0.0
+    }
+  },
+  "attempts": [
+    {
+      "attempt": "1",
+      "name": "1_alt_from_default",
+      "description": "Alternating coordinate descent from the uncalibrated defaults (availability 0.9 / 0.9, coal scale 1.0); coal-scale step first. No feasibility constraint.",
+      "config": {
+        "name": "1_alt_from_default",
+        "description": "Alternating coordinate descent from the uncalibrated defaults (availability 0.9 / 0.9, coal scale 1.0); coal-scale step first. No feasibility constraint.",
+        "init_avail": {
+          "coal": 0.9,
+          "gas": 0.9
+        },
+        "init_coal_scale": 1.0,
+        "first_step": "scale",
+        "avail_grid_steps": [
+          0.05,
+          0.01,
+          0.002
+        ],
+        "outer_avail_grid": null,
+        "outer_grid_offset": 0.0,
+        "max_iter": 10,
+        "feasibility": false
+      },
+      "feasibility_constraints": null,
+      "train_objective": 0.109462408171647,
+      "train_co2_term": 0.059530760162118064,
+      "train_coal_share_term": 0.04993164800952892,
+      "iterations": 6,
+      "params": {
+        "label": "calibrated",
+        "availability": {
+          "coal": 0.516,
+          "gas": 0.642,
+          "oil": 0.5
+        },
+        "price_scale": {
+          "coal": 1.0,
+          "gas": 1.0,
+          "oil": 1.0
+        },
+        "monthly_price_scale": {
+          "1": {
+            "coal": 1.1325454305286236
+          },
+          "2": {
+            "coal": 0.5906320832728341
+          },
+          "3": {
+            "coal": 0.4885156093305709
+          },
+          "4": {
+            "coal": 0.4863079693332085
+          },
+          "5": {
+            "coal": 0.5803330487802968
+          },
+          "6": {
+            "coal": 0.7335509874714919
+          },
+          "7": {
+            "coal": 0.6216701431543276
+          },
+          "8": {
+            "coal": 0.5729837640308904
+          },
+          "9": {
+            "coal": 0.6039791458041446
+          },
+          "10": {
+            "coal": 0.6209874152804798
+          },
+          "11": {
+            "coal": 0.6099273991421584
+          },
+          "12": {
+            "coal": 0.7770801222326119
+          }
+        }
+      },
+      "coal_scale_plateaus": {
+        "1": [
+          1.1322551712225999,
+          1.1328357642440798
+        ],
+        "2": [
+          0.5905183878843602,
+          0.5907458005516364
+        ],
+        "3": [
+          0.488094700618323,
+          0.48893688101365995
+        ],
+        "4": [
+          0.4860250930681972,
+          0.48659101023782886
+        ],
+        "5": [
+          0.580019315769483,
+          0.5806469514896008
+        ],
+        "6": [
+          0.7331544235322701,
+          0.7339477659125334
+        ],
+        "7": [
+          0.621473738351217,
+          0.6218666100273926
+        ],
+        "8": [
+          0.5729451840545295,
+          0.5730223466050818
+        ],
+        "9": [
+          0.603887550347024,
+          0.6040707551541293
+        ],
+        "10": [
+          0.6209263881758124,
+          0.6210484483831328
+        ],
+        "11": [
+          0.609867458952855,
+          0.609987345222621
+        ],
+        "12": [
+          0.7769467071476738,
+          0.77721356022721
+        ]
+      },
+      "holdout": {
+        "coal_gas_split_error": 0.05116767455569044,
+        "mef_simulated": 0.5455984044107082,
+        "mef_observed": 0.5489546881872649,
+        "fossil_co2_error": 0.06296546184106781,
+        "coal_share_mae_pp": 5.116767455569044,
+        "coal_mw_mape": 0.2395371648179952,
+        "gas_mw_mape": 0.06672835475243837,
+        "mean_marginal_rate": 0.1663687392779074,
+        "mean_fossil_margin_rate": 0.5914686198781178,
+        "fossil_margin_share_of_hours": {
+          "coal": 0.15825320512820512,
+          "gas": 0.8056891025641025,
+          "oil": 0.036057692307692304
+        },
+        "daily_co2_mape": 0.046202572273099346,
+        "daily_co2_bias": -0.023542310858009827,
+        "total_co2_bias": -0.016662012939917314,
+        "objective": 0.11413313639675825
+      },
+      "holdout_unserved_hours_frac": 0.03445512820512821,
+      "holdout_unserved_mwh": 261020.67119998863,
+      "train_unserved_mwh": 593445.9667999762,
+      "holdout_target_met": true,
+      "runtime_s": 13.590436832979321,
+      "status": "rejected",
+      "note": "rejected: stack infeasible at observed peaks (unserved energy) -- fitted gas availability leaves less available capacity than the observed peak fossil and gas generation"
+    },
+    {
+      "attempt": "1b",
+      "name": "1b_feasible",
+      "description": "Attempt 1 (same optimizer, objective, bounds, start) with the feasibility constraints: coal_av x coal_cap >= max training coal MW, gas_av x gas_cap >= max training gas MW, total available >= max training fossil MW.",
+      "config": {
+        "name": "1b_feasible",
+        "description": "Attempt 1 (same optimizer, objective, bounds, start) with the feasibility constraints: coal_av x coal_cap >= max training coal MW, gas_av x gas_cap >= max training gas MW, total available >= max training fossil MW.",
+        "init_avail": {
+          "coal": 0.9,
+          "gas": 0.9
+        },
+        "init_coal_scale": 1.0,
+        "first_step": "scale",
+        "avail_grid_steps": [
+          0.05,
+          0.01,
+          0.002
+        ],
+        "outer_avail_grid": null,
+        "outer_grid_offset": 0.0,
+        "max_iter": 10,
+        "feasibility": true
+      },
+      "feasibility_constraints": {
+        "capacity_mw": {
+          "coal": 15601.300000000001,
+          "gas": 64945.0,
+          "oil": 257.9
+        },
+        "max_obs_coal_mw": 12815.0,
+        "max_obs_gas_mw": 48366.0,
+        "max_obs_fossil_mw": 61181.0,
+        "min_availability": {
+          "coal": 0.8214059084819855,
+          "gas": 0.744722457464008
+        },
+        "oil_available_mw": 128.95,
+        "rule": "coal_av x coal_cap >= max obs coal; gas_av x gas_cap >= max obs gas; coal_av x coal_cap + gas_av x gas_cap + 0.5 x oil_cap >= max obs coal+gas+oil (maxima over training hours)"
+      },
+      "train_objective": 0.14788062169190558,
+      "train_co2_term": 0.07858372756474122,
+      "train_coal_share_term": 0.06929689412716426,
+      "iterations": 3,
+      "params": {
+        "label": "calibrated",
+        "availability": {
+          "coal": 0.8214059084819855,
+          "gas": 0.83,
+          "oil": 0.5
+        },
+        "price_scale": {
+          "coal": 1.0,
+          "gas": 1.0,
+          "oil": 1.0
+        },
+        "monthly_price_scale": {
+          "1": {
+            "coal": 1.2048102503387867
+          },
+          "2": {
+            "coal": 0.5910491677206439
+          },
+          "3": {
+            "coal": 0.49311444469099136
+          },
+          "4": {
+            "coal": 0.48711851329177835
+          },
+          "5": {
+            "coal": 0.5686387232299023
+          },
+          "6": {
+            "coal": 0.7335509874714919
+          },
+          "7": {
+            "coal": 0.6365658484983411
+          },
+          "8": {
+            "coal": 0.5747293723950874
+          },
+          "9": {
+            "coal": 0.6244270513020528
+          },
+          "10": {
+            "coal": 0.6352191880286768
+          },
+          "11": {
+            "coal": 0.6170586209108797
+          },
+          "12": {
+            "coal": 0.9043732592097737
+          }
+        }
+      },
+      "coal_scale_plateaus": {
+        "1": [
+          1.204109434713391,
+          1.2055114738528068
+        ],
+        "2": [
+          0.5907477310798029,
+          0.5913507581734144
+        ],
+        "3": [
+          0.4928820195433153,
+          0.49334697944187295
+        ],
+        "4": [
+          0.4866988083279539,
+          0.4875385801883909
+        ],
+        "5": [
+          0.5683038494614079,
+          0.5689737943231922
+        ],
+        "6": [
+          0.7331544235322701,
+          0.7339477659125334
+        ],
+        "7": [
+          0.6365122619323134,
+          0.6366194395757039
+        ],
+        "8": [
+          0.5743368921396587,
+          0.575122120856778
+        ],
+        "9": [
+          0.6240593235493037,
+          0.6247949957388493
+        ],
+        "10": [
+          0.6349197830626009,
+          0.6355187341831927
+        ],
+        "11": [
+          0.6166996894333314,
+          0.6174177612936825
+        ],
+        "12": [
+          0.9042843825591523,
+          0.9044621445955444
+        ]
+      },
+      "holdout": {
+        "coal_gas_split_error": 0.06907300677616386,
+        "mef_simulated": 0.6273268731328905,
+        "mef_observed": 0.5489546881872649,
+        "fossil_co2_error": 0.077266853462279,
+        "coal_share_mae_pp": 6.907300677616386,
+        "coal_mw_mape": 0.3235068867445467,
+        "gas_mw_mape": 0.0907967836735237,
+        "mean_marginal_rate": 0.1746365518445339,
+        "mean_fossil_margin_rate": 0.624436932652869,
+        "fossil_margin_share_of_hours": {
+          "coal": 0.3333333333333333,
+          "gas": 0.6666666666666666,
+          "oil": 0.0
+        },
+        "daily_co2_mape": 0.0540634060359256,
+        "daily_co2_bias": -0.029136716193378872,
+        "total_co2_bias": -0.02009882375290073,
+        "objective": 0.14633986023844286
+      },
+      "holdout_unserved_hours_frac": 0.0,
+      "holdout_unserved_mwh": 0.0,
+      "train_unserved_mwh": 0.0,
+      "holdout_target_met": true,
+      "runtime_s": 6.074438249983359,
+      "status": "adopted"
+    }
+  ],
+  "train_days_n": 248,
+  "holdout_days_n": 104,
+  "holdout": {
+    "before_default": {
+      "n_days": 104,
+      "n_hours": 2496,
+      "objective": 0.5193044633571893,
+      "a_coal_gas_split": {
+        "coal_share_mae": 0.2100173095064186,
+        "coal_share_mae_pp": 21.001730950641857,
+        "coal_share_bias_pp": -17.79762931786087,
+        "coal_mw_mape": 0.9227066515976237,
+        "gas_mw_mape": 0.2786062043551875,
+        "mean_coal_share_obs": 0.23063931592743997,
+        "mean_coal_share_sim": 0.05266302274883122,
+        "coal_mwh_obs": 16800261.0,
+        "coal_mwh_sim": 4118702.7299999986,
+        "gas_mwh_obs": 58465232.0,
+        "gas_mwh_sim": 71146543.27000001,
+        "oil_mwh_sim": 0.0,
+        "coal_dispatched_hours_frac": 0.22435897435897437
+      },
+      "b_marginal_emission_factor": {
+        "mef_observed": 0.5489546881872649,
+        "mef_simulated": 0.46714672716778255,
+        "observed_regression": {
+          "slope_t_per_mwh": 0.5489546881872649,
+          "intercept_t": -1.3602515728773341,
+          "r2": 0.9656887504033459,
+          "n_pairs": 2392
+        },
+        "simulated_regression": {
+          "slope_t_per_mwh": 0.46714672716778255,
+          "intercept_t": -5.223506561476316,
+          "r2": 0.9410767041508125,
+          "n_pairs": 2392
+        },
+        "mean_marginal_rate": 0.13803766867804587,
+        "mean_fossil_marginal_rate": 0.4009570153755151,
+        "marginal_resource_share_of_hours": {
+          "curtailed_renewables": 0.6830929487179487,
+          "coal": 0.030048076923076924,
+          "gas": 0.28685897435897434,
+          "oil": 0.0
+        },
+        "fossil_margin_share_of_hours": {
+          "coal": 0.08092948717948718,
+          "gas": 0.9190705128205128,
+          "oil": 0.0
+        },
+        "mean_fossil_margin_rate": 0.4635611050233284,
+        "hours_with_curtailment_frac": 1.0,
+        "curtailed_mw_median": 221.79500000000002,
+        "curtailed_mw_min": 1.93,
+        "margin_note": "marginal_resource / marginal_rate describe the next MARGINAL_PROBE_MW (100 MW) block at zero added load: curtailed renewables if remaining curtailment covers >= 50 MW of it, else the fossil plant at the requirement after the probe; the rate is the probe's average incremental CO2. fossil_margin_* is the same probe once all curtailment is used up (DaySimulator.marginal_resource(added=curtailed_mw))."
+      },
+      "c_fossil_co2": {
+        "hourly_mape": 0.3092871538507707,
+        "hourly_bias": -0.2833549635818567,
+        "daily_co2_mape": 0.3006274258306621,
+        "daily_co2_bias": -0.2773224514929463,
+        "total_co2_bias": -0.2627181060297298,
+        "total_co2_obs_t": 40770806.16428,
+        "total_co2_sim_t": 30059577.187495124,
+        "target": 0.15,
+        "target_met": false
+      },
+      "fossil_mwh_obs": 75265493.0,
+      "fossil_mwh_sim": 75265246.0,
+      "unserved_mwh": 0.0,
+      "unserved_hours_frac": 0.0,
+      "unserved_mw_max": 0.0,
+      "stack_available_mw": {
+        "2024-01": 72620.62000000018,
+        "2024-02": 72620.6200000002,
+        "2024-03": 72620.62000000018,
+        "2024-04": 72620.62000000018,
+        "2024-05": 72620.62000000018,
+        "2024-06": 72620.62000000018,
+        "2024-07": 72620.6200000002,
+        "2024-08": 72620.6200000002,
+        "2024-09": 72620.6200000002,
+        "2024-10": 72620.6200000002,
+        "2024-11": 72620.6200000002,
+        "2024-12": 72620.62000000018
+      },
+      "obs_fossil_mw_max": 60759.0,
+      "obs_gas_mw_max": 47813.0
+    },
+    "after_calibrated": {
+      "n_days": 104,
+      "n_hours": 2496,
+      "objective": 0.14633986023844286,
+      "a_coal_gas_split": {
+        "coal_share_mae": 0.06907300677616386,
+        "coal_share_mae_pp": 6.907300677616386,
+        "coal_share_bias_pp": 3.992987378878754,
+        "coal_mw_mape": 0.3235068867445467,
+        "gas_mw_mape": 0.0907967836735237,
+        "mean_coal_share_obs": 0.23063931592743997,
+        "mean_coal_share_sim": 0.2705691897162275,
+        "coal_mwh_obs": 16800261.0,
+        "coal_mwh_sim": 20590977.048126202,
+        "gas_mwh_obs": 58465232.0,
+        "gas_mwh_sim": 54674268.95187378,
+        "oil_mwh_sim": 0.0,
+        "coal_dispatched_hours_frac": 0.9895833333333334
+      },
+      "b_marginal_emission_factor": {
+        "mef_observed": 0.5489546881872649,
+        "mef_simulated": 0.6273268731328905,
+        "observed_regression": {
+          "slope_t_per_mwh": 0.5489546881872649,
+          "intercept_t": -1.3602515728773341,
+          "r2": 0.9656887504033459,
+          "n_pairs": 2392
+        },
+        "simulated_regression": {
+          "slope_t_per_mwh": 0.6273268731328905,
+          "intercept_t": 2.2920216786012086,
+          "r2": 0.9388018385805506,
+          "n_pairs": 2392
+        },
+        "mean_marginal_rate": 0.1746365518445339,
+        "mean_fossil_marginal_rate": 0.5091832136249302,
+        "marginal_resource_share_of_hours": {
+          "curtailed_renewables": 0.6830929487179487,
+          "coal": 0.09375,
+          "gas": 0.2231570512820513,
+          "oil": 0.0
+        },
+        "fossil_margin_share_of_hours": {
+          "coal": 0.3333333333333333,
+          "gas": 0.6666666666666666,
+          "oil": 0.0
+        },
+        "mean_fossil_margin_rate": 0.624436932652869,
+        "hours_with_curtailment_frac": 1.0,
+        "curtailed_mw_median": 221.79500000000002,
+        "curtailed_mw_min": 1.93,
+        "margin_note": "marginal_resource / marginal_rate describe the next MARGINAL_PROBE_MW (100 MW) block at zero added load: curtailed renewables if remaining curtailment covers >= 50 MW of it, else the fossil plant at the requirement after the probe; the rate is the probe's average incremental CO2. fossil_margin_* is the same probe once all curtailment is used up (DaySimulator.marginal_resource(added=curtailed_mw))."
+      },
+      "c_fossil_co2": {
+        "hourly_mape": 0.077266853462279,
+        "hourly_bias": -0.04077722780275581,
+        "daily_co2_mape": 0.0540634060359256,
+        "daily_co2_bias": -0.029136716193378872,
+        "total_co2_bias": -0.02009882375290073,
+        "total_co2_obs_t": 40770806.16428,
+        "total_co2_sim_t": 39951360.91692045,
+        "target": 0.15,
+        "target_met": true
+      },
+      "fossil_mwh_obs": 75265493.0,
+      "fossil_mwh_sim": 75265246.0,
+      "unserved_mwh": 0.0,
+      "unserved_hours_frac": 0.0,
+      "unserved_mw_max": 0.0,
+      "stack_available_mw": {
+        "2024-01": 66848.29999999989,
+        "2024-02": 66848.29999999989,
+        "2024-03": 66848.29999999989,
+        "2024-04": 66848.29999999989,
+        "2024-05": 66848.29999999989,
+        "2024-06": 66848.29999999989,
+        "2024-07": 66848.29999999989,
+        "2024-08": 66848.29999999989,
+        "2024-09": 66848.29999999989,
+        "2024-10": 66848.29999999989,
+        "2024-11": 66848.29999999989,
+        "2024-12": 66848.29999999989
+      },
+      "obs_fossil_mw_max": 60759.0,
+      "obs_gas_mw_max": 47813.0
+    }
+  },
+  "train_in_sample": {
+    "before_default": {
+      "n_days": 248,
+      "n_hours": 5952,
+      "objective": 0.5225585837036962,
+      "a_coal_gas_split": {
+        "coal_share_mae": 0.2119707103410503,
+        "coal_share_mae_pp": 21.19707103410503,
+        "coal_share_bias_pp": -18.23325047209268,
+        "coal_mw_mape": 0.9197228549468585,
+        "gas_mw_mape": 0.2840913484306553,
+        "mean_coal_share_obs": 0.23390853055319766,
+        "mean_coal_share_sim": 0.05157602583227081,
+        "coal_mwh_obs": 39931318.0,
+        "coal_mwh_sim": 9250559.529999996,
+        "gas_mwh_obs": 138157340.0,
+        "gas_mwh_sim": 168838083.47000003,
+        "oil_mwh_sim": 0.0,
+        "coal_dispatched_hours_frac": 0.21824596774193547
+      },
+      "b_marginal_emission_factor": {
+        "mef_observed": 0.554202965642652,
+        "mef_simulated": 0.4728025039143115,
+        "observed_regression": {
+          "slope_t_per_mwh": 0.554202965642652,
+          "intercept_t": 0.296624758857075,
+          "r2": 0.9659258991152704,
+          "n_pairs": 5704
+        },
+        "simulated_regression": {
+          "slope_t_per_mwh": 0.4728025039143115,
+          "intercept_t": -3.5497930213452786,
+          "r2": 0.9362096992303407,
+          "n_pairs": 5704
+        },
+        "mean_marginal_rate": 0.14843317838232234,
+        "mean_fossil_marginal_rate": 0.4103982080092751,
+        "marginal_resource_share_of_hours": {
+          "curtailed_renewables": 0.6656586021505376,
+          "coal": 0.029233870967741934,
+          "gas": 0.30510752688172044,
+          "oil": 0.0
+        },
+        "fossil_margin_share_of_hours": {
+          "coal": 0.08417338709677419,
+          "gas": 0.9158266129032258,
+          "oil": 0.0
+        },
+        "mean_fossil_margin_rate": 0.4687929270383061,
+        "hours_with_curtailment_frac": 1.0,
+        "curtailed_mw_median": 189.72,
+        "curtailed_mw_min": 1.62,
+        "margin_note": "marginal_resource / marginal_rate describe the next MARGINAL_PROBE_MW (100 MW) block at zero added load: curtailed renewables if remaining curtailment covers >= 50 MW of it, else the fossil plant at the requirement after the probe; the rate is the probe's average incremental CO2. fossil_margin_* is the same probe once all curtailment is used up (DaySimulator.marginal_resource(added=curtailed_mw))."
+      },
+      "c_fossil_co2": {
+        "hourly_mape": 0.310587873362646,
+        "hourly_bias": -0.2882138696559472,
+        "daily_co2_mape": 0.3032085416152766,
+        "daily_co2_bias": -0.2826495275988238,
+        "total_co2_bias": -0.26666145000653174,
+        "total_co2_obs_t": 96587957.33955999,
+        "total_co2_sim_t": 70831672.58222389,
+        "target": 0.15,
+        "target_met": false
+      },
+      "fossil_mwh_obs": 178088658.0,
+      "fossil_mwh_sim": 178088643.0,
+      "unserved_mwh": 0.0,
+      "unserved_hours_frac": 0.0,
+      "unserved_mw_max": 0.0,
+      "stack_available_mw": {
+        "2024-01": 72620.62000000018,
+        "2024-02": 72620.6200000002,
+        "2024-03": 72620.62000000018,
+        "2024-04": 72620.62000000018,
+        "2024-05": 72620.62000000018,
+        "2024-06": 72620.62000000018,
+        "2024-07": 72620.6200000002,
+        "2024-08": 72620.6200000002,
+        "2024-09": 72620.6200000002,
+        "2024-10": 72620.6200000002,
+        "2024-11": 72620.6200000002,
+        "2024-12": 72620.62000000018
+      },
+      "obs_fossil_mw_max": 61181.0,
+      "obs_gas_mw_max": 48366.0
+    },
+    "after_calibrated": {
+      "n_days": 248,
+      "n_hours": 5952,
+      "objective": 0.14788062169190552,
+      "a_coal_gas_split": {
+        "coal_share_mae": 0.06929689412716432,
+        "coal_share_mae_pp": 6.9296894127164315,
+        "coal_share_bias_pp": 3.7427601337176193,
+        "coal_mw_mape": 0.32016015424508365,
+        "gas_mw_mape": 0.09264503813699859,
+        "mean_coal_share_obs": 0.23390853055319766,
+        "mean_coal_share_sim": 0.27133613189037387,
+        "coal_mwh_obs": 39931318.0,
+        "coal_mwh_sim": 48667686.40510941,
+        "gas_mwh_obs": 138157340.0,
+        "gas_mwh_sim": 129420956.59489055,
+        "oil_mwh_sim": 0.0,
+        "coal_dispatched_hours_frac": 0.9966397849462365
+      },
+      "b_marginal_emission_factor": {
+        "mef_observed": 0.554202965642652,
+        "mef_simulated": 0.6329259010909508,
+        "observed_regression": {
+          "slope_t_per_mwh": 0.554202965642652,
+          "intercept_t": 0.296624758857075,
+          "r2": 0.9659258991152704,
+          "n_pairs": 5704
+        },
+        "simulated_regression": {
+          "slope_t_per_mwh": 0.6329259010909508,
+          "intercept_t": 0.4176456674851611,
+          "r2": 0.9393282650220234,
+          "n_pairs": 5704
+        },
+        "mean_marginal_rate": 0.189396685041206,
+        "mean_fossil_marginal_rate": 0.5222271301765422,
+        "marginal_resource_share_of_hours": {
+          "curtailed_renewables": 0.6656586021505376,
+          "coal": 0.09879032258064516,
+          "gas": 0.23555107526881722,
+          "oil": 0.0
+        },
+        "fossil_margin_share_of_hours": {
+          "coal": 0.3439180107526882,
+          "gas": 0.6560819892473119,
+          "oil": 0.0
+        },
+        "mean_fossil_margin_rate": 0.6306559665298151,
+        "hours_with_curtailment_frac": 1.0,
+        "curtailed_mw_median": 189.72,
+        "curtailed_mw_min": 1.62,
+        "margin_note": "marginal_resource / marginal_rate describe the next MARGINAL_PROBE_MW (100 MW) block at zero added load: curtailed renewables if remaining curtailment covers >= 50 MW of it, else the fossil plant at the requirement after the probe; the rate is the probe's average incremental CO2. fossil_margin_* is the same probe once all curtailment is used up (DaySimulator.marginal_resource(added=curtailed_mw))."
+      },
+      "c_fossil_co2": {
+        "hourly_mape": 0.07858372756474122,
+        "hourly_bias": -0.043922080384883426,
+        "daily_co2_mape": 0.05832396872624593,
+        "daily_co2_bias": -0.033806743998350285,
+        "total_co2_bias": -0.02162871673462652,
+        "total_co2_obs_t": 96587957.33955999,
+        "total_co2_sim_t": 94498883.77028646,
+        "target": 0.15,
+        "target_met": true
+      },
+      "fossil_mwh_obs": 178088658.0,
+      "fossil_mwh_sim": 178088643.0,
+      "unserved_mwh": 0.0,
+      "unserved_hours_frac": 0.0,
+      "unserved_mw_max": 0.0,
+      "stack_available_mw": {
+        "2024-01": 66848.29999999989,
+        "2024-02": 66848.29999999989,
+        "2024-03": 66848.29999999989,
+        "2024-04": 66848.29999999989,
+        "2024-05": 66848.29999999989,
+        "2024-06": 66848.29999999989,
+        "2024-07": 66848.29999999989,
+        "2024-08": 66848.29999999989,
+        "2024-09": 66848.29999999989,
+        "2024-10": 66848.29999999989,
+        "2024-11": 66848.29999999989,
+        "2024-12": 66848.29999999989
+      },
+      "obs_fossil_mw_max": 61181.0,
+      "obs_gas_mw_max": 48366.0
+    }
+  },
+  "demo_days_informational": {
+    "per_day": {
+      "2024-03-29": {
+        "label": "Windy spring night",
+        "default": {
+          "coal_gas_split_error": 0.31313754726580706,
+          "mef_simulated": 0.3586507637125651,
+          "mef_observed": 0.4832678842864134,
+          "fossil_co2_error": 0.48587073472738296,
+          "coal_share_mae_pp": 31.313754726580704,
+          "coal_mw_mape": 1.0,
+          "gas_mw_mape": 0.46663068785901496,
+          "mean_marginal_rate": 0.0,
+          "mean_fossil_margin_rate": 0.3422692584814322,
+          "fossil_margin_share_of_hours": {
+            "coal": 0.0,
+            "gas": 1.0,
+            "oil": 0.0
+          },
+          "daily_co2_mape": 0.4757766110704081,
+          "daily_co2_bias": -0.4757766110704081,
+          "total_co2_bias": -0.47577661107040814,
+          "objective": 0.79900828199319
+        },
+        "calibrated": {
+          "coal_gas_split_error": 0.24303367582697408,
+          "mef_simulated": 0.7109885966503582,
+          "mef_observed": 0.4832678842864134,
+          "fossil_co2_error": 0.38461778879604247,
+          "coal_share_mae_pp": 24.30336758269741,
+          "coal_mw_mape": 0.7217349436130162,
+          "gas_mw_mape": 0.37169974191341787,
+          "mean_marginal_rate": 0.0,
+          "mean_fossil_margin_rate": 0.5706786992379647,
+          "fossil_margin_share_of_hours": {
+            "coal": 0.375,
+            "gas": 0.625,
+            "oil": 0.0
+          },
+          "daily_co2_mape": 0.3526434149069747,
+          "daily_co2_bias": -0.3526434149069747,
+          "total_co2_bias": -0.3526434149069747,
+          "objective": 0.6276514646230166
+        }
+      },
+      "2024-04-11": {
+        "label": "Sunny mild day",
+        "default": {
+          "coal_gas_split_error": 0.20935066477706696,
+          "mef_simulated": 0.39943401150939756,
+          "mef_observed": 0.5167606773530812,
+          "fossil_co2_error": 0.35587910330858236,
+          "coal_share_mae_pp": 20.935066477706695,
+          "coal_mw_mape": 1.0,
+          "gas_mw_mape": 0.2665550577339209,
+          "mean_marginal_rate": 0.017847892973997356,
+          "mean_fossil_margin_rate": 0.3929473070018881,
+          "fossil_margin_share_of_hours": {
+            "coal": 0.0,
+            "gas": 1.0,
+            "oil": 0.0
+          },
+          "daily_co2_mape": 0.3490271811451221,
+          "daily_co2_bias": -0.3490271811451221,
+          "total_co2_bias": -0.3490271811451221,
+          "objective": 0.5652297680856493
+        },
+        "calibrated": {
+          "coal_gas_split_error": 0.09889535465882586,
+          "mef_simulated": 0.6364090787806806,
+          "mef_observed": 0.5167606773530812,
+          "fossil_co2_error": 0.049894945125052215,
+          "coal_share_mae_pp": 9.889535465882586,
+          "coal_mw_mape": 0.500547280792231,
+          "gas_mw_mape": 0.12394423253406812,
+          "mean_marginal_rate": 0.029360074871182557,
+          "mean_fossil_margin_rate": 0.5550544211494184,
+          "fossil_margin_share_of_hours": {
+            "coal": 0.25,
+            "gas": 0.75,
+            "oil": 0.0
+          },
+          "daily_co2_mape": 0.006458330080385809,
+          "daily_co2_bias": 0.006458330080385809,
+          "total_co2_bias": 0.006458330080385766,
+          "objective": 0.14879029978387806
+        }
+      },
+      "2024-08-20": {
+        "label": "Summer heat peak",
+        "default": {
+          "coal_gas_split_error": 0.16929271912838365,
+          "mef_simulated": 0.6117853767679733,
+          "mef_observed": 0.557544582936497,
+          "fossil_co2_error": 0.22019767863189807,
+          "coal_share_mae_pp": 16.929271912838363,
+          "coal_mw_mape": 0.9012861389250443,
+          "gas_mw_mape": 0.20874569782368604,
+          "mean_marginal_rate": 0.2516149750996404,
+          "mean_fossil_margin_rate": 0.6386668870901477,
+          "fossil_margin_share_of_hours": {
+            "coal": 0.2916666666666667,
+            "gas": 0.7083333333333334,
+            "oil": 0.0
+          },
+          "daily_co2_mape": 0.20852405098719293,
+          "daily_co2_bias": -0.20852405098719293,
+          "total_co2_bias": -0.20852405098719295,
+          "objective": 0.3894903977602817
+        },
+        "calibrated": {
+          "coal_gas_split_error": 0.046302640989352904,
+          "mef_simulated": 0.6143336998668701,
+          "mef_observed": 0.557544582936497,
+          "fossil_co2_error": 0.025985198447169955,
+          "coal_share_mae_pp": 4.630264098935291,
+          "coal_mw_mape": 0.24895859750509866,
+          "gas_mw_mape": 0.05695115755645889,
+          "mean_marginal_rate": 0.2862511299702449,
+          "mean_fossil_margin_rate": 0.6427473013382996,
+          "fossil_margin_share_of_hours": {
+            "coal": 0.25,
+            "gas": 0.75,
+            "oil": 0.0
+          },
+          "daily_co2_mape": 0.0235982752085474,
+          "daily_co2_bias": 0.0235982752085474,
+          "total_co2_bias": 0.023598275208547292,
+          "objective": 0.07228783943652285
+        }
+      },
+      "2024-01-16": {
+        "label": "Cold winter morning",
+        "default": {
+          "coal_gas_split_error": 0.049050167682108896,
+          "mef_simulated": 0.46413025922162476,
+          "mef_observed": 0.4570145177945277,
+          "fossil_co2_error": 0.03170204044869541,
+          "coal_share_mae_pp": 4.905016768210889,
+          "coal_mw_mape": 0.22207991374896832,
+          "gas_mw_mape": 0.06313985118125934,
+          "mean_marginal_rate": 0.08869085602999045,
+          "mean_fossil_margin_rate": 0.44862221456909995,
+          "fossil_margin_share_of_hours": {
+            "coal": 0.0,
+            "gas": 1.0,
+            "oil": 0.0
+          },
+          "daily_co2_mape": 0.03140636658289794,
+          "daily_co2_bias": 0.03140636658289794,
+          "total_co2_bias": 0.03140636658289786,
+          "objective": 0.0807522081308043
+        },
+        "calibrated": {
+          "coal_gas_split_error": 0.024772032136177503,
+          "mef_simulated": 0.5119066784568904,
+          "mef_observed": 0.4570145177945277,
+          "fossil_co2_error": 0.023199596571562803,
+          "coal_share_mae_pp": 2.4772032136177504,
+          "coal_mw_mape": 0.11239757070531191,
+          "gas_mw_mape": 0.03185792579951944,
+          "mean_marginal_rate": 0.11548069365884354,
+          "mean_fossil_margin_rate": 0.5063851095627191,
+          "fossil_margin_share_of_hours": {
+            "coal": 0.0,
+            "gas": 1.0,
+            "oil": 0.0
+          },
+          "daily_co2_mape": 0.019493732137828557,
+          "daily_co2_bias": 0.019493732137828557,
+          "total_co2_bias": 0.019493732137828568,
+          "objective": 0.047971628707740306
+        }
+      }
+    },
+    "all_four": {
+      "default": {
+        "n_days": 4,
+        "n_hours": 96,
+        "objective": 0.45862016399248134,
+        "a_coal_gas_split": {
+          "coal_share_mae": 0.18520777471334163,
+          "coal_share_mae_pp": 18.520777471334164,
+          "coal_share_bias_pp": -16.068269087228717,
+          "coal_mw_mape": 0.7808415131685033,
+          "gas_mw_mape": 0.2512678236494703,
+          "mean_coal_share_obs": 0.23310800362211337,
+          "mean_coal_share_sim": 0.07242531274982617,
+          "coal_mwh_obs": 674063.0,
+          "coal_mwh_sim": 363998.07999999984,
+          "gas_mwh_obs": 2487324.0,
+          "gas_mwh_sim": 2797410.9200000004,
+          "oil_mwh_sim": 0.0,
+          "coal_dispatched_hours_frac": 0.3229166666666667
+        },
+        "b_marginal_emission_factor": {
+          "mef_observed": 0.5043521097063923,
+          "mef_simulated": 0.4867850324448258,
+          "observed_regression": {
+            "slope_t_per_mwh": 0.5043521097063923,
+            "intercept_t": -20.440022712025375,
+            "r2": 0.9737471356099359,
+            "n_pairs": 92
+          },
+          "simulated_regression": {
+            "slope_t_per_mwh": 0.4867850324448258,
+            "intercept_t": -5.168137589693304,
+            "r2": 0.9350625335835658,
+            "n_pairs": 92
+          },
+          "mean_marginal_rate": 0.08953843102590704,
+          "mean_fossil_marginal_rate": 0.43260295054880166,
+          "marginal_resource_share_of_hours": {
+            "curtailed_renewables": 0.8125,
+            "coal": 0.020833333333333332,
+            "gas": 0.16666666666666666,
+            "oil": 0.0
+          },
+          "fossil_margin_share_of_hours": {
+            "coal": 0.07291666666666667,
+            "gas": 0.9270833333333334,
+            "oil": 0.0
+          },
+          "mean_fossil_margin_rate": 0.45562641678564203,
+          "hours_with_curtailment_frac": 1.0,
+          "curtailed_mw_median": 379.905,
+          "curtailed_mw_min": 2.48,
+          "margin_note": "marginal_resource / marginal_rate describe the next MARGINAL_PROBE_MW (100 MW) block at zero added load: curtailed renewables if remaining curtailment covers >= 50 MW of it, else the fossil plant at the requirement after the probe; the rate is the probe's average incremental CO2. fossil_margin_* is the same probe once all curtailment is used up (DaySimulator.marginal_resource(added=curtailed_mw))."
+        },
+        "c_fossil_co2": {
+          "hourly_mape": 0.27341238927913974,
+          "hourly_bias": -0.257561369054792,
+          "daily_co2_mape": 0.26618355244640524,
+          "daily_co2_bias": -0.2504803691549563,
+          "total_co2_bias": -0.1591051408686628,
+          "total_co2_obs_t": 1691639.38768,
+          "total_co2_sim_t": 1422490.864604195,
+          "target": 0.15,
+          "target_met": false
+        },
+        "fossil_mwh_obs": 3161387.0,
+        "fossil_mwh_sim": 3161409.0,
+        "unserved_mwh": 0.0,
+        "unserved_hours_frac": 0.0,
+        "unserved_mw_max": 0.0,
+        "stack_available_mw": {
+          "2024-01": 72620.62000000018,
+          "2024-03": 72620.62000000018,
+          "2024-04": 72620.62000000018,
+          "2024-08": 72620.6200000002
+        },
+        "obs_fossil_mw_max": 61512.0,
+        "obs_gas_mw_max": 49351.0
+      },
+      "calibrated": {
+        "n_days": 4,
+        "n_hours": 96,
+        "objective": 0.22417530813778944,
+        "a_coal_gas_split": {
+          "coal_share_mae": 0.10325092590283258,
+          "coal_share_mae_pp": 10.325092590283258,
+          "coal_share_bias_pp": -1.3882316852748264,
+          "coal_mw_mape": 0.3959095981539144,
+          "gas_mw_mape": 0.1461132644508661,
+          "mean_coal_share_obs": 0.23310800362211337,
+          "mean_coal_share_sim": 0.21922568676936507,
+          "coal_mwh_obs": 674063.0,
+          "coal_mwh_sim": 762203.2365945145,
+          "gas_mwh_obs": 2487324.0,
+          "gas_mwh_sim": 2399205.763405485,
+          "oil_mwh_sim": 0.0,
+          "coal_dispatched_hours_frac": 0.8854166666666666
+        },
+        "b_marginal_emission_factor": {
+          "mef_observed": 0.5043521097063923,
+          "mef_simulated": 0.5839235485821698,
+          "observed_regression": {
+            "slope_t_per_mwh": 0.5043521097063923,
+            "intercept_t": -20.440022712025375,
+            "r2": 0.9737471356099359,
+            "n_pairs": 92
+          },
+          "simulated_regression": {
+            "slope_t_per_mwh": 0.5839235485821698,
+            "intercept_t": 0.45069472047713965,
+            "r2": 0.9552045259533681,
+            "n_pairs": 92
+          },
+          "mean_marginal_rate": 0.10777297462506776,
+          "mean_fossil_marginal_rate": 0.5024999671225739,
+          "marginal_resource_share_of_hours": {
+            "curtailed_renewables": 0.8125,
+            "coal": 0.03125,
+            "gas": 0.15625,
+            "oil": 0.0
+          },
+          "fossil_margin_share_of_hours": {
+            "coal": 0.21875,
+            "gas": 0.78125,
+            "oil": 0.0
+          },
+          "mean_fossil_margin_rate": 0.5687163828221005,
+          "hours_with_curtailment_frac": 1.0,
+          "curtailed_mw_median": 379.905,
+          "curtailed_mw_min": 2.48,
+          "margin_note": "marginal_resource / marginal_rate describe the next MARGINAL_PROBE_MW (100 MW) block at zero added load: curtailed renewables if remaining curtailment covers >= 50 MW of it, else the fossil plant at the requirement after the probe; the rate is the probe's average incremental CO2. fossil_margin_* is the same probe once all curtailment is used up (DaySimulator.marginal_resource(added=curtailed_mw))."
+        },
+        "c_fossil_co2": {
+          "hourly_mape": 0.12092438223495687,
+          "hourly_bias": -0.08765815945842725,
+          "daily_co2_mape": 0.10054843808343412,
+          "daily_co2_bias": -0.07577326937005323,
+          "total_co2_bias": -0.013998889238665657,
+          "total_co2_obs_t": 1691639.38768,
+          "total_co2_sim_t": 1667958.3152601034,
+          "target": 0.15,
+          "target_met": true
+        },
+        "fossil_mwh_obs": 3161387.0,
+        "fossil_mwh_sim": 3161409.0,
+        "unserved_mwh": 0.0,
+        "unserved_hours_frac": 0.0,
+        "unserved_mw_max": 0.0,
+        "stack_available_mw": {
+          "2024-01": 66848.29999999989,
+          "2024-03": 66848.29999999989,
+          "2024-04": 66848.29999999989,
+          "2024-08": 66848.29999999989
+        },
+        "obs_fossil_mw_max": 61512.0,
+        "obs_gas_mw_max": 49351.0
+      }
+    },
+    "note": "never trained on"
+  },
+  "definitions": {
+    "observed_fossil_co2": "EIA-930 hourly coal_mw x EF_coal + gas_mw x EF_gas + oil_mw x EF_oil (t), EF from fuel_emission_factors.json (eGRID2023, t/MWh); oil NaN -> 0",
+    "simulated_fossil_co2": "DaySimulator(actual_inputs(day), params).hourly_emissions() with zero added load (t)",
+    "coal_share": "coal / (coal + gas + oil) generation, hourly (observed: EIA-930; simulated: DaySimulator.fuel_split)",
+    "objective": "mean over hours of |sim_co2 - obs_co2| / obs_co2 + mean over hours of |sim_coal_share - obs_coal_share| (equal weights), training days only",
+    "coal_gas_split_error": "(a) MAE of hourly coal share on holdout days, as a fraction (0.05 = 5 percentage points)",
+    "coal_mw_mape / gas_mw_mape": "(a) mean over holdout hours of |sim - obs| / obs for coal MW and gas MW",
+    "mef_observed": "(b) OLS slope (with intercept) of hour-to-hour delta observed fossil CO2 on delta observed fossil generation (coal + gas + oil), pairs of consecutive hours within the same day only (23 per day), holdout days (t/MWh)",
+    "mef_simulated": "(b) the same regression on the simulator's hourly fossil CO2 and served fossil generation series (t/MWh)",
+    "mean_marginal_rate": "(b, context) mean over holdout hours of DaySimulator.marginal_rate() at zero added load (average CO2 of the next 100 MW probe block, curtailed MWh at 0); mean_fossil_marginal_rate averages only hours whose marginal_resource is fossil; mean_fossil_margin_rate is the CO2 rate of the fossil plant at the margin once curtailment is used up, over all hours",
+    "fossil_co2_error": "(c) hourly fossil CO2 MAPE on holdout days: mean over hours of |sim - obs| / obs (fraction). Target <= 0.15",
+    "daily_co2_mape": "(c) mean over days of |sum_h sim - sum_h obs| / sum_h obs",
+    "daily_co2_bias": "(c) mean over days of (sum_h sim - sum_h obs) / sum_h obs (signed)",
+    "total_co2_bias": "(c) sum over all hours sim / sum obs - 1 (signed)"
+  },
+  "data_note": "Validation (b) uses EIA-930 fuel mix x eGRID fuel emission factors (no CAMPD; DATA_GOV_API_KEY placeholder).",
+  "runtime_s": 21.124086957977852
+}

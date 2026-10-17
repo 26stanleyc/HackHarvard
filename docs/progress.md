@@ -83,3 +83,31 @@ Caveats and decisions (recorded honestly):
 - 2024-09-03 passes mostly on forecast error (predicted savings ≈ 0 or negative); without it the result is 6/7, still GO.
 - Disclosure: one throwaway smoke test ran on gate day 2024-04-24 before the gate script existed; no parameter, distribution or logic changed afterwards.
 - **The uncalibrated baseline is far from actuals:** simulated fossil CO2 is 0.48-0.73 of actual on gate days and **no coal is dispatched** (with 2024 gas at $1.5-2.0/MMBtu nearly all gas capacity is cheaper than coal at published prices). Every marginal plant is gas. M3 must fix this with the named parameters and re-run the gate.
+
+## M3. Calibration and validation — PASS (2026-10-17)
+
+- **Code:** `clearinghouse/calibration.py` (observed/simulated hourly series, pre-registered objective, fit, feasibility constraints, validation (a)/(b)/(c)), `scripts/calibrate.py` → `backend/data/processed/calibrated_params.json` (now returned by `load_params()`) and `docs/results/calibration.json`; `run_herding_gate.py --params default|calibrated`.
+- **Named parameters only (14):** availability coal and gas in [0.3, 1.0]; per-month coal price scale relative to gas in [0.1, 3.0] (gas fixed at 1.0 — merit order depends only on relative cost). Oil availability stays at its default 0.50 (EIA-930 reports no ERCO oil generation; 0.26 GW at the top of the stack).
+- **Fit (pre-registered):** 248 training days only (`fit()` refuses holdout/demo/gate days). Objective = mean hourly |ΔCO2|/CO2 + mean hourly |Δcoal share|. Alternating coordinate descent (nested availability grid; exact per-month search over every merit order the coal scale can produce). Deterministic.
+- **Attempt 1 (unconstrained) — rejected** (kept in `calibration.json`). It met the target (holdout CO2 MAPE 0.063) but was physically infeasible: gas availability 0.642 left 49.9 GW against observed peaks of 61.2 GW fossil / 48.4 GW gas → unserved energy in 3.45% of holdout hours, including 10 h on the summer-peak and 15 h on the cold-morning demo days, with an extrapolated oil unit on the margin.
+- **Orchestrator decision — attempt 1b (feasibility-constrained), adopted.** Not a new parameter: constraints on the existing ones, from training data only — coal availability × capacity ≥ max hourly coal (≥ 0.821), gas availability × capacity ≥ max hourly gas (≥ 0.745), total available ≥ max hourly fossil (61.2 GW). Same objective, bounds, optimizer, and the same 15% target. Adopted regardless of whether it met the target (it did).
+  - Result: availability coal 0.821 (on its floor), gas 0.830; coal scale Jan 1.205, Feb 0.591, Mar 0.493, Apr 0.487, May 0.569, Jun 0.734, Jul 0.637, Aug 0.575, Sep 0.624, Oct 0.635, Nov 0.617, Dec 0.904. Stack 66.8 GW. **Unserved energy: 0 h on training, holdout, demo and gate days.**
+- **Marginal resource for display (`MARGINAL_PROBE_MW = 100`):** what serves the next 100 MW on top of current added load — curtailed renewables if remaining curtailment covers ≥ 50 MW, otherwise the fossil plant at the requirement after the probe. `marginal_rate` = the probe's average extra CO2 per MWh. Emissions math unchanged. (With a 1 MW probe every hour read "curtailed", because modeled curtailment is above zero in every 2024 hour; median 222 MW.)
+
+Holdout validation (104 days, never used in fitting):
+
+| Metric | Defaults | Adopted 1b |
+|---|---|---|
+| (a) coal share MAE (`coal_gas_split_error`) | 0.210 | **0.069** |
+| (a) coal MW / gas MW MAPE | 0.92 / 0.28 | 0.32 / 0.09 |
+| (b) MEF observed (ΔCO2 on Δfossil gen, within-day OLS, R² 0.97) | 0.549 | 0.549 t/MWh |
+| (b) MEF simulated | 0.467 | **0.627** t/MWh |
+| (c) hourly fossil CO2 MAPE (`fossil_co2_error`) | 0.309 | **0.077** (target ≤ 0.15: met) |
+| (c) daily CO2 MAPE / bias | 0.301 / −27.7% | 0.054 / −2.9% |
+
+- Margin mix on holdout hours (100 MW probe, zero added load): curtailed 68.3%, coal 9.4%, gas 22.3%. Once curtailment is used up: coal 33%, gas 67%.
+- Coal dispatches in 99% of hours but somewhat too much (simulated coal MWh 1.23× observed; share 27.1% vs 23.1%) because the coal floor binds. Simulated MEF is 14% above observed.
+- Demo days (hourly CO2 MAPE before → after): windy night 0.49 → 0.39, sunny mild 0.36 → 0.05, summer peak 0.22 → 0.03, cold morning 0.03 → 0.02. The windy night stays the weakest (simulated CO2 −35%).
+- **Herding gate re-run on the calibrated simulator: GO, 6/7** (same rule, days, seeds; `herding_gate_calibrated.json`; ratio of means also 6/7). Primary gap % at 5/10/15/20/30%: 02-03 30.6/13.6/−5.8/−20.5/8.0; 03-18 72.0/99.4/98.2/93.7/69.0; 03-27 70.0/64.1/64.4/72.9/48.3; 04-24 0.0/−486/81.1/208.1/99.1 (passes at 12.5%); 04-27 n/a/99.6/53.2/42.2/21.1; 09-03 fails (realized ≥ predicted at every share); 11-29 157.1/88.4/206.6/125.7/−43.2 (mostly forecast error; without it 5/7). **The conclusion does not flip.**
+
+Checks: `uv run pytest -q` → 102 passed (day sets disjoint; fit never loads holdout/demo/gate days; params round-trip; adopted params serve every training hour; constraints respected; calibration.json keys finite; probe-margin tests). Ruff clean. Validation (b) uses EIA-930 fuel mix × eGRID factors (CAMPD skipped: `DATA_GOV_API_KEY` pending).

@@ -1,0 +1,77 @@
+{
+  "params": {
+    "label": "calibrated_m3",
+    "availability": {
+      "coal": 0.8214059084819855,
+      "gas": 0.83,
+      "oil": 0.5
+    },
+    "price_scale": {
+      "coal": 1.0,
+      "gas": 1.0,
+      "oil": 1.0
+    },
+    "monthly_price_scale": {
+      "1": {
+        "coal": 1.2048102503387867
+      },
+      "2": {
+        "coal": 0.5910491677206439
+      },
+      "3": {
+        "coal": 0.49311444469099136
+      },
+      "4": {
+        "coal": 0.48711851329177835
+      },
+      "5": {
+        "coal": 0.5686387232299023
+      },
+      "6": {
+        "coal": 0.7335509874714919
+      },
+      "7": {
+        "coal": 0.6365658484983411
+      },
+      "8": {
+        "coal": 0.5747293723950874
+      },
+      "9": {
+        "coal": 0.6244270513020528
+      },
+      "10": {
+        "coal": 0.6352191880286768
+      },
+      "11": {
+        "coal": 0.6170586209108797
+      },
+      "12": {
+        "coal": 0.9043732592097737
+      }
+    }
+  },
+  "fitted_on": "calibration_train_days (backend/data/processed/days.json)",
+  "train_days_n": 248,
+  "attempt": "1b",
+  "attempt_name": "1b_feasible",
+  "feasibility_constraints": {
+    "capacity_mw": {
+      "coal": 15601.300000000001,
+      "gas": 64945.0,
+      "oil": 257.9
+    },
+    "max_obs_coal_mw": 12815.0,
+    "max_obs_gas_mw": 48366.0,
+    "max_obs_fossil_mw": 61181.0,
+    "min_availability": {
+      "coal": 0.8214059084819855,
+      "gas": 0.744722457464008
+    },
+    "oil_available_mw": 128.95,
+    "rule": "coal_av x coal_cap >= max obs coal; gas_av x gas_cap >= max obs gas; coal_av x coal_cap + gas_av x gas_cap + 0.5 x oil_cap >= max obs coal+gas+oil (maxima over training hours)"
+  },
+  "train_objective": 0.14788062169190558,
+  "holdout_fossil_co2_error": 0.077266853462279,
+  "generated_utc": "2026-10-17T11:02:46+00:00",
+  "note": "availability['oil'] is not fitted and stays at the stated default 0.50: EIA-930 reports no ERCO oil generation in 2024 (treated as 0) and the 0.26 GW of oil plants sit at the top of the stack, so the objective depends on it only in hours where the coal + gas stack is exhausted, and then by at most 0.5 x 0.26 GW of capacity (see unserved_* and oil_mwh_sim)."
+}

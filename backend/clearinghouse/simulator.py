@@ -19,6 +19,11 @@ Model
 * Hourly CO2 is separable by hour and piecewise linear in ``a_h``, so batches of profiles are
   evaluated with one ``np.interp`` call (``*_batch`` methods take arrays of shape ``[n, 24]``).
 
+* **Marginal resource (display only).** ``marginal_resource`` / ``marginal_rate`` describe the
+  next ``MARGINAL_PROBE_MW`` (100 MW) block on top of the current added load: curtailed
+  renewables if remaining curtailment covers at least half of it, else the fossil plant at the
+  requirement after the probe; the rate is the probe's average incremental CO2 per MWh.
+
 All "emissions" are fossil CO2 (metric tons) from the simulated stack. ``avg_intensity``
 additionally counts EIA-930 "other" generation at its eGRID factor (fixed, small).
 """
@@ -92,6 +97,12 @@ def build_stack(plants: pd.DataFrame, price_month: str, params: SimParams) -> Me
 
 _STACK_CACHE: dict[tuple[str, SimParams], MeritStack] = {}
 
+MARGINAL_PROBE_MW = 100.0
+"""Probe block (MW for one slot = MWh) used by :meth:`DaySimulator.marginal_resource` and
+:meth:`DaySimulator.marginal_rate` for DISPLAY: "what serves the next 100 MW". A 1 MW probe would
+call almost every hour "curtailed renewables" because modeled curtailment is a few MW or more in
+every 2024 hour. Emissions math does not use it."""
+
 
 def get_stack(price_month: str, params: SimParams,
               plants: pd.DataFrame | None = None) -> MeritStack:
@@ -112,10 +123,12 @@ class DaySimulator:
     """
 
     def __init__(self, inputs: DayInputs, params: SimParams = DEFAULT_PARAMS,
-                 plants: pd.DataFrame | None = None):
+                 plants: pd.DataFrame | None = None, stack: MeritStack | None = None):
         self.inputs = inputs
         self.params = params
-        self.stack = get_stack(inputs.price_month, params, plants)
+        # ``stack`` (optional) must be ``build_stack(<plants>, inputs.price_month, params)``; it
+        # lets callers that sweep many params (M3 calibration) skip the module-level cache.
+        self.stack = stack if stack is not None else get_stack(inputs.price_month, params, plants)
         self._base_req = inputs.demand_mw - inputs.fixed_supply_mw  # R_h with zero added load
         self._curt = inputs.curtailed_mw
         self._other_co2 = inputs.other_mw * float(load_emission_factors().get("other", 0.0))
@@ -190,32 +203,49 @@ class DaySimulator:
         m = np.broadcast_to(np.asarray(mwh, dtype=float), h.shape)
         return self.hourly_co2_at(h, a[h] + m) - self.hourly_co2_at(h, a[h])
 
+    # --- marginal resource (display) --------------------------------------------------------
+
+    def _probe(self, a: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """``(remaining curtailment, R now, R after the probe)`` for a ``MARGINAL_PROBE_MW`` block
+        added on top of ``a`` (the probe uses remaining curtailment first, like any load)."""
+        remaining = np.maximum(0.0, self._curt - a)
+        req_now = self.fossil_requirement(a)
+        req_after = self.fossil_requirement(a + MARGINAL_PROBE_MW)
+        return remaining, req_now, req_after
+
     def marginal_rate(self, added=None) -> np.ndarray:
-        """CO2 rate (t/MWh) of the next MWh in each slot (0 where curtailment would absorb it)."""
+        """Average CO2 rate (t/MWh) of the next ``MARGINAL_PROBE_MW`` block in each slot on top of
+        ``added``: (CO2 with the probe - CO2 without) / probe MWh. Curtailed MWh in the probe count
+        at 0 t/MWh, so a partly curtailed probe gives a rate between 0 and the fossil plant's."""
         a = self._added(added)
-        idx = self._marginal_index(a)
-        rate = self.stack.co2_rate[idx]
-        return np.where(a < self._curt, 0.0, rate)
+        _, req_now, req_after = self._probe(a)
+        return (self._co2_from_req(req_after) - self._co2_from_req(req_now)) / MARGINAL_PROBE_MW
 
     def _marginal_index(self, a: np.ndarray) -> np.ndarray:
+        """Index of the fossil plant at the fossil requirement after the probe's non-curtailed
+        part is added (the plant serving its last MW; the most expensive plant if the stack is
+        exhausted, the first plant if the requirement is <= 0)."""
         s = self.stack
-        g = np.clip(self.fossil_requirement(a), 0.0, None)
-        idx = np.searchsorted(s.K, g, side="right") - 1  # plant serving the next MWh
+        _, _, req_after = self._probe(a)
+        idx = np.searchsorted(s.K, np.clip(req_after, 0.0, None), side="left") - 1
         return np.clip(idx, 0, len(s.capacity_mw) - 1)
 
     def marginal_resource(self, added=None) -> list[dict]:
-        """Per slot: what serves the next MWh, as ``schemas.MarginalResource`` dicts.
+        """Per slot: what serves the next ``MARGINAL_PROBE_MW`` block on top of ``added``, as
+        ``schemas.MarginalResource`` dicts.
 
-        ``curtailed_renewables`` when ``added_h < curtailed_h`` (the next MWh is still absorbed by
-        curtailed wind/solar), else the fossil plant at the margin of ``G_h`` (the most expensive
-        plant if the stack is exhausted). If ``R_h <= 0`` (never in the 2024 data) the first plant
-        in the stack is reported.
+        ``curtailed_renewables`` (0 t/MWh) if the remaining curtailment
+        ``max(0, curtailed_h - added_h)`` covers at least half the probe; otherwise ``fossil``
+        with the plant at the fossil requirement after the probe's non-curtailed part is added
+        (the most expensive plant if the stack is exhausted). Emissions are unaffected by this
+        display definition.
         """
         a = self._added(added)
+        remaining, _, _ = self._probe(a)
         idx = self._marginal_index(a)
         out = []
         for h in range(HOURS):
-            if a[h] < self._curt[h]:
+            if remaining[h] >= 0.5 * MARGINAL_PROBE_MW:
                 out.append({"kind": "curtailed_renewables", "plant_name": None, "fuel": None,
                             "co2_t_per_mwh": 0.0})
             else:

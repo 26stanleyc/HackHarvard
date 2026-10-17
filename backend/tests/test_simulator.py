@@ -17,7 +17,7 @@ from clearinghouse.inputs import (
 )
 from clearinghouse.params import DEFAULT_PARAMS, SimParams, load_params
 from clearinghouse.schemas import MarginalResource
-from clearinghouse.simulator import DaySimulator
+from clearinghouse.simulator import MARGINAL_PROBE_MW, DaySimulator
 
 if not (DATA_PROCESSED / "eia930_erco_hourly.parquet").is_file():
     pytest.skip("processed data absent", allow_module_level=True)
@@ -66,23 +66,39 @@ def test_adding_load_never_lowers_generation_or_emissions(sim, sim_curt):
 
 
 def test_small_load_matches_marginal_plant_rate(sim):
+    """1 MWh beyond curtailment changes CO2 by the rate of the plant at the margin; the display
+    margin (100 MW probe) names the plant at the requirement after the probe and its rate is the
+    probe's average incremental CO2."""
     a0 = sim.inputs.curtailed_mw.copy()  # curtailment fully used -> next MWh is fossil
     s = sim.stack
-    checked = 0
+    mrs = sim.marginal_resource(a0)
+    rates = sim.marginal_rate(a0)
+    checked = same_plant = 0
     for h in range(24):
         g = sim.fossil_generation(a0)[h]
-        mr = sim.marginal_resource(a0)[h]
+        mr = mrs[h]
         assert mr["kind"] == "fossil"
+        # display margin: plant at g + probe, rate = probe's average incremental CO2
+        jp = int(np.searchsorted(s.K, g + MARGINAL_PROBE_MW, side="left") - 1)
+        assert mr["plant_name"] == s.names[jp]
+        ap = a0.copy()
+        ap[h] += MARGINAL_PROBE_MW
+        probe_rate = (sim.emissions(ap) - sim.emissions(a0)) / MARGINAL_PROBE_MW
+        assert rates[h] == pytest.approx(probe_rate, rel=1e-9)
+        # 1 MWh step: Δemissions == rate of the plant serving the next MWh
         j = int(np.searchsorted(s.K, g, side="right") - 1)
         if g + 1.0 > s.K[j + 1]:
             continue  # the 1 MWh step would cross into the next plant
         a1 = a0.copy()
         a1[h] += 1.0
         delta = sim.emissions(a1) - sim.emissions(a0)
-        assert delta == pytest.approx(mr["co2_t_per_mwh"], rel=1e-6)
-        assert sim.marginal_rate(a0)[h] == pytest.approx(mr["co2_t_per_mwh"], rel=1e-12)
+        assert delta == pytest.approx(float(s.co2_rate[j]), rel=1e-6)
+        if jp == j:  # probe stays inside the same plant -> all three rates agree
+            assert delta == pytest.approx(mr["co2_t_per_mwh"], rel=1e-6)
+            assert rates[h] == pytest.approx(mr["co2_t_per_mwh"], rel=1e-9)
+            same_plant += 1
         checked += 1
-    assert checked >= 20
+    assert checked >= 20 and same_plant >= 5
 
 
 def test_load_absorbed_by_curtailment_adds_zero(sim_curt):
@@ -92,10 +108,31 @@ def test_load_absorbed_by_curtailment_adds_zero(sim_curt):
     assert sim_curt.emissions(a) == sim_curt.baseline["total_co2_t"]
     assert sim_curt.absorbed_curtailment_mwh(a) == pytest.approx(a.sum())
     mr = sim_curt.marginal_resource(a)
+    rate = sim_curt.marginal_rate(a)
     for h in range(24):
-        assert mr[h]["kind"] == ("curtailed_renewables" if c[h] > 0 else "fossil")
+        remaining = c[h] - a[h]
+        expect = "curtailed_renewables" if remaining >= 0.5 * MARGINAL_PROBE_MW else "fossil"
+        assert mr[h]["kind"] == expect
+        if remaining >= MARGINAL_PROBE_MW:
+            assert rate[h] == 0.0  # the whole probe is absorbed by curtailment
     # beyond curtailment, emissions rise
     assert sim_curt.emissions(c + 100.0) > sim_curt.baseline["total_co2_t"]
+
+
+def test_probe_margin_threshold(sim_curt):
+    c = sim_curt.inputs.curtailed_mw
+    h = int(np.argmax(c))
+    for remaining, kind in ((60.0, "curtailed_renewables"), (50.0, "curtailed_renewables"),
+                            (40.0, "fossil"), (0.0, "fossil")):
+        a = np.zeros(24)
+        a[h] = c[h] - remaining
+        mr = sim_curt.marginal_resource(a)[h]
+        assert mr["kind"] == kind
+        r = sim_curt.marginal_rate(a)[h]
+        if kind == "fossil":
+            assert mr["co2_t_per_mwh"] > 0
+        # partly curtailed probe: average rate is (fossil share of probe) x plant rate
+        assert 0.0 <= r <= (1 - remaining / MARGINAL_PROBE_MW) * sim_curt.stack.co2_rate.max()
 
 
 def test_one_day_under_50ms(sim):

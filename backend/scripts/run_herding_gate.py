@@ -5,7 +5,10 @@
 * Shares 0, 2.5, ..., 30 % of the day's actual peak demand; K = 5 population draws
   (``make_population(share, peak, seed=SEED_BASE + k)``, N = 30 bids); no background load.
 * Planning on yesterday-as-forecast inputs, scoring on the day's actual inputs.
-* Uncalibrated simulator: ``DEFAULT_PARAMS`` explicitly (not ``load_params``).
+* Simulator params: ``--params default`` (the M2 run; ``DEFAULT_PARAMS`` explicitly, not
+  ``load_params``) writes ``herding_gate.json``; ``--params calibrated`` (the M3 re-run; the M3
+  ``calibrated_params.json`` via ``load_params``, which must exist) writes
+  ``herding_gate_calibrated.json``. Rule, days, shares, K, seeds and populations are identical.
 * Primary metric: strategy 3 (independent-marginal); secondary: strategy 2 (independent-average).
 * Decision: GO if, on >= 4 of 7 days, some share <= 20 % has primary gap % >= 10 %, where the
   per-(day, share) value is the mean over the K draws of each draw's gap % (= 100 x gap /
@@ -13,26 +16,29 @@
   of the mean and counted in ``n_defined``). The ratio of means (100 x mean gap / mean predicted)
   is also reported as a robustness check; it is not part of the decision.
 
-Run: ``uv run python scripts/run_herding_gate.py``.
+Run: ``uv run python scripts/run_herding_gate.py [--params default|calibrated]``.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import time
 from datetime import UTC, datetime
 
 import numpy as np
 
-from clearinghouse.config import RESULTS_DIR
+from clearinghouse.config import REPO_ROOT, RESULTS_DIR
 from clearinghouse.data import load_days, load_emission_factors
 from clearinghouse.inputs import actual_inputs, yesterday_forecast_inputs
-from clearinghouse.params import DEFAULT_PARAMS
+from clearinghouse.params import CALIBRATED_PARAMS_FILE, DEFAULT_PARAMS, load_params
 from clearinghouse.population import DEFAULT_N, distribution_summary, make_population
 from clearinghouse.simulator import DaySimulator
 from clearinghouse.strategies import herding_metric, validate_schedules
 
-OUT_FILE = RESULTS_DIR / "herding_gate.json"
+OUT_FILES = {"default": RESULTS_DIR / "herding_gate.json",
+             "calibrated": RESULTS_DIR / "herding_gate_calibrated.json"}
+OUT_FILE = OUT_FILES["default"]
 SHARES = [round(2.5 * i, 1) for i in range(13)]  # 0 .. 30
 K = 5
 N = DEFAULT_N
@@ -46,7 +52,7 @@ DEFINITION = (
     "Predicted savings = sum_i [E(all default) - E(bid i runs the strategy alone, others "
     "default)]; realized = E(all default) - E(all run the strategy together); gap = predicted - "
     "realized; gap % = 100 x gap / predicted (only where predicted > 0). Every E is fossil CO2 "
-    "(t) from the uncalibrated simulator on the day's actual EIA-930 inputs; plans use "
+    "(t) from the {which} simulator on the day's actual EIA-930 inputs; plans use "
     "yesterday-as-forecast inputs. GO if the primary (strategy 3, independent-marginal) gap % "
     "(mean over K draws of per-draw gap %) >= 10% at some share <= 20% on >= 4 of 7 days."
 )
@@ -72,7 +78,7 @@ def _summarize(results: list) -> dict:
 
 
 def baseline_sanity(date: str, sim: DaySimulator) -> dict:
-    """Informational only: uncalibrated baseline vs EIA-930 actuals (fuel mix x eGRID factors)."""
+    """Informational only: simulator baseline vs EIA-930 actuals (fuel mix x eGRID factors)."""
     f = load_emission_factors()
     act = sim.inputs.actual_fossil
     act_co2 = float(sum((act[k] * f[k]).sum() for k in act))
@@ -95,9 +101,21 @@ def baseline_sanity(date: str, sim: DaySimulator) -> dict:
     }
 
 
-def main() -> dict:
+def resolve_params(which: str):
+    """``(params, source, out_file)`` for ``--params default|calibrated``."""
+    if which == "default":
+        return DEFAULT_PARAMS, "uncalibrated_default", OUT_FILES["default"]
+    if which == "calibrated":
+        if not CALIBRATED_PARAMS_FILE.is_file():
+            raise SystemExit(f"{CALIBRATED_PARAMS_FILE} missing: run scripts/calibrate.py first")
+        params, source = load_params()
+        return params, source, OUT_FILES["calibrated"]
+    raise ValueError(f"unknown params choice {which!r}")
+
+
+def main(which: str = "default") -> dict:
     t_start = time.perf_counter()
-    params = DEFAULT_PARAMS
+    params, params_source, out_file = resolve_params(which)
     gate_days = load_days()["herding_gate_days"]
     days_out, sanity = {}, {}
     for date in gate_days:
@@ -163,10 +181,13 @@ def main() -> dict:
             "background": "none",
             "planning_inputs": "yesterday_forecast_inputs (previous CST day, target month prices)",
             "scoring_inputs": "actual_inputs",
+            "params_choice": which,
+            "params_source": params_source.replace(str(REPO_ROOT) + "/", ""),
             "params": params.to_dict(),
             "population": distribution_summary(),
             "strategies": STRATS,
-            "definition": DEFINITION,
+            "definition": DEFINITION.format(
+                which="uncalibrated" if which == "default" else "calibrated (M3)"),
             "decision_aggregation": ("mean over K draws of per-draw gap %, over draws with "
                                      "predicted > 0 (n_defined); ratio of means reported only "
                                      "as a robustness check"),
@@ -186,9 +207,9 @@ def main() -> dict:
         "baseline_sanity_informational": sanity,
         "runtime_s": runtime,
     }
-    OUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    OUT_FILE.write_text(json.dumps(payload, indent=2) + "\n")
-    _print_summary(payload)
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    out_file.write_text(json.dumps(payload, indent=2) + "\n")
+    _print_summary(payload, which, out_file)
     return payload
 
 
@@ -196,9 +217,10 @@ def _fmt(v) -> str:
     return "   n/a" if v is None else f"{v:6.1f}"
 
 
-def _print_summary(p: dict) -> None:
+def _print_summary(p: dict, which: str = "default", out_file=OUT_FILE) -> None:
     show = [2.5, 5.0, 10.0, 15.0, 20.0, 30.0]
-    print("Herding gate (uncalibrated). gap % = mean over K draws; P = strategy 3 (primary), "
+    label = "uncalibrated" if which == "default" else "calibrated"
+    print(f"Herding gate ({label}). gap % = mean over K draws; P = strategy 3 (primary), "
           "S = strategy 2 (secondary)")
     print(f"{'day':<11} {'':2} " + " ".join(f"{s:>6}" for s in show) + "   first<=20%")
     for date, d in p["days"].items():
@@ -223,8 +245,11 @@ def _print_summary(p: dict) -> None:
               f"  ratio {s['co2_ratio_sim_over_actual']:.2f}"
               f"   coal {s['sim_coal_share_of_fossil']:.0%}"
               f" vs {s['actual_coal_share_of_fossil']:.0%}   unserved {s['unserved_mwh']:.0f} MWh")
-    print(f"\nruntime {p['runtime_s']:.1f} s -> {OUT_FILE}")
+    print(f"\nruntime {p['runtime_s']:.1f} s -> {out_file}")
 
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--params", choices=sorted(OUT_FILES), default="default",
+                    help="simulator parameters (default: the M2 uncalibrated defaults)")
+    main(ap.parse_args().params)
