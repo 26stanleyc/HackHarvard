@@ -197,3 +197,19 @@ Checks (built-in browser against the local backend):
 - `npm run build`, `lint`, `typecheck` clean; backend 185 tests pass.
 
 Honest results recorded: 04-11 fallback fired (coordinated = independent marginal); 01-16 coordination −4.3 t vs the solo baseline. **Open design question for the team:** because negative Shapley shares pay $0 rather than being charged (design B5), total payouts can exceed the tons avoided (04-11: 0 t avoided, $3,585 paid; 01-16: −4.3 t, $48 paid). The UI states this plainly.
+
+## M9. Polish and ship — PARTIAL (2026-10-17): code, README and checks done; deployment and video need the team
+
+- **README** (`README.md`): how to run (two commands, no keys needed), architecture table, data sources with access/keys, rebuild pipeline, held-out results as they came out, key status and placeholders (Chalk, api.data.gov), the LightGBM deviation, and stated limitations. `frontend/README.md` and `backend/README.md` cover each half.
+- **Fix found by the fresh-clone check:** `npm run typecheck` failed in a clean checkout (`LayoutProps` is a global type Next generates during dev/build, so `tsc` only passed where `.next/` already existed). The script is now `next typegen && tsc --noEmit`, verified from a clean `.next`.
+
+Checks:
+- **Fresh clone + README steps → running app — PASS.** `git clone` into a scratch directory (no `.env`, no raw data): `uv sync`, `uv run pytest -q` → 185 passed, ruff clean; `npm install`, lint, typecheck (after the fix), build → pass; booted backend + frontend from the clone: `scripts/smoke_api.sh` → all endpoints OK (clear 0.11 s, evaluate 0.002 s, infeasible bid → 422), frontend → 200.
+- **All tests, lint, type check and build pass — PASS** (backend 185 tests + ruff; frontend lint, typecheck, build).
+- **`.env` never committed — PASS:** no `.env` path in any commit of any branch, and the EIA key value does not appear anywhere in `git log --all -p`.
+- **Every number on screen traces to a data source or code — PASS (spot-check of five, recomputed independently):** hourly fossil CO2 MAPE 7.7% = `calibration.json` `fossil_co2_error` 0.0773; coal/gas split 6.9 pp = `coal_gas_split_error` 0.0691; adoption-chart peak 47,750 MW = max EIA-930 demand on 2024-03-29; no-flex baseline 96,196 t = `DaySimulator(actual_inputs("2024-03-29"), calibrated).emissions()`; "+1,407 t vs default at 30%" and "coordination recovers 1,423 t" = differences of `adoption_chart.json` means. Each screen also prints a SOURCE caption naming the endpoint/field.
+- Final live run in the browser: example scenario on 2024-08-20 → default 619,522 t, value of coordination +170 t (= `settlement.total_avoided_t`), leave-the-coalition toggle works, no app console errors.
+
+Not done (needs the team):
+- **Deployment.** Needs a hosting account and a decision (design Open Questions: serverless vs small container for the Python backend; e.g. a container host for `uvicorn clearinghouse.api:app` and Vercel for `frontend/` with `NEXT_PUBLIC_API_BASE` and `FRONTEND_ORIGINS` set). Not attempted: publishing to an external service is the team's call.
+- **Fallback video** — recorded by the team (design M9).
