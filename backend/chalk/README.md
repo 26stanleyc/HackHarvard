@@ -7,8 +7,9 @@ the app's stack (see `docs/progress.md`, M0). Status: **deployed** (2026-10-17) 
 team "Hello", project `Default`, environment `production` (`hllr1480fa66`). Live online queries
 return forecasts and bid features identical to `LocalForecastProvider`'s on all four demo days
 (max difference 0); a forecast query takes ~0.5 s of Chalk execution, bid features ~20-100 ms.
-That deployment is the **M4** snapshot. The committed `src/vendor/` is now **M10** (forecast
-inputs wired in, below); the live project serves M4 until the next `chalk apply`.
+Redeployed 2026-10-17 15:05 EDT with the **M10** snapshot (forecast inputs wired in, below):
+live forecasts and bid features again equal `LocalForecastProvider`'s on all four demo days (max
+difference 0); a forecast query now takes ~0.9-1.4 s of Chalk execution.
 
 ## What it defines
 
