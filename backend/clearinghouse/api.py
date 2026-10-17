@@ -83,11 +83,15 @@ from clearinghouse.schemas import (
     MetaResponse,
     PresetsResponse,
 )
+from clearinghouse.settlement import EXACT_MAX_PLAYERS
 from clearinghouse.simulator import DaySimulator
 
 REGION = "ERCOT"
 REGION_CODE = "ERCO"  # EIA-930 balancing-authority code used by the forecast providers
-MAX_BIDS = 8
+MAX_BIDS = 30
+# Exact Shapley re-plans all 2^n coalitions; above this many bids /api/clear skips the settlement
+# (payouts, receipts, leave-one-out) and still reports everything else.
+SHAPLEY_MAX_BIDS = EXACT_MAX_PLAYERS
 MAX_BACKGROUND_PCT = 50.0
 
 # Illustrative defaults (stated as such in meta.data_sources and the README).
@@ -394,6 +398,7 @@ def get_meta() -> dict:
         "pool_default_usd": POOL_DEFAULT_USD,
         "background_pct_default": BACKGROUND_PCT_DEFAULT,
         "max_bids": MAX_BIDS,
+        "shapley_max_bids": SHAPLEY_MAX_BIDS,
         "calibration": calibration(),
         "data_sources": data_sources(provider.source,
                                      getattr(provider, "spec", {}).get("model_set", "M4")),
@@ -426,7 +431,7 @@ def post_clear(req: ClearRequest) -> dict:
     engine = get_engine()
     fc, latency, plan, intensity, score, bg = engine.prepare(req.day, req.background_pct)
     body = clear(req.day, req.bids, req.background_pct, req.carbon_price, req.pool_usd, plan,
-                 score, background=bg)
+                 score, background=bg, shapley=len(req.bids) <= SHAPLEY_MAX_BIDS)
     forecast = {"source": fc.source, "latency_ms": float(latency),
                 "hourly": {**fc.api_hourly(), "avg_intensity": list(intensity)},
                 "fallback_reason": fc.methods.get("fallback_reason")}

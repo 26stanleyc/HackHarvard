@@ -3,7 +3,8 @@ import type { MarginalResource, StrategyName } from "./types";
 /**
  * Company colors: fixed categorical order (validated reference palette, adjacent
  * pairs CVD-safe in stacks). Color follows the company's position in the bid
- * list, never its rank, and never cycles past 8 (max_bids = 8).
+ * list, never its rank. Companies 9+ (up to max_bids = 30) reuse the 8 hues as
+ * darker, lighter, then darker-still shades, so no two companies share a color.
  */
 export const COMPANY_COLORS = [
   "#2a78d6",
@@ -16,8 +17,20 @@ export const COMPANY_COLORS = [
   "#e34948",
 ] as const;
 
+const SHADE_TIERS = [0, -0.35, 0.45, -0.6]; // <0 mixes toward black, >0 toward white
+
+function shade(hex: string, t: number): string {
+  const target = t < 0 ? 0 : 255;
+  const a = Math.abs(t);
+  const ch = [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - a) + target * a));
+  return `#${ch.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+}
+
 export function companyColor(index: number): string {
-  return COMPANY_COLORS[Math.max(0, Math.min(COMPANY_COLORS.length - 1, index))];
+  const i = Math.max(0, index);
+  const n = COMPANY_COLORS.length;
+  const tier = SHADE_TIERS[Math.min(SHADE_TIERS.length - 1, Math.floor(i / n))];
+  return tier === 0 ? COMPANY_COLORS[i % n] : shade(COMPANY_COLORS[i % n], tier);
 }
 
 /**

@@ -203,7 +203,7 @@ class ClearDetails:
     total_added: dict[str, np.ndarray]  # strategy -> background + user schedules
     plan_totals_t: dict[str, float]  # E_plan per strategy
     score_totals_t: dict[str, float]  # E_score per strategy
-    settlement: SettlementResult
+    settlement: SettlementResult | None  # None when Shapley was skipped
     game: CoalitionGame
     phi_u3: list[float]
     phi_u2: list[float]
@@ -212,10 +212,14 @@ class ClearDetails:
 
 def clear_with_details(day: str, bids: Sequence[Bid | Mapping], background_pct: float,
                        carbon_price: float, pool_usd: float, plan_sim: DaySimulator,
-                       score_sim: DaySimulator, background: Background | None = None
-                       ) -> tuple[dict, ClearDetails]:
+                       score_sim: DaySimulator, background: Background | None = None,
+                       shapley: bool = True) -> tuple[dict, ClearDetails]:
     """:func:`clear` plus its internals. ``background`` (optional) is a precomputed
-    ``background_load(background_pct, plan_sim)`` (the API caches it per (day, pct))."""
+    ``background_load(background_pct, plan_sim)`` (the API caches it per (day, pct)).
+
+    ``shapley=False`` skips the Shapley shares, payouts, receipts and leave-one-out games (the
+    API does this above ``EXACT_MAX_PLAYERS`` bids): ``settlement.method = "skipped"``, empty
+    ``per_bid`` / ``leave_one_out``, ``total_avoided_t = v(N)`` still reported."""
     bids = _as_bids(bids)
     errors = bid_errors(bids)
     if errors:
@@ -240,7 +244,9 @@ def clear_with_details(day: str, bids: Sequence[Bid | Mapping], background_pct: 
         raw = full.trace or []
     trace = aggregate_trace(raw)
 
-    sett = settle(bids, s3, fixed, plan_sim, score_sim, carbon_price, pool_usd, game=game)
+    sett = (settle(bids, s3, fixed, plan_sim, score_sim, carbon_price, pool_usd, game=game)
+            if shapley else None)
+    avoided = sett.total_avoided_t if sett else game.v(game.full)
 
     schedules = {"default": s1, "independent_average": s2, "independent_marginal": s3,
                  "coordinated": s4}
@@ -266,10 +272,10 @@ def clear_with_details(day: str, bids: Sequence[Bid | Mapping], background_pct: 
         herding[name] = {k: float(v) + 0.0 for k, v in res.as_metric().items()}  # no -0.0
 
     base1 = [s1[i] for i in ids]
-    phi_u3 = receipt_shapley(score_sim, fixed, base1, [s3[i] for i in ids])
-    phi_u2 = receipt_shapley(score_sim, fixed, base1, [s2[i] for i in ids])
+    phi_u3 = receipt_shapley(score_sim, fixed, base1, [s3[i] for i in ids]) if sett else []
+    phi_u2 = receipt_shapley(score_sim, fixed, base1, [s2[i] for i in ids]) if sett else []
     per_bid = []
-    for k, i in enumerate(ids):
+    for k, i in enumerate(ids if sett else []):
         sh = sett.shapley_t[k]
         per_bid.append({
             "bid_id": i,
@@ -286,13 +292,13 @@ def clear_with_details(day: str, bids: Sequence[Bid | Mapping], background_pct: 
         "fallback_fired": bool(fallback),
         "settlement": {
             "baseline": "independent_marginal",
-            "method": sett.method,
-            "coalitions_evaluated": int(sett.coalitions_evaluated),
-            "total_avoided_t": float(sett.total_avoided_t),
+            "method": sett.method if sett else "skipped",
+            "coalitions_evaluated": int(sett.coalitions_evaluated if sett else len(game.values)),
+            "total_avoided_t": float(avoided),
             "pool_usd": float(pool_usd),
-            "prorated": bool(sett.prorated),
+            "prorated": bool(sett.prorated) if sett else False,
             "per_bid": per_bid,
-            "leave_one_out": sett.leave_one_out,
+            "leave_one_out": sett.leave_one_out if sett else {},
         },
     }
     details = ClearDetails(
@@ -305,13 +311,13 @@ def clear_with_details(day: str, bids: Sequence[Bid | Mapping], background_pct: 
 
 def clear(day: str, bids: Sequence[Bid | Mapping], background_pct: float, carbon_price: float,
           pool_usd: float, plan_sim: DaySimulator, score_sim: DaySimulator,
-          background: Background | None = None) -> dict:
+          background: Background | None = None, shapley: bool = True) -> dict:
     """Clear the bids for ``day``: every field of ``schemas.ClearResponse`` except ``forecast``.
 
     Raises :class:`BidValidationError` (per-bid messages) for duplicate ids or infeasible bids.
     """
     return clear_with_details(day, bids, background_pct, carbon_price, pool_usd, plan_sim,
-                              score_sim, background)[0]
+                              score_sim, background, shapley)[0]
 
 
 # --- evaluate (Beat the coordinator) ---------------------------------------------------------

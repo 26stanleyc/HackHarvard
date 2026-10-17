@@ -16,7 +16,14 @@ import {
 } from "@/lib/explain";
 import { activeRuns, fmtAvoided, fmtInt, fmtShareT, fmtSignedT, fmtT, fmtUsd, hh, windowLabel } from "@/lib/format";
 import { STRATEGY_COLORS, STRATEGY_LABEL, STRATEGY_SHORT } from "@/lib/theme";
-import { STRATEGY_NAMES, type Bid, type ClearRequest, type ClearResponse, type HerdingMetric } from "@/lib/types";
+import {
+  SHAPLEY_MAX_BIDS_DEFAULT,
+  STRATEGY_NAMES,
+  type Bid,
+  type ClearRequest,
+  type ClearResponse,
+  type HerdingMetric,
+} from "@/lib/types";
 import type { ChartCompany } from "./LoadChart";
 import { forecastSourceText } from "./StoryScreen";
 import { LoadTypeTag, SectionTitle, Source, Stat } from "./ui";
@@ -40,7 +47,10 @@ export function ResultsView({
     <div className="space-y-8">
       <SectionTitle kicker="Step 4 · Results" title="What coordination saved, and who gets paid for it">
         Every number here comes from one clear: strategies scored on the actual day, the herding
-        metric, and an exact Shapley settlement.
+        metric, and{" "}
+        {response.settlement.method === "skipped"
+          ? `the coalition's total (no Shapley payouts above ${SHAPLEY_MAX_BIDS_DEFAULT} companies).`
+          : "an exact Shapley settlement."}
       </SectionTitle>
       <ResultNotes response={response} />
       <ValueBreakdown response={response} />
@@ -210,6 +220,48 @@ function HerdingCallout({ response }: { response: ClearResponse }) {
   );
 }
 
+/** Receipts when /api/clear skipped the Shapley settlement (more than SHAPLEY_MAX_BIDS bids). */
+function SkippedReceipts({ response, n }: { response: ClearResponse; n: number }) {
+  const st = response.settlement;
+  return (
+    <section data-testid="receipts">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="kicker mb-1">Settlement</div>
+          <h3 className="font-serif text-2xl font-semibold text-ink">Avoided-carbon receipts</h3>
+          <p className="mt-2 max-w-2xl text-sm text-ink-2">
+            No per-company payouts for this clear. The CO2 results above cover all {n} companies.
+          </p>
+        </div>
+        <aside
+          className="max-w-xs rounded-md border border-line-strong bg-surface-2 px-3 py-2 text-xs leading-relaxed text-ink-2"
+          role="note"
+          data-testid="shapley-skipped-note"
+        >
+          <span className="font-medium text-ink">Shapley payouts max out at {SHAPLEY_MAX_BIDS_DEFAULT} companies.</span>{" "}
+          A fair payout compares every subset of companies, each with its own coordinated plan: 2
+          <sup>{SHAPLEY_MAX_BIDS_DEFAULT}</sup> = {fmtInt(2 ** SHAPLEY_MAX_BIDS_DEFAULT)} plans for {SHAPLEY_MAX_BIDS_DEFAULT},
+          2<sup>{n}</sup> = {fmtInt(2 ** n)} for {n}.
+        </aside>
+      </div>
+      <div className="card grid grid-cols-2 gap-4 p-4 sm:grid-cols-4" data-testid="settlement-summary">
+        <Stat
+          label="Avoided by coordination"
+          value={fmtT(st.total_avoided_t)}
+          sub="t vs baseline"
+          tone={st.total_avoided_t >= 0 ? "good" : "bad"}
+          testId="total-avoided"
+        />
+        <Stat label="Paid out" value="—" sub="payouts skipped" testId="total-paid" />
+      </div>
+      <Source className="mt-3">
+        settlement.method = skipped · settlement.total_avoided_t = independent marginal − coordinated, scored on
+        the actual day{API_MODE === "fixture" ? " · fixture values" : ""}
+      </Source>
+    </section>
+  );
+}
+
 function Receipts({
   request,
   response,
@@ -227,6 +279,7 @@ function Receipts({
 }) {
   const st = response.settlement;
   const [note, setNote] = useState<string | null>(null);
+  if (st.method === "skipped") return <SkippedReceipts response={response} n={bids.length} />;
   const loo = leftOut ? st.leave_one_out[leftOut] : undefined;
   const totalAvoided = loo ? loo.total_avoided_t : st.total_avoided_t;
   const per = new Map<string, { shapley_t: number; payout_usd: number }>();
@@ -531,7 +584,9 @@ function ValueBreakdown({ response }: { response: ClearResponse }) {
         vs default: average signal <span className="num">{isZeroT(c.averageVsDefault) ? "0" : fmtSignedT(c.averageVsDefault)} t</span>,
         marginal solo <span className="num">{isZeroT(c.marginalVsDefault) ? "0" : fmtSignedT(c.marginalVsDefault)} t</span>,
         coordinated <span className="num">{isZeroT(c.vsDefault) ? "0" : fmtSignedT(c.vsDefault)} t</span>.{" "}
-        {matches ? (
+        {response.settlement.method === "skipped" ? (
+          <>Not shared out: Shapley payouts are skipped above {SHAPLEY_MAX_BIDS_DEFAULT} companies.</>
+        ) : matches ? (
           <>Value of coordination equals the settlement total ({fmtSignedT(settled)} t), the amount shared by Shapley.</>
         ) : (
           <>Settlement total avoided: {fmtSignedT(settled)} t.</>

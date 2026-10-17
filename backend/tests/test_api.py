@@ -14,6 +14,7 @@ from clearinghouse.api import (
     ADOPTION_CHART_FILE,
     CALIBRATION_FILE,
     MAX_BIDS,
+    SHAPLEY_MAX_BIDS,
     app,
     default_day,
     get_engine,
@@ -100,7 +101,8 @@ def test_meta(client):
     assert meta.region == "ERCOT"
     assert [d.date for d in meta.days] == DEMO_DATES
     assert meta.default_day == DEMO_DATES[0]
-    assert meta.max_bids == MAX_BIDS == 8
+    assert meta.max_bids == MAX_BIDS == 30
+    assert meta.shapley_max_bids == SHAPLEY_MAX_BIDS == 8
     assert (meta.carbon_price_default, meta.pool_default_usd, meta.background_pct_default) == (
         50.0, 100000.0, 10.0)
     cal = json.loads(CALIBRATION_FILE.read_text())
@@ -249,9 +251,27 @@ def test_clear_duplicate_ids_422(client):
 
 
 def test_clear_too_many_bids_422(client):
-    r = client.post("/api/clear", json=clear_req(bids=bids_json(9)))
-    detail = assert_per_bid_422(r, None, "at most 8 bids")
+    r = client.post("/api/clear", json=clear_req(bids=bids_json(MAX_BIDS + 1)))
+    detail = assert_per_bid_422(r, None, f"at most {MAX_BIDS} bids")
     assert len(detail) == 1
+
+
+def test_clear_above_shapley_max_skips_settlement(client):
+    """More than SHAPLEY_MAX_BIDS bids: everything but the Shapley settlement is computed."""
+    req = clear_req(bids=bids_json(SHAPLEY_MAX_BIDS + 1))
+    r = client.post("/api/clear", json=req)
+    assert r.status_code == 200, r.text
+    resp = ClearResponse.model_validate(r.json())
+    st = resp.settlement
+    assert (st.method, st.per_bid, st.leave_one_out, st.prorated) == ("skipped", [], {}, False)
+    assert st.coalitions_evaluated == 1  # the full coalition only
+    tot = {k: v.total_co2_t for k, v in resp.strategies.items()}
+    assert st.total_avoided_t == pytest.approx(
+        tot["independent_marginal"] - tot["coordinated"], abs=1e-6)
+    ids = {b["id"] for b in req["bids"]}
+    for name in STRATEGY_NAMES:
+        assert set(resp.strategies[name].schedule) == ids
+    assert set(resp.bid_features.per_bid) == ids
 
 
 def test_unknown_day_422(client):

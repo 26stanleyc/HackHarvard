@@ -49,6 +49,9 @@ export interface Calibration {
   fossil_co2_error: number | null;
 }
 
+/** Backend SHAPLEY_MAX_BIDS (= settlement.EXACT_MAX_PLAYERS); fallback when meta lacks it. */
+export const SHAPLEY_MAX_BIDS_DEFAULT = 8;
+
 export interface MetaResponse {
   region: string;
   days: Day[];
@@ -57,6 +60,8 @@ export interface MetaResponse {
   pool_default_usd: number;
   background_pct_default: number;
   max_bids: number;
+  /** above this many bids /api/clear skips the Shapley settlement (absent in old fixtures) */
+  shapley_max_bids?: number;
   calibration: Calibration;
   data_sources: string[];
 }
@@ -212,7 +217,8 @@ export interface LeaveOneOut {
 
 export interface Settlement {
   baseline: "independent_marginal";
-  method: "exact" | "monte_carlo";
+  /** "skipped": more than meta.shapley_max_bids bids, so per_bid and leave_one_out are empty */
+  method: "exact" | "monte_carlo" | "skipped";
   coalitions_evaluated: number;
   total_avoided_t: number;
   pool_usd: number;

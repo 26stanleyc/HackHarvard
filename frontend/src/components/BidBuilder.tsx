@@ -14,7 +14,14 @@ import {
 } from "@/lib/bids";
 import { fmtInt, fmtPct, fmtUsd, hh, windowLabel } from "@/lib/format";
 import { companyColor } from "@/lib/theme";
-import type { Bid, BidFeatures, BidFeaturesBlock, MetaResponse, Preset } from "@/lib/types";
+import {
+  SHAPLEY_MAX_BIDS_DEFAULT,
+  type Bid,
+  type BidFeatures,
+  type BidFeaturesBlock,
+  type MetaResponse,
+  type Preset,
+} from "@/lib/types";
 import { Button, ErrorBanner, LoadTypeTag, SectionTitle, Source } from "./ui";
 
 export interface Scenario {
@@ -93,6 +100,7 @@ export function BidBuilder({
   onDismissError: () => void;
 }) {
   const max = meta.max_bids;
+  const shapleyMax = meta.shapley_max_bids ?? SHAPLEY_MAX_BIDS_DEFAULT;
   const full = drafts.length >= max;
   const errors = drafts.map(draftError);
   const sErr = scenarioErrors(scenario);
@@ -163,8 +171,12 @@ export function BidBuilder({
                 + Custom company
               </button>
             </div>
-            {full && (
-              <p className="mt-2 text-xs text-muted">Maximum of {max} companies (exact Shapley settlement).</p>
+            {full && <p className="mt-2 text-xs text-muted">Maximum of {max} companies.</p>}
+            {drafts.length > shapleyMax && (
+              <p className="mt-2 text-xs text-muted" data-testid="shapley-limit-hint">
+                More than {shapleyMax} companies: results show CO2 for every strategy, but no Shapley
+                payouts (those are computed for up to {shapleyMax} companies).
+              </p>
             )}
             <Source className="mt-3">presets: GET /api/presets · sizes are reference values, see each preset&apos;s note</Source>
           </div>
@@ -229,8 +241,8 @@ export function BidBuilder({
               )}
             </Button>
             <p className="text-xs text-muted">
-              Runs four strategies, the coordinator and the Shapley settlement in one request
-              (POST /api/clear).
+              Runs four strategies, the coordinator and the Shapley settlement (up to {shapleyMax}{" "}
+              companies) in one request (POST /api/clear).
               {API_MODE === "fixture" &&
                 " In fixture mode the recorded example response is shown, whatever you enter."}
             </p>

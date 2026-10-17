@@ -89,6 +89,7 @@ class MetaResponse(Model):
     pool_default_usd: NonNeg
     background_pct_default: NonNeg
     max_bids: int = 8
+    shapley_max_bids: int = 8  # above this many bids, /api/clear skips the Shapley settlement
     calibration: Calibration
     data_sources: list[str]
 
@@ -301,7 +302,7 @@ class LeaveOneOut(Model):
 
 class Settlement(Model):
     baseline: Literal["independent_marginal"]
-    method: Literal["exact", "monte_carlo"]
+    method: Literal["exact", "monte_carlo", "skipped"]  # skipped: above shapley_max_bids
     coalitions_evaluated: Annotated[int, Field(ge=0)]
     total_avoided_t: float
     pool_usd: NonNeg
