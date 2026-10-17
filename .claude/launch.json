@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "frontend"],
       "port": 3000
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": ["run", "--project", "backend", "uvicorn", "clearinghouse.api:app", "--app-dir", "backend", "--port", "8000"],
+      "port": 8000
     }
   ]
 }

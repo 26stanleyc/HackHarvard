@@ -2,37 +2,46 @@
   {
     "name": "EV fleet aggregator",
     "load_type": "ev_fleet",
-    "energy_mwh": 2400.0,
+    "energy_mwh": 2000.0,
     "earliest_hour": 0,
-    "deadline_hour": 8,
+    "deadline_hour": 7,
     "max_mw": 500.0,
-    "size_reference": "Aggregator of overnight depot charging (illustrative ~500 MW; mock)"
+    "size_reference": "Overnight depot and home charging aggregated across Texas metros. A single large electric bus or truck depot is roughly 5-20 MW (utility make-ready and interconnection filings), so 500 MW stands for a regional aggregator (illustrative)."
   },
   {
-    "name": "Hyperscale data center (batch jobs)",
+    "name": "Data center (flexible batch)",
     "load_type": "data_center",
-    "energy_mwh": 2400.0,
+    "energy_mwh": 3600.0,
     "earliest_hour": 0,
     "deadline_hour": 24,
     "max_mw": 300.0,
-    "size_reference": "Large campuses are commonly 100-300+ MW (illustrative; mock)"
+    "size_reference": "Large hyperscale data-center campuses draw 100-300+ MW (public utility filings; ERCOT tracks loads of 75 MW and up as large loads). Only deferrable batch work (training, rendering, backups) is bid; illustrative."
   },
   {
     "name": "Office portfolio (pre-cooling)",
     "load_type": "office",
-    "energy_mwh": 600.0,
+    "energy_mwh": 900.0,
     "earliest_hour": 6,
     "deadline_hour": 18,
     "max_mw": 150.0,
-    "size_reference": "Downtown office HVAC portfolio (illustrative ~150 MW; mock)"
+    "size_reference": "A large downtown office tower's HVAC peaks at a few MW (building energy benchmarking disclosures); 150 MW stands for a portfolio of dozens of towers across Houston and Dallas pre-cooling ahead of the afternoon peak (illustrative)."
   },
   {
-    "name": "Cold storage warehouses",
+    "name": "Cold-storage portfolio",
     "load_type": "cold_storage",
     "energy_mwh": 480.0,
     "earliest_hour": 0,
     "deadline_hour": 24,
-    "max_mw": 60.0,
-    "size_reference": "Regional cold-chain refrigeration cluster (illustrative ~60 MW; mock)"
+    "max_mw": 80.0,
+    "size_reference": "A large refrigerated warehouse draws roughly 1-5 MW (utility efficiency case studies); 80 MW stands for a statewide cold-chain portfolio using its thermal mass to shift a quarter of its daily refrigeration energy (illustrative)."
+  },
+  {
+    "name": "Municipal water pumping",
+    "load_type": "water_pumping",
+    "energy_mwh": 960.0,
+    "earliest_hour": 0,
+    "deadline_hour": 16,
+    "max_mw": 120.0,
+    "size_reference": "Pumping for a large city water system uses tens of MW (municipal utility energy reports); 120 MW stands for several Texas metro systems filling storage tanks before the evening peak (illustrative)."
   }
 ]

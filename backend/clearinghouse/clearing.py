@@ -122,7 +122,11 @@ def _check_day(day: str, plan_sim: DaySimulator, score_sim: DaySimulator) -> Non
         raise ValueError("score_sim must be built on actual inputs")
 
 
-def background_load(background_pct: float, plan_sim: DaySimulator) -> tuple[np.ndarray, list[Bid]]:
+Background = tuple[np.ndarray, list[Bid]]
+"""``(summed 24-vector, population bids)`` as returned by :func:`background_load`."""
+
+
+def background_load(background_pct: float, plan_sim: DaySimulator) -> Background:
     """Pinned A: the background population's summed strategy-2 schedule (24-vector) and bids."""
     pop = make_population(background_pct, plan_sim.inputs.peak_demand_mw, seed=BACKGROUND_SEED)
     if not pop:
@@ -208,8 +212,10 @@ class ClearDetails:
 
 def clear_with_details(day: str, bids: Sequence[Bid | Mapping], background_pct: float,
                        carbon_price: float, pool_usd: float, plan_sim: DaySimulator,
-                       score_sim: DaySimulator) -> tuple[dict, ClearDetails]:
-    """:func:`clear` plus its internals."""
+                       score_sim: DaySimulator, background: Background | None = None
+                       ) -> tuple[dict, ClearDetails]:
+    """:func:`clear` plus its internals. ``background`` (optional) is a precomputed
+    ``background_load(background_pct, plan_sim)`` (the API caches it per (day, pct))."""
     bids = _as_bids(bids)
     errors = bid_errors(bids)
     if errors:
@@ -217,7 +223,8 @@ def clear_with_details(day: str, bids: Sequence[Bid | Mapping], background_pct: 
     _check_day(day, plan_sim, score_sim)
     ids = [b.id for b in bids]
 
-    bg, pop = background_load(background_pct, plan_sim)
+    bg, pop = (background if background is not None
+               else background_load(background_pct, plan_sim))
     fixed = [bg]
     s1 = default_schedules(bids)
     s2 = independent_average(bids, plan_sim, bg)
@@ -297,13 +304,14 @@ def clear_with_details(day: str, bids: Sequence[Bid | Mapping], background_pct: 
 
 
 def clear(day: str, bids: Sequence[Bid | Mapping], background_pct: float, carbon_price: float,
-          pool_usd: float, plan_sim: DaySimulator, score_sim: DaySimulator) -> dict:
+          pool_usd: float, plan_sim: DaySimulator, score_sim: DaySimulator,
+          background: Background | None = None) -> dict:
     """Clear the bids for ``day``: every field of ``schemas.ClearResponse`` except ``forecast``.
 
     Raises :class:`BidValidationError` (per-bid messages) for duplicate ids or infeasible bids.
     """
     return clear_with_details(day, bids, background_pct, carbon_price, pool_usd, plan_sim,
-                              score_sim)[0]
+                              score_sim, background)[0]
 
 
 # --- evaluate (Beat the coordinator) ---------------------------------------------------------
@@ -341,7 +349,8 @@ def evaluate_schedule_error(bid: Bid, values) -> str | None:
 
 
 def evaluate(day: str, bids: Sequence[Bid | Mapping], schedule: Mapping[str, Sequence[float]],
-             background_pct: float, plan_sim: DaySimulator, score_sim: DaySimulator) -> dict:
+             background_pct: float, plan_sim: DaySimulator, score_sim: DaySimulator,
+             background: Background | None = None) -> dict:
     """Score a hand-made schedule (``schemas.EvaluateResponse``); see pinned J above."""
     bids = _as_bids(bids)
     _check_day(day, plan_sim, score_sim)
@@ -362,7 +371,8 @@ def evaluate(day: str, bids: Sequence[Bid | Mapping], schedule: Mapping[str, Seq
                        else defaults[b.id]) for b in bids}
     else:
         user = defaults
-    bg, _ = background_load(background_pct, plan_sim)
+    bg, _ = (background if background is not None
+             else background_load(background_pct, plan_sim))
     total = canon_sum([bg] + [user[b.id] for b in bids])
     hourly = score_sim.hourly_emissions_batch(total[None, :])[0]
     return {

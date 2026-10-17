@@ -15,11 +15,13 @@ Definitions (MW, one value per CST slot ``h = 0..23``; see ``clearinghouse.data.
 * ``actual_fossil``: EIA-930 coal / gas / oil MW (oil NaN -> 0), for validation only.
 * ``fuel_mix``: every EIA-930 fuel column (NaN -> 0), for validation only.
 
-Two constructors:
+Three constructors:
 
 * :func:`actual_inputs(date)`: the day's own actuals (used for SCORING).
 * :func:`yesterday_forecast_inputs(date)`: the previous CST day's actuals relabeled as ``date``
   (the yesterday-as-forecast PLANNING baseline), but priced with ``date``'s month.
+* :func:`forecast_inputs(result)`: a forecast provider's ``ForecastResult`` (the API's PLANNING
+  inputs, M6).
 
 Core columns that are NaN raise ``ValueError`` (no silent filling).
 """
@@ -130,6 +132,49 @@ def previous_day(date: str) -> str:
 def yesterday_forecast_inputs(date: str) -> DayInputs:
     """Previous CST day's actuals relabeled as ``date`` (planning inputs; ``date``'s prices)."""
     return _build(date, previous_day(date), "yesterday_forecast")
+
+
+def forecast_inputs(result) -> DayInputs:
+    """Planning inputs from a ``forecast.ForecastResult`` (M6; design B2/B3, premise 3).
+
+    ``kind = "forecast"``, ``date`` = the forecast's target date (its month selects fuel prices),
+    ``source_date`` = the previous CST day (the last day of data the forecast may use; its issue
+    time is 00:00 CST on ``date``). Demand, wind and solar are the ML forecasts; nuclear, hydro,
+    other, storage and net imports are the provider's persistence values; curtailment is the
+    provider's forecast curtailment. ``fixed_supply`` / ``fixed_nonimport`` use the same
+    definitions as :func:`actual_inputs`. No actuals of ``date`` are involved, so
+    ``actual_fossil`` is empty (validation code must not be run on forecast inputs).
+    """
+    def arr(v) -> np.ndarray:
+        return np.array(v, dtype=float)  # writable copy (forecast arrays are read-only/shared)
+
+    fuel_mix = {
+        "nuclear": arr(result.nuclear_mw), "hydro": arr(result.hydro_mw),
+        "wind": arr(result.wind_mw), "solar": arr(result.solar_mw),
+        "other": arr(result.other_mw), "storage": arr(result.storage_mw),
+    }
+    fixed_nonimport = arr(result.fixed_nonimport_mw)
+    net_imports = arr(result.net_imports_mw)
+    out = DayInputs(
+        date=result.date,
+        source_date=previous_day(result.date),
+        kind="forecast",
+        demand_mw=arr(result.demand_mw),
+        fixed_supply_mw=fixed_nonimport + net_imports,
+        fixed_nonimport_mw=fixed_nonimport,
+        net_imports_mw=net_imports,
+        other_mw=arr(result.other_mw),
+        wind_mw=arr(result.wind_mw),
+        solar_mw=arr(result.solar_mw),
+        curtailed_mw=np.clip(arr(result.curtailed_mw), 0.0, None),
+        actual_fossil={},
+        fuel_mix=fuel_mix,
+    )
+    for name in ("demand_mw", "fixed_supply_mw", "curtailed_mw"):
+        v = getattr(out, name)
+        if v.shape != (HOURS,) or not np.isfinite(v).all():
+            raise ValueError(f"forecast for {result.date}: bad {name}")
+    return out
 
 
 def residual_check(inputs: DayInputs) -> np.ndarray:

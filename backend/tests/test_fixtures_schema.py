@@ -45,9 +45,17 @@ def clear():
     )
 
 
-def test_clear_has_three_bids_all_strategies(clear):
+def test_clear_is_example_scenario_all_strategies(clear):
+    """Example-scenario rule (M6): one company per preset, ids b1..bn, on meta's defaults."""
     req, resp = clear
-    assert len(req.bids) == 3
+    presets = PresetsResponse.model_validate(load("presets.json")).root
+    meta = MetaResponse.model_validate(load("meta.json"))
+    assert [b.id for b in req.bids] == [f"b{k}" for k in range(1, len(presets) + 1)]
+    for b, p in zip(req.bids, presets, strict=True):
+        assert b.model_dump(exclude={"id"}) == p.model_dump(exclude={"size_reference"})
+    assert req.day == meta.default_day
+    assert (req.background_pct, req.carbon_price, req.pool_usd) == (
+        meta.background_pct_default, meta.carbon_price_default, meta.pool_default_usd)
     assert set(resp.strategies) == set(STRATEGY_NAMES)
 
 
@@ -89,13 +97,20 @@ def test_trace(clear):
     req, resp = clear
     bids = {b.id: b for b in req.bids}
     trace = resp.coordinator_trace
-    assert 20 <= len(trace) <= 250
+    assert len(trace) >= 1
     steps = [t.step for t in trace]
-    assert steps == sorted(set(steps))
+    # engine trace: <= 200 steps; several entries may share a step after aggregation
+    assert steps == sorted(steps) and len(set(steps)) <= 200
+    placed = {}
     for t in trace:
         b = bids[t.bid_id]
         assert b.earliest_hour <= t.hour < b.deadline_hour
         assert t.mwh <= b.max_mw + 1e-9
+        placed[(t.bid_id, t.hour)] = placed.get((t.bid_id, t.hour), 0.0) + t.mwh
+    coord = resp.strategies["coordinated"].schedule
+    for bid_id, sched in coord.items():  # trace MWh per (bid, hour) == coordinated schedule
+        for h, mw in enumerate(sched):
+            assert abs(placed.get((bid_id, h), 0.0) - mw) < 1e-6, (bid_id, h)
 
 
 def test_settlement(clear):

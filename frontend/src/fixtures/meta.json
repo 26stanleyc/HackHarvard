@@ -2,41 +2,45 @@
   "region": "ERCOT",
   "days": [
     {
-      "date": "2024-03-19",
+      "date": "2024-03-29",
       "label": "Windy spring night",
-      "description": "High overnight wind, mild demand; wind curtailment likely in West Texas."
+      "description": "Mean overnight (00:00-06:00 CST) wind 25.7 GW (67% of demand)"
     },
     {
-      "date": "2024-05-07",
+      "date": "2024-04-11",
       "label": "Sunny mild day",
-      "description": "Strong midday solar with moderate demand."
+      "description": "Solar 18% of daily demand (peak 18.7 GW); mean demand 43.4 GW vs 2024 median 51.0 GW"
     },
     {
       "date": "2024-08-20",
       "label": "Summer heat peak",
-      "description": "Near-record afternoon and evening demand; gas peakers on the margin."
+      "description": "Peak demand 85.5 GW (daily mean 70.5 GW)"
     },
     {
       "date": "2024-01-16",
       "label": "Cold winter morning",
-      "description": "Cold snap with a high morning heating peak and low solar."
+      "description": "Mean 06:00-09:00 CST demand 77.8 GW (daily peak 78.2 GW)"
     }
   ],
-  "default_day": "2024-03-19",
+  "default_day": "2024-03-29",
   "carbon_price_default": 50.0,
   "pool_default_usd": 100000.0,
-  "background_pct_default": 5.0,
+  "background_pct_default": 10.0,
   "max_bids": 8,
   "calibration": {
-    "coal_gas_split_error": 0.081,
-    "mef_simulated": 0.64,
-    "mef_observed": 0.59,
-    "fossil_co2_error": 0.112
+    "coal_gas_split_error": 0.06907300677616386,
+    "mef_simulated": 0.6273268731328905,
+    "mef_observed": 0.5489546881872649,
+    "fossil_co2_error": 0.077266853462279
   },
   "data_sources": [
-    "EIA-930 hourly demand and net generation by fuel (balancing authority ERCO)",
-    "EPA eGRID2023 plant data (capacity, heat rate, CO2 rate)",
-    "EIA monthly fuel costs for Texas power plants",
-    "ERCOT wind and solar production with potential output (curtailment), if available"
+    "EIA-930 hourly demand, net generation by fuel and interchange for ERCOT (BA code ERCO), EIA bulk six-month files, 2024",
+    "EPA eGRID2023 rev2 plant data (PLNT23 + GEN23): ERCOT fossil plant capacity, heat rate, CO2 rate and names",
+    "EIA API v2 monthly Texas fuel cost for power plants (coal and gas: Electric Power sector 98; oil: sector 1)",
+    "ERCOT NP3-965-ER 60-day SCED disclosure: modeled wind and solar curtailment (HSL minus base point), validated against ERCOT NP4-732/737",
+    "Forecast: local gradient-boosted model on EIA-930 history, issued 00:00 CST on the day (day-ahead demand, wind, solar; Chalk credentials pending)",
+    "CAMPD validation skipped (api.data.gov key pending); validation (b) uses EIA-930 fuel mix x eGRID emission factors",
+    "Simulator calibrated on 248 training days, validated on 104 held-out days (2024)",
+    "Illustrative defaults: carbon price $50/t, payout pool $100,000, background flexible load 10% of forecast peak"
   ]
 }

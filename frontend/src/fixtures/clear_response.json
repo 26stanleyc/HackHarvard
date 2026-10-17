@@ -1,59 +1,59 @@
 {
   "forecast": {
     "source": "local",
-    "latency_ms": 42.7,
+    "latency_ms": 0.06525000208057463,
     "hourly": {
       "demand": [
-        42248.2,
-        41236.5,
-        39081.4,
-        38397.2,
-        39771.5,
-        40973.8,
-        42243.5,
-        45670.4,
-        49442.8,
-        50608.8,
-        50960.2,
-        53660.4,
-        56057.3,
-        56050.8,
-        57003.9,
-        60236.4,
-        61853.1,
-        61009.2,
-        60893.2,
-        60602.1,
-        56787.8,
-        51458.6,
-        48500.9,
-        45892.4
+        38866.22058732677,
+        38401.74965657062,
+        38295.285647865385,
+        39158.12637799686,
+        40756.299243423055,
+        44128.125150852655,
+        45900.02708755484,
+        46155.393426467985,
+        45762.029751904956,
+        45423.081976246554,
+        45083.94209024519,
+        45298.561978735,
+        45781.09901220729,
+        45797.907187764635,
+        46402.23456771566,
+        47217.10215400545,
+        47421.273098300524,
+        47198.41492322066,
+        46914.71324274999,
+        46987.725758988745,
+        45893.75199406055,
+        44094.873481752,
+        41876.44737909512,
+        40025.79651277848
       ],
       "wind": [
-        14757.1,
-        15818.4,
-        14813.6,
-        14781.3,
-        15864.8,
-        15008.9,
-        12313.8,
-        10763.6,
-        9524.9,
-        7548.5,
-        6110.1,
-        6054.0,
-        6346.0,
-        6345.0,
-        6639.3,
-        7778.5,
-        8856.6,
-        9520.6,
-        10674.4,
-        12666.8,
-        13198.7,
-        12696.7,
-        14000.7,
-        15150.7
+        22648.852608249104,
+        22648.852608249104,
+        22887.08223231878,
+        22437.900116542278,
+        22016.681342365337,
+        21736.92960475733,
+        21482.85356445234,
+        21044.635762227022,
+        20952.47109535443,
+        20952.47109535443,
+        20952.47109535443,
+        20952.47109535443,
+        20950.672808655778,
+        21134.794767086074,
+        21301.270244417483,
+        21857.25813119901,
+        22095.105941303365,
+        21918.087742391806,
+        21520.308622981654,
+        21746.20355722921,
+        22224.20474413876,
+        22523.625231886326,
+        22523.625231886326,
+        22523.625231886326
       ],
       "solar": [
         0.0,
@@ -61,51 +61,51 @@
         0.0,
         0.0,
         0.0,
-        0.0,
-        0.0,
-        788.5,
-        4675.0,
-        9038.8,
-        12480.1,
-        15592.9,
-        17134.4,
-        16532.8,
-        15450.4,
-        14346.5,
-        10793.7,
-        5808.2,
-        1470.4,
-        0.0,
+        3.4108935848712485,
+        232.96752957464608,
+        5366.160367775878,
+        13543.474742414917,
+        14852.474742414917,
+        14952.474742414917,
+        14299.26734783292,
+        14133.32960644288,
+        13061.692455360131,
+        12651.68782028987,
+        11597.887959734195,
+        10661.826380130118,
+        7533.322123171593,
+        1488.9983874969028,
+        1.5590063885704026,
         0.0,
         0.0,
         0.0,
         0.0
       ],
       "avg_intensity": [
-        0.4122,
-        0.3957,
-        0.3634,
-        0.3517,
-        0.3762,
-        0.4017,
-        0.4105,
-        0.4567,
-        0.4632,
-        0.419,
-        0.3526,
-        0.3483,
-        0.3535,
-        0.3391,
-        0.3469,
-        0.3895,
-        0.4399,
-        0.459,
-        0.5017,
-        0.5224,
-        0.4879,
-        0.4458,
-        0.4604,
-        0.444
+        0.12736130994845296,
+        0.12412770743884462,
+        0.12111948048924918,
+        0.13067719676243392,
+        0.1645819151916071,
+        0.20009265922909558,
+        0.21079096942865436,
+        0.1684412459113138,
+        0.05003853460834973,
+        0.041086621844453365,
+        0.03829033577728937,
+        0.044240895803520315,
+        0.0476253574091571,
+        0.05265417304417761,
+        0.06996291308604993,
+        0.07692967760937731,
+        0.09135042652744094,
+        0.12653007069996933,
+        0.2077085613400977,
+        0.23106117777967253,
+        0.21712821371395918,
+        0.20404126391815797,
+        0.17866027132600978,
+        0.142157524845775
       ]
     }
   },
@@ -117,7 +117,7 @@
           500.0,
           500.0,
           500.0,
-          400.0,
+          0.0,
           0.0,
           0.0,
           0.0,
@@ -147,10 +147,10 @@
           300.0,
           300.0,
           300.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
           0.0,
           0.0,
           0.0,
@@ -175,6 +175,58 @@
           150.0,
           150.0,
           150.0,
+          150.0,
+          150.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b4": [
+          80.0,
+          80.0,
+          80.0,
+          80.0,
+          80.0,
+          80.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b5": [
+          120.0,
+          120.0,
+          120.0,
+          120.0,
+          120.0,
+          120.0,
+          120.0,
+          120.0,
+          0.0,
+          0.0,
           0.0,
           0.0,
           0.0,
@@ -192,188 +244,188 @@
         ]
       },
       "hourly_co2_t": [
-        17958.0,
-        16398.0,
-        14932.5,
-        14386.5,
-        14677.5,
-        16287.0,
-        18323.5,
-        21431.5,
-        21894.5,
-        21154.5,
-        18900.0,
-        18550.0,
-        18900.0,
-        19390.0,
-        20650.0,
-        22750.0,
-        26280.0,
-        29160.0,
-        31320.0,
-        30240.0,
-        27360.0,
-        24120.0,
-        22330.0,
-        19404.0
+        2568.8905186803163,
+        2416.90254090274,
+        2326.731064639257,
+        2373.427007704275,
+        2589.0829790589755,
+        3506.344600084368,
+        4285.455375698424,
+        2920.954018941132,
+        2443.763469120755,
+        2377.291499544139,
+        2391.1392619703165,
+        2409.495598209668,
+        2456.011354924204,
+        2545.387818895319,
+        3332.8579633850727,
+        4341.109919338598,
+        4567.663993429261,
+        5868.499800186115,
+        7858.7191608922685,
+        8385.497359127416,
+        7774.833120214056,
+        6789.402598400773,
+        5377.984521832338,
+        4440.007291338125
       ],
-      "total_co2_t": 506797.5,
+      "total_co2_t": 96347.4528365179,
       "marginal_resource": [
         {
-          "kind": "fossil",
-          "plant_name": "Limestone",
-          "fuel": "coal",
-          "co2_t_per_mwh": 1.02
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Limestone",
-          "fuel": "coal",
-          "co2_t_per_mwh": 1.02
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Wolf Hollow",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.43
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Wolf Hollow",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.43
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Wolf Hollow",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.43
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Wolf Hollow",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.43
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
           "kind": "curtailed_renewables",
           "plant_name": null,
-          "fuel": "solar",
+          "fuel": null,
           "co2_t_per_mwh": 0.0
         },
         {
           "kind": "curtailed_renewables",
           "plant_name": null,
-          "fuel": "solar",
+          "fuel": null,
           "co2_t_per_mwh": 0.0
         },
         {
           "kind": "curtailed_renewables",
           "plant_name": null,
-          "fuel": "solar",
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
           "co2_t_per_mwh": 0.0
         },
         {
           "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Oak Grove",
+          "plant_name": "W A Parish",
           "fuel": "coal",
-          "co2_t_per_mwh": 0.97
+          "co2_t_per_mwh": 0.9218246228374958
         },
         {
-          "kind": "fossil",
-          "plant_name": "Oak Grove",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.97
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
         }
       ]
     },
     "independent_average": {
       "schedule": {
         "b1": [
+          500.0,
+          500.0,
+          500.0,
+          500.0,
           0.0,
-          500.0,
-          500.0,
-          500.0,
-          500.0,
-          400.0,
+          0.0,
           0.0,
           0.0,
           0.0,
@@ -395,23 +447,23 @@
         ],
         "b2": [
           0.0,
-          0.0,
-          300.0,
-          300.0,
-          300.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          300.0,
-          300.0,
-          300.0,
           300.0,
           300.0,
           0.0,
           0.0,
           0.0,
+          0.0,
+          0.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
           0.0,
           0.0,
           0.0,
@@ -428,14 +480,66 @@
           0.0,
           0.0,
           0.0,
-          0.0,
-          0.0,
-          0.0,
           150.0,
           150.0,
           150.0,
           150.0,
+          150.0,
+          150.0,
           0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b4": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          80.0,
+          80.0,
+          80.0,
+          80.0,
+          80.0,
+          80.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b5": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          120.0,
+          120.0,
+          120.0,
+          120.0,
+          120.0,
+          120.0,
+          120.0,
+          120.0,
           0.0,
           0.0,
           0.0,
@@ -447,190 +551,190 @@
         ]
       },
       "hourly_co2_t": [
-        17160.0,
-        16095.0,
-        14932.5,
-        14386.5,
-        14776.5,
-        16386.0,
-        18130.0,
-        21238.0,
-        21830.0,
-        21090.0,
-        19017.0,
-        18725.5,
-        18939.0,
-        19429.0,
-        20689.0,
-        22750.0,
-        26280.0,
-        29160.0,
-        31320.0,
-        30240.0,
-        27360.0,
-        24120.0,
-        22330.0,
-        19404.0
+        2568.8905186803163,
+        2416.90254090274,
+        2326.731064639257,
+        2373.427007704275,
+        2589.0829790589755,
+        3506.344600084368,
+        4285.455375698424,
+        2920.954018941132,
+        2443.763469120755,
+        2377.291499544139,
+        2391.1392619703165,
+        2409.495598209668,
+        2456.011354924204,
+        2545.387818895319,
+        3332.8579633850727,
+        4341.109919338598,
+        4567.663993429261,
+        5868.499800186115,
+        7858.7191608922685,
+        8385.497359127416,
+        7774.833120214056,
+        6789.402598400773,
+        5377.984521832338,
+        4440.007291338125
       ],
-      "total_co2_t": 505788.0,
+      "total_co2_t": 96347.4528365179,
       "marginal_resource": [
         {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
           "kind": "fossil",
-          "plant_name": "Martin Lake",
+          "plant_name": "W A Parish",
           "fuel": "coal",
-          "co2_t_per_mwh": 0.99
+          "co2_t_per_mwh": 0.9218246228374958
         },
         {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Wolf Hollow",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.43
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Wolf Hollow",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.43
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Wolf Hollow",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.43
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Wolf Hollow",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.43
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Oak Grove",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.97
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Oak Grove",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.97
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
         }
       ]
     },
     "independent_marginal": {
       "schedule": {
         "b1": [
-          240.0,
-          240.0,
-          480.0,
-          240.0,
-          240.0,
+          500.0,
+          500.0,
+          500.0,
+          500.0,
           0.0,
-          480.0,
-          480.0,
+          0.0,
+          0.0,
+          0.0,
           0.0,
           0.0,
           0.0,
@@ -649,22 +753,22 @@
           0.0
         ],
         "b2": [
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
           0.0,
           0.0,
           0.0,
           0.0,
-          0.0,
-          0.0,
-          240.0,
-          240.0,
-          240.0,
-          240.0,
-          240.0,
-          240.0,
-          240.0,
-          240.0,
-          240.0,
-          240.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
           0.0,
           0.0,
           0.0,
@@ -681,15 +785,67 @@
           0.0,
           0.0,
           0.0,
+          150.0,
+          150.0,
           0.0,
           0.0,
           0.0,
           0.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b4": [
+          80.0,
+          80.0,
+          80.0,
+          80.0,
+          80.0,
+          79.99999999999909,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b5": [
           120.0,
           120.0,
           120.0,
           120.0,
           120.0,
+          120.0,
+          120.0,
+          119.99999999999822,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
           0.0,
           0.0,
           0.0,
@@ -702,190 +858,190 @@
         ]
       },
       "hourly_co2_t": [
-        17397.6,
-        15837.6,
-        14615.7,
-        14040.0,
-        14430.0,
-        15990.0,
-        18439.6,
-        21547.6,
-        21933.2,
-        21193.2,
-        19040.4,
-        18690.4,
-        18903.9,
-        19393.9,
-        20653.9,
-        22843.6,
-        26280.0,
-        29160.0,
-        31320.0,
-        30240.0,
-        27360.0,
-        24120.0,
-        22330.0,
-        19404.0
+        2568.8905186803163,
+        2416.90254090274,
+        2326.731064639257,
+        2373.427007704275,
+        2589.0829790589755,
+        3506.344600084368,
+        4285.455375698424,
+        2920.954018941132,
+        2443.763469120755,
+        2377.291499544139,
+        2391.1392619703165,
+        2409.495598209668,
+        2456.011354924204,
+        2545.387818895319,
+        3332.8579633850727,
+        4341.109919338598,
+        4567.663993429261,
+        5868.499800186115,
+        7858.7191608922685,
+        8385.497359127416,
+        7774.833120214056,
+        6789.402598400773,
+        5377.984521832338,
+        4440.007291338125
       ],
-      "total_co2_t": 505164.6,
+      "total_co2_t": 96347.4528365179,
       "marginal_resource": [
         {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
           "kind": "curtailed_renewables",
           "plant_name": null,
-          "fuel": "wind",
+          "fuel": null,
           "co2_t_per_mwh": 0.0
         },
         {
           "kind": "curtailed_renewables",
           "plant_name": null,
-          "fuel": "wind",
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
           "co2_t_per_mwh": 0.0
         },
         {
           "kind": "fossil",
-          "plant_name": "Martin Lake",
+          "plant_name": "W A Parish",
           "fuel": "coal",
-          "co2_t_per_mwh": 0.99
+          "co2_t_per_mwh": 0.9218246228374958
         },
         {
-          "kind": "fossil",
-          "plant_name": "Wolf Hollow",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.43
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Wolf Hollow",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.43
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Wolf Hollow",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.43
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Wolf Hollow",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.43
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Oak Grove",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.97
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Oak Grove",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.97
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
         }
       ]
     },
     "coordinated": {
       "schedule": {
         "b1": [
-          240.0,
+          500.0,
+          500.0,
+          500.0,
+          500.0,
           0.0,
-          480.0,
-          240.0,
-          480.0,
           0.0,
-          480.0,
-          480.0,
+          0.0,
+          0.0,
           0.0,
           0.0,
           0.0,
@@ -904,22 +1060,22 @@
           0.0
         ],
         "b2": [
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
           0.0,
           0.0,
           0.0,
-          240.0,
           0.0,
-          0.0,
-          240.0,
-          240.0,
-          240.0,
-          0.0,
-          240.0,
-          240.0,
-          240.0,
-          240.0,
-          240.0,
-          240.0,
+          300.0,
+          300.0,
+          300.0,
+          300.0,
           0.0,
           0.0,
           0.0,
@@ -936,15 +1092,67 @@
           0.0,
           0.0,
           0.0,
+          150.0,
+          150.0,
           0.0,
           0.0,
           0.0,
           0.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b4": [
+          80.0,
+          80.0,
+          80.0,
+          80.0,
+          80.0,
+          79.99999999999909,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "b5": [
           120.0,
           120.0,
           120.0,
           120.0,
           120.0,
+          120.0,
+          120.0,
+          119.99999999999822,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
           0.0,
           0.0,
           0.0,
@@ -957,478 +1165,3939 @@
         ]
       },
       "hourly_co2_t": [
-        17397.6,
-        15600.0,
-        14615.7,
-        14069.7,
-        14459.7,
-        15990.0,
-        18439.6,
-        21547.6,
-        21933.2,
-        21090.0,
-        19040.4,
-        18690.4,
-        18903.9,
-        19393.9,
-        20653.9,
-        22843.6,
-        26280.0,
-        29160.0,
-        31320.0,
-        30240.0,
-        27360.0,
-        24120.0,
-        22330.0,
-        19404.0
+        2568.8905186803163,
+        2416.90254090274,
+        2326.731064639257,
+        2373.427007704275,
+        2589.0829790589755,
+        3506.344600084368,
+        4285.455375698424,
+        2920.954018941132,
+        2443.763469120755,
+        2377.291499544139,
+        2391.1392619703165,
+        2409.495598209668,
+        2456.011354924204,
+        2545.387818895319,
+        3332.8579633850727,
+        4341.109919338598,
+        4567.663993429261,
+        5868.499800186115,
+        7858.7191608922685,
+        8385.497359127416,
+        7774.833120214056,
+        6789.402598400773,
+        5377.984521832338,
+        4440.007291338125
       ],
-      "total_co2_t": 504883.2,
+      "total_co2_t": 96347.4528365179,
       "marginal_resource": [
         {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
+        },
+        {
           "kind": "fossil",
-          "plant_name": "Martin Lake",
+          "plant_name": "W A Parish",
           "fuel": "coal",
-          "co2_t_per_mwh": 0.99
+          "co2_t_per_mwh": 0.9218246228374958
         },
         {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Martin Lake",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.99
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Wolf Hollow",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.43
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Wolf Hollow",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.43
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Wolf Hollow",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.43
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Wolf Hollow",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.43
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Panda Temple",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.39
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Cedar Bayou",
-          "fuel": "gas",
-          "co2_t_per_mwh": 0.58
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Oak Grove",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.97
-        },
-        {
-          "kind": "fossil",
-          "plant_name": "Oak Grove",
-          "fuel": "coal",
-          "co2_t_per_mwh": 0.97
+          "kind": "curtailed_renewables",
+          "plant_name": null,
+          "fuel": null,
+          "co2_t_per_mwh": 0.0
         }
       ]
     }
   },
   "herding": {
     "independent_average": {
-      "predicted_t": 1129.5,
-      "realized_t": 1009.5,
-      "gap_t": 120.0
+      "predicted_t": 0.0,
+      "realized_t": 0.0,
+      "gap_t": 0.0
     },
     "independent_marginal": {
-      "predicted_t": 1879.9,
-      "realized_t": 1632.9,
-      "gap_t": 247.0
+      "predicted_t": 0.0,
+      "realized_t": 0.0,
+      "gap_t": 0.0
     }
   },
   "coordinator_trace": [
     {
       "step": 0,
       "bid_id": "b1",
-      "hour": 2,
-      "mwh": 240.0,
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 0,
+      "bid_id": "b5",
+      "hour": 0,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 0,
+      "bid_id": "b3",
+      "hour": 6,
+      "mwh": 9.0,
       "incremental_co2_t": 0.0
     },
     {
       "step": 1,
-      "bid_id": "b3",
-      "hour": 12,
-      "mwh": 60.0,
+      "bid_id": "b4",
+      "hour": 0,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 1,
+      "bid_id": "b2",
+      "hour": 0,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 1,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
       "incremental_co2_t": 0.0
     },
     {
       "step": 2,
+      "bid_id": "b5",
+      "hour": 0,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 2,
+      "bid_id": "b3",
+      "hour": 6,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 2,
+      "bid_id": "b4",
+      "hour": 0,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 3,
       "bid_id": "b2",
-      "hour": 3,
-      "mwh": 240.0,
+      "hour": 0,
+      "mwh": 36.0,
       "incremental_co2_t": 0.0
     },
     {
       "step": 3,
       "bid_id": "b1",
-      "hour": 4,
-      "mwh": 240.0,
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 3,
+      "bid_id": "b5",
+      "hour": 0,
+      "mwh": 9.6,
       "incremental_co2_t": 0.0
     },
     {
       "step": 4,
       "bid_id": "b3",
-      "hour": 12,
-      "mwh": 60.0,
+      "hour": 6,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 4,
+      "bid_id": "b4",
+      "hour": 0,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 4,
+      "bid_id": "b2",
+      "hour": 0,
+      "mwh": 36.0,
       "incremental_co2_t": 0.0
     },
     {
       "step": 5,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 5,
+      "bid_id": "b5",
+      "hour": 0,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 5,
+      "bid_id": "b3",
+      "hour": 6,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 6,
+      "bid_id": "b4",
+      "hour": 0,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 6,
       "bid_id": "b2",
-      "hour": 13,
-      "mwh": 240.0,
+      "hour": 0,
+      "mwh": 36.0,
       "incremental_co2_t": 0.0
     },
     {
       "step": 6,
       "bid_id": "b1",
-      "hour": 2,
-      "mwh": 240.0,
-      "incremental_co2_t": 29.7
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 7,
+      "bid_id": "b5",
+      "hour": 0,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 7,
       "bid_id": "b3",
-      "hour": 13,
-      "mwh": 60.0,
+      "hour": 6,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 7,
+      "bid_id": "b4",
+      "hour": 0,
+      "mwh": 4.8,
       "incremental_co2_t": 0.0
     },
     {
       "step": 8,
       "bid_id": "b2",
-      "hour": 14,
-      "mwh": 240.0,
+      "hour": 0,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 8,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 8,
+      "bid_id": "b5",
+      "hour": 0,
+      "mwh": 9.6,
       "incremental_co2_t": 0.0
     },
     {
       "step": 9,
+      "bid_id": "b3",
+      "hour": 6,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 9,
+      "bid_id": "b4",
+      "hour": 0,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 9,
+      "bid_id": "b2",
+      "hour": 0,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 10,
       "bid_id": "b1",
-      "hour": 3,
-      "mwh": 240.0,
-      "incremental_co2_t": 29.7
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 10,
+      "bid_id": "b5",
+      "hour": 0,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 10,
       "bid_id": "b3",
-      "hour": 14,
-      "mwh": 60.0,
+      "hour": 6,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 11,
+      "bid_id": "b4",
+      "hour": 0,
+      "mwh": 4.8,
       "incremental_co2_t": 0.0
     },
     {
       "step": 11,
       "bid_id": "b2",
-      "hour": 12,
-      "mwh": 240.0,
-      "incremental_co2_t": 3.9
+      "hour": 0,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 11,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 12,
-      "bid_id": "b1",
-      "hour": 4,
-      "mwh": 240.0,
-      "incremental_co2_t": 29.7
+      "bid_id": "b5",
+      "hour": 0,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 12,
+      "bid_id": "b3",
+      "hour": 6,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 12,
+      "bid_id": "b4",
+      "hour": 0,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 13,
+      "bid_id": "b2",
+      "hour": 0,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 13,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 13,
+      "bid_id": "b5",
+      "hour": 0,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 14,
       "bid_id": "b3",
-      "hour": 13,
-      "mwh": 60.0,
-      "incremental_co2_t": 3.9
+      "hour": 6,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 14,
+      "bid_id": "b4",
+      "hour": 0,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 14,
       "bid_id": "b2",
-      "hour": 10,
-      "mwh": 240.0,
-      "incremental_co2_t": 93.6
+      "hour": 0,
+      "mwh": 12.0,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 15,
       "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 15,
+      "bid_id": "b5",
+      "hour": 0,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 15,
+      "bid_id": "b3",
       "hour": 6,
-      "mwh": 240.0,
-      "incremental_co2_t": 103.2
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 16,
-      "bid_id": "b3",
-      "hour": 14,
-      "mwh": 60.0,
-      "incremental_co2_t": 3.9
+      "bid_id": "b4",
+      "hour": 0,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 16,
+      "bid_id": "b2",
+      "hour": 1,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 16,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 17,
+      "bid_id": "b5",
+      "hour": 0,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 17,
+      "bid_id": "b3",
+      "hour": 6,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 17,
+      "bid_id": "b4",
+      "hour": 0,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 18,
       "bid_id": "b2",
-      "hour": 11,
-      "mwh": 240.0,
-      "incremental_co2_t": 93.6
+      "hour": 1,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 18,
       "bid_id": "b1",
-      "hour": 6,
-      "mwh": 240.0,
-      "incremental_co2_t": 103.2
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 18,
+      "bid_id": "b5",
+      "hour": 0,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 19,
       "bid_id": "b3",
-      "hour": 10,
-      "mwh": 60.0,
-      "incremental_co2_t": 23.4
+      "hour": 6,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 19,
+      "bid_id": "b4",
+      "hour": 0,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 19,
+      "bid_id": "b2",
+      "hour": 1,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 20,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 20,
+      "bid_id": "b5",
+      "hour": 0,
+      "mwh": 4.800000000000026,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 20,
+      "bid_id": "b3",
+      "hour": 6,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 21,
+      "bid_id": "b4",
+      "hour": 0,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 21,
       "bid_id": "b2",
-      "hour": 15,
-      "mwh": 240.0,
-      "incremental_co2_t": 93.6
+      "hour": 1,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 21,
       "bid_id": "b1",
-      "hour": 7,
-      "mwh": 240.0,
-      "incremental_co2_t": 103.2
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 22,
+      "bid_id": "b5",
+      "hour": 1,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 22,
       "bid_id": "b3",
-      "hour": 10,
-      "mwh": 60.0,
-      "incremental_co2_t": 23.4
+      "hour": 6,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 22,
+      "bid_id": "b4",
+      "hour": 0,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 23,
       "bid_id": "b2",
-      "hour": 6,
-      "mwh": 240.0,
-      "incremental_co2_t": 103.2
+      "hour": 1,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 23,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 23,
+      "bid_id": "b5",
+      "hour": 1,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 24,
+      "bid_id": "b3",
+      "hour": 6,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 24,
+      "bid_id": "b4",
+      "hour": 0,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 24,
+      "bid_id": "b2",
+      "hour": 1,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 25,
       "bid_id": "b1",
-      "hour": 7,
-      "mwh": 240.0,
-      "incremental_co2_t": 103.2
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 25,
+      "bid_id": "b5",
+      "hour": 1,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 25,
       "bid_id": "b3",
-      "hour": 11,
-      "mwh": 60.0,
-      "incremental_co2_t": 23.4
+      "hour": 6,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 26,
+      "bid_id": "b4",
+      "hour": 0,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 26,
       "bid_id": "b2",
-      "hour": 7,
-      "mwh": 240.0,
-      "incremental_co2_t": 103.2
+      "hour": 1,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 26,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 27,
-      "bid_id": "b1",
+      "bid_id": "b5",
+      "hour": 1,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 27,
+      "bid_id": "b3",
+      "hour": 6,
+      "mwh": 6.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 27,
+      "bid_id": "b4",
       "hour": 0,
-      "mwh": 240.0,
-      "incremental_co2_t": 237.6
+      "mwh": 3.200000000000017,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 28,
+      "bid_id": "b2",
+      "hour": 1,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 28,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 28,
+      "bid_id": "b5",
+      "hour": 1,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 29,
       "bid_id": "b3",
-      "hour": 11,
-      "mwh": 60.0,
-      "incremental_co2_t": 23.4
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 29,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
     },
     {
       "step": 29,
       "bid_id": "b2",
-      "hour": 8,
-      "mwh": 240.0,
-      "incremental_co2_t": 103.2
+      "hour": 1,
+      "mwh": 12.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 30,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 30,
+      "bid_id": "b5",
+      "hour": 1,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 30,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 31,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 31,
+      "bid_id": "b2",
+      "hour": 2,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 31,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 32,
+      "bid_id": "b5",
+      "hour": 1,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 32,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 32,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 33,
+      "bid_id": "b2",
+      "hour": 2,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 33,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 33,
+      "bid_id": "b5",
+      "hour": 1,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 34,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 34,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 34,
+      "bid_id": "b2",
+      "hour": 2,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 35,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 35,
+      "bid_id": "b5",
+      "hour": 1,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 35,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 36,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 36,
+      "bid_id": "b2",
+      "hour": 2,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 36,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 37,
+      "bid_id": "b5",
+      "hour": 1,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 37,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 37,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 38,
+      "bid_id": "b2",
+      "hour": 2,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 38,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 38,
+      "bid_id": "b5",
+      "hour": 1,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 39,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 39,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 39,
+      "bid_id": "b2",
+      "hour": 2,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 40,
+      "bid_id": "b1",
+      "hour": 0,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 40,
+      "bid_id": "b5",
+      "hour": 1,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 40,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 41,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 41,
+      "bid_id": "b2",
+      "hour": 2,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 41,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 42,
+      "bid_id": "b5",
+      "hour": 1,
+      "mwh": 4.800000000000026,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 42,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 42,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 43,
+      "bid_id": "b2",
+      "hour": 2,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 43,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 43,
+      "bid_id": "b5",
+      "hour": 2,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 44,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 44,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 44,
+      "bid_id": "b2",
+      "hour": 2,
+      "mwh": 12.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 45,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 45,
+      "bid_id": "b5",
+      "hour": 2,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 45,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 46,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 46,
+      "bid_id": "b2",
+      "hour": 3,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 46,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 47,
+      "bid_id": "b5",
+      "hour": 2,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 47,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 47,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 48,
+      "bid_id": "b2",
+      "hour": 3,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 48,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 48,
+      "bid_id": "b5",
+      "hour": 2,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 49,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 49,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 49,
+      "bid_id": "b2",
+      "hour": 3,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 50,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 50,
+      "bid_id": "b5",
+      "hour": 2,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 50,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 51,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 51,
+      "bid_id": "b2",
+      "hour": 3,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 51,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 52,
+      "bid_id": "b5",
+      "hour": 2,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 52,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 52,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 53,
+      "bid_id": "b2",
+      "hour": 3,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 53,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 53,
+      "bid_id": "b5",
+      "hour": 2,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 54,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 54,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 54,
+      "bid_id": "b2",
+      "hour": 3,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 55,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 55,
+      "bid_id": "b5",
+      "hour": 2,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 55,
+      "bid_id": "b3",
+      "hour": 7,
+      "mwh": 6.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 56,
+      "bid_id": "b4",
+      "hour": 1,
+      "mwh": 3.200000000000017,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 56,
+      "bid_id": "b2",
+      "hour": 3,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 56,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 57,
+      "bid_id": "b5",
+      "hour": 2,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 57,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 57,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 58,
+      "bid_id": "b2",
+      "hour": 3,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 58,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 58,
+      "bid_id": "b5",
+      "hour": 2,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 59,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 59,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 59,
+      "bid_id": "b2",
+      "hour": 3,
+      "mwh": 12.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 60,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 60,
+      "bid_id": "b5",
+      "hour": 2,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 60,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 61,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 61,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 61,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 62,
+      "bid_id": "b5",
+      "hour": 2,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 62,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 62,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 63,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 63,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 63,
+      "bid_id": "b5",
+      "hour": 2,
+      "mwh": 4.800000000000026,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 64,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 64,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 64,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 65,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 65,
+      "bid_id": "b5",
+      "hour": 3,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 65,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 66,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 66,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 66,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 67,
+      "bid_id": "b5",
+      "hour": 3,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 67,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 67,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 68,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 68,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 68,
+      "bid_id": "b5",
+      "hour": 3,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 69,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 69,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 69,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 70,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 70,
+      "bid_id": "b5",
+      "hour": 3,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 70,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 71,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 71,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 71,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 72,
+      "bid_id": "b5",
+      "hour": 3,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 72,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 72,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 73,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 73,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 73,
+      "bid_id": "b5",
+      "hour": 3,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 74,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 74,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 74,
+      "bid_id": "b2",
+      "hour": 4,
+      "mwh": 12.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 75,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 75,
+      "bid_id": "b5",
+      "hour": 3,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 75,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 76,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 76,
+      "bid_id": "b2",
+      "hour": 5,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 76,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 77,
+      "bid_id": "b5",
+      "hour": 3,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 77,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 77,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 78,
+      "bid_id": "b2",
+      "hour": 5,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 78,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 78,
+      "bid_id": "b5",
+      "hour": 3,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 79,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 79,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 79,
+      "bid_id": "b2",
+      "hour": 5,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 80,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 80,
+      "bid_id": "b5",
+      "hour": 3,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 80,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 81,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 81,
+      "bid_id": "b2",
+      "hour": 5,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 81,
+      "bid_id": "b1",
+      "hour": 1,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 82,
+      "bid_id": "b5",
+      "hour": 3,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 82,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 82,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 83,
+      "bid_id": "b2",
+      "hour": 5,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 83,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 83,
+      "bid_id": "b5",
+      "hour": 3,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 84,
+      "bid_id": "b3",
+      "hour": 12,
+      "mwh": 6.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 84,
+      "bid_id": "b4",
+      "hour": 2,
+      "mwh": 3.200000000000017,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 84,
+      "bid_id": "b2",
+      "hour": 5,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 85,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 85,
+      "bid_id": "b5",
+      "hour": 3,
+      "mwh": 4.800000000000026,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 85,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 86,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 86,
+      "bid_id": "b2",
+      "hour": 5,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 86,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 87,
+      "bid_id": "b5",
+      "hour": 4,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 87,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 87,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 88,
+      "bid_id": "b2",
+      "hour": 5,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 88,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 88,
+      "bid_id": "b5",
+      "hour": 4,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 89,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 89,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 89,
+      "bid_id": "b2",
+      "hour": 5,
+      "mwh": 12.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 90,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 90,
+      "bid_id": "b5",
+      "hour": 4,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 90,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 91,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 91,
+      "bid_id": "b2",
+      "hour": 6,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 91,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 92,
+      "bid_id": "b5",
+      "hour": 4,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 92,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 92,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 93,
+      "bid_id": "b2",
+      "hour": 6,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 93,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 93,
+      "bid_id": "b5",
+      "hour": 4,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 94,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 94,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 94,
+      "bid_id": "b2",
+      "hour": 6,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 95,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 95,
+      "bid_id": "b5",
+      "hour": 4,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 95,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 96,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 96,
+      "bid_id": "b2",
+      "hour": 6,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 96,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 97,
+      "bid_id": "b5",
+      "hour": 4,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 97,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 97,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 98,
+      "bid_id": "b2",
+      "hour": 6,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 98,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 98,
+      "bid_id": "b5",
+      "hour": 4,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 99,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 99,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 99,
+      "bid_id": "b2",
+      "hour": 6,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 100,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 100,
+      "bid_id": "b5",
+      "hour": 4,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 100,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 101,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 101,
+      "bid_id": "b2",
+      "hour": 6,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 101,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 102,
+      "bid_id": "b5",
+      "hour": 4,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 102,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 102,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 103,
+      "bid_id": "b2",
+      "hour": 6,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 103,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 103,
+      "bid_id": "b5",
+      "hour": 4,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 104,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 104,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 104,
+      "bid_id": "b2",
+      "hour": 6,
+      "mwh": 12.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 105,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 105,
+      "bid_id": "b5",
+      "hour": 4,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 105,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 106,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 106,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 106,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 107,
+      "bid_id": "b5",
+      "hour": 4,
+      "mwh": 4.800000000000026,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 107,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 107,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 108,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 108,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 108,
+      "bid_id": "b5",
+      "hour": 5,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 109,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 109,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 109,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 110,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 110,
+      "bid_id": "b5",
+      "hour": 5,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 110,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 111,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 111,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 111,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 112,
+      "bid_id": "b5",
+      "hour": 5,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 112,
+      "bid_id": "b3",
+      "hour": 13,
+      "mwh": 6.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 112,
+      "bid_id": "b4",
+      "hour": 3,
+      "mwh": 3.200000000000017,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 113,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 113,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 113,
+      "bid_id": "b5",
+      "hour": 5,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 114,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 114,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 114,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 115,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 115,
+      "bid_id": "b5",
+      "hour": 5,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 115,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 116,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 116,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 116,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 117,
+      "bid_id": "b5",
+      "hour": 5,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 117,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 117,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 118,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 118,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 118,
+      "bid_id": "b5",
+      "hour": 5,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 119,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 119,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 119,
+      "bid_id": "b2",
+      "hour": 7,
+      "mwh": 12.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 120,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 120,
+      "bid_id": "b5",
+      "hour": 5,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 120,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 121,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 121,
+      "bid_id": "b2",
+      "hour": 12,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 121,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 122,
+      "bid_id": "b5",
+      "hour": 5,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 122,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 122,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 123,
+      "bid_id": "b2",
+      "hour": 12,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 123,
+      "bid_id": "b1",
+      "hour": 2,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 123,
+      "bid_id": "b5",
+      "hour": 5,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 124,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 124,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 124,
+      "bid_id": "b2",
+      "hour": 12,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 125,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 125,
+      "bid_id": "b5",
+      "hour": 5,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 125,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 126,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 126,
+      "bid_id": "b2",
+      "hour": 12,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 126,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 127,
+      "bid_id": "b5",
+      "hour": 5,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 127,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 127,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 128,
+      "bid_id": "b2",
+      "hour": 12,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 128,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 128,
+      "bid_id": "b5",
+      "hour": 5,
+      "mwh": 4.800000000000026,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 129,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 129,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 129,
+      "bid_id": "b2",
+      "hour": 12,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 130,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 130,
+      "bid_id": "b5",
+      "hour": 6,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 130,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 131,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 131,
+      "bid_id": "b2",
+      "hour": 12,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 131,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 132,
+      "bid_id": "b5",
+      "hour": 6,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 132,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 132,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 133,
+      "bid_id": "b2",
+      "hour": 12,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 133,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 133,
+      "bid_id": "b5",
+      "hour": 6,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 134,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 134,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 134,
+      "bid_id": "b2",
+      "hour": 12,
+      "mwh": 12.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 135,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 135,
+      "bid_id": "b5",
+      "hour": 6,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 135,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 136,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 136,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 136,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 137,
+      "bid_id": "b5",
+      "hour": 6,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 137,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 137,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 138,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 138,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 138,
+      "bid_id": "b5",
+      "hour": 6,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 139,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 139,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 139,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 140,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 140,
+      "bid_id": "b5",
+      "hour": 6,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 140,
+      "bid_id": "b3",
+      "hour": 14,
+      "mwh": 6.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 141,
+      "bid_id": "b4",
+      "hour": 4,
+      "mwh": 3.200000000000017,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 141,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 141,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 142,
+      "bid_id": "b5",
+      "hour": 6,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 142,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 142,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 143,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 143,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 143,
+      "bid_id": "b5",
+      "hour": 6,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 144,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 144,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 144,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 145,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 145,
+      "bid_id": "b5",
+      "hour": 6,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 145,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 146,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 146,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 146,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 147,
+      "bid_id": "b5",
+      "hour": 6,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 147,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 147,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 148,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 148,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 148,
+      "bid_id": "b5",
+      "hour": 6,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 149,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 149,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 149,
+      "bid_id": "b2",
+      "hour": 13,
+      "mwh": 12.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 150,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 150,
+      "bid_id": "b5",
+      "hour": 6,
+      "mwh": 4.800000000000026,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 150,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 151,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 151,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 151,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 152,
+      "bid_id": "b5",
+      "hour": 7,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 152,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 152,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 153,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 153,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 153,
+      "bid_id": "b5",
+      "hour": 7,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 154,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 154,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 154,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 155,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 155,
+      "bid_id": "b5",
+      "hour": 7,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 155,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 156,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 156,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 156,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 157,
+      "bid_id": "b5",
+      "hour": 7,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 157,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 157,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 158,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 158,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 158,
+      "bid_id": "b5",
+      "hour": 7,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 159,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 159,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 159,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 160,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 160,
+      "bid_id": "b5",
+      "hour": 7,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 160,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 161,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 161,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 161,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 162,
+      "bid_id": "b5",
+      "hour": 7,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 162,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 162,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 163,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 163,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 163,
+      "bid_id": "b5",
+      "hour": 7,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 164,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 164,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 164,
+      "bid_id": "b2",
+      "hour": 14,
+      "mwh": 12.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 165,
+      "bid_id": "b1",
+      "hour": 3,
+      "mwh": 20.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 165,
+      "bid_id": "b5",
+      "hour": 7,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 165,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 166,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 166,
+      "bid_id": "b2",
+      "hour": 15,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 166,
+      "bid_id": "b5",
+      "hour": 7,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 167,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 9.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 167,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 4.8,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 167,
+      "bid_id": "b2",
+      "hour": 15,
+      "mwh": 36.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 168,
+      "bid_id": "b5",
+      "hour": 7,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 168,
+      "bid_id": "b3",
+      "hour": 15,
+      "mwh": 6.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 168,
+      "bid_id": "b4",
+      "hour": 5,
+      "mwh": 3.199999999999113,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 169,
+      "bid_id": "b2",
+      "hour": 15,
+      "mwh": 72.0,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 169,
+      "bid_id": "b5",
+      "hour": 7,
+      "mwh": 9.6,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 170,
+      "bid_id": "b5",
+      "hour": 7,
+      "mwh": 4.799999999998246,
+      "incremental_co2_t": 0.0
+    },
+    {
+      "step": 170,
+      "bid_id": "b2",
+      "hour": 15,
+      "mwh": 156.0,
+      "incremental_co2_t": 0.0
     }
   ],
   "fallback_fired": false,
   "settlement": {
     "baseline": "independent_marginal",
     "method": "exact",
-    "coalitions_evaluated": 8,
-    "total_avoided_t": 281.4,
+    "coalitions_evaluated": 32,
+    "total_avoided_t": 0.0,
     "pool_usd": 100000.0,
     "prorated": false,
     "per_bid": [
       {
         "bid_id": "b1",
-        "shapley_t": 275.1,
-        "payout_usd": 13755.0,
-        "vs_default_t": 447.0667,
-        "vs_independent_average_t": 470.4
+        "shapley_t": 0.0,
+        "payout_usd": 0.0,
+        "vs_default_t": 0.0,
+        "vs_independent_average_t": 0.0
       },
       {
         "bid_id": "b2",
-        "shapley_t": 6.3,
-        "payout_usd": 315.0,
-        "vs_default_t": 1272.0167,
-        "vs_independent_average_t": 434.4
+        "shapley_t": 0.0,
+        "payout_usd": 0.0,
+        "vs_default_t": 0.0,
+        "vs_independent_average_t": 0.0
       },
       {
         "bid_id": "b3",
         "shapley_t": 0.0,
         "payout_usd": 0.0,
-        "vs_default_t": 195.2167,
+        "vs_default_t": 0.0,
+        "vs_independent_average_t": 0.0
+      },
+      {
+        "bid_id": "b4",
+        "shapley_t": 0.0,
+        "payout_usd": 0.0,
+        "vs_default_t": 0.0,
+        "vs_independent_average_t": 0.0
+      },
+      {
+        "bid_id": "b5",
+        "shapley_t": 0.0,
+        "payout_usd": 0.0,
+        "vs_default_t": 0.0,
         "vs_independent_average_t": 0.0
       }
     ],
     "leave_one_out": {
       "b1": {
-        "total_avoided_t": 147.0,
+        "total_avoided_t": 0.0,
         "per_bid": [
           {
             "bid_id": "b2",
-            "shapley_t": 147.0,
-            "payout_usd": 7350.0
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
           },
           {
             "bid_id": "b3",
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
+          },
+          {
+            "bid_id": "b4",
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
+          },
+          {
+            "bid_id": "b5",
             "shapley_t": 0.0,
             "payout_usd": 0.0
           }
         ]
       },
       "b2": {
-        "total_avoided_t": 415.8,
+        "total_avoided_t": 0.0,
         "per_bid": [
           {
             "bid_id": "b1",
-            "shapley_t": 415.8,
-            "payout_usd": 20790.0
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
           },
           {
             "bid_id": "b3",
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
+          },
+          {
+            "bid_id": "b4",
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
+          },
+          {
+            "bid_id": "b5",
             "shapley_t": 0.0,
             "payout_usd": 0.0
           }
         ]
       },
       "b3": {
-        "total_avoided_t": 281.4,
+        "total_avoided_t": 0.0,
         "per_bid": [
           {
             "bid_id": "b1",
-            "shapley_t": 275.1,
-            "payout_usd": 13755.0
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
           },
           {
             "bid_id": "b2",
-            "shapley_t": 6.3,
-            "payout_usd": 315.0
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
+          },
+          {
+            "bid_id": "b4",
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
+          },
+          {
+            "bid_id": "b5",
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
+          }
+        ]
+      },
+      "b4": {
+        "total_avoided_t": 0.0,
+        "per_bid": [
+          {
+            "bid_id": "b1",
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
+          },
+          {
+            "bid_id": "b2",
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
+          },
+          {
+            "bid_id": "b3",
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
+          },
+          {
+            "bid_id": "b5",
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
+          }
+        ]
+      },
+      "b5": {
+        "total_avoided_t": 0.0,
+        "per_bid": [
+          {
+            "bid_id": "b1",
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
+          },
+          {
+            "bid_id": "b2",
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
+          },
+          {
+            "bid_id": "b3",
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
+          },
+          {
+            "bid_id": "b4",
+            "shapley_t": 0.0,
+            "payout_usd": 0.0
           }
         ]
       }

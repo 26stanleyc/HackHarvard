@@ -1,35 +1,53 @@
 {
-  "day": "2024-03-19",
+  "day": "2024-03-29",
   "bids": [
     {
       "id": "b1",
-      "name": "Lone Star EV Fleet Aggregator",
+      "name": "EV fleet aggregator",
       "load_type": "ev_fleet",
-      "energy_mwh": 2400.0,
+      "energy_mwh": 2000.0,
       "earliest_hour": 0,
-      "deadline_hour": 8,
+      "deadline_hour": 7,
       "max_mw": 500.0
     },
     {
       "id": "b2",
-      "name": "Hill Country Data Center",
+      "name": "Data center (flexible batch)",
       "load_type": "data_center",
-      "energy_mwh": 2400.0,
+      "energy_mwh": 3600.0,
       "earliest_hour": 0,
       "deadline_hour": 24,
       "max_mw": 300.0
     },
     {
       "id": "b3",
-      "name": "Houston Office Portfolio (pre-cooling)",
+      "name": "Office portfolio (pre-cooling)",
       "load_type": "office",
-      "energy_mwh": 600.0,
+      "energy_mwh": 900.0,
       "earliest_hour": 6,
       "deadline_hour": 18,
       "max_mw": 150.0
+    },
+    {
+      "id": "b4",
+      "name": "Cold-storage portfolio",
+      "load_type": "cold_storage",
+      "energy_mwh": 480.0,
+      "earliest_hour": 0,
+      "deadline_hour": 24,
+      "max_mw": 80.0
+    },
+    {
+      "id": "b5",
+      "name": "Municipal water pumping",
+      "load_type": "water_pumping",
+      "energy_mwh": 960.0,
+      "earliest_hour": 0,
+      "deadline_hour": 16,
+      "max_mw": 120.0
     }
   ],
-  "background_pct": 5.0,
+  "background_pct": 10.0,
   "carbon_price": 50.0,
   "pool_usd": 100000.0
 }

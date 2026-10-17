@@ -2,176 +2,176 @@
   "feasible": true,
   "errors": [],
   "hourly_co2_t": [
-    17655.0,
-    16095.0,
-    14586.0,
-    14040.0,
-    14430.0,
-    16485.0,
-    18345.0,
-    21410.0,
-    21830.0,
-    21090.0,
-    19017.0,
-    18725.5,
-    18939.0,
-    19429.0,
-    20689.0,
-    22750.0,
-    26280.0,
-    29160.0,
-    31320.0,
-    30240.0,
-    27360.0,
-    24294.0,
-    22621.0,
-    19695.0
+    2568.8905186803163,
+    2416.90254090274,
+    2326.731064639257,
+    2373.427007704275,
+    2589.0829790589755,
+    3506.344600084368,
+    4285.455375698424,
+    2920.954018941132,
+    2443.763469120755,
+    2377.291499544139,
+    2391.1392619703165,
+    2409.495598209668,
+    2456.011354924204,
+    2545.387818895319,
+    3332.8579633850727,
+    4341.109919338598,
+    4567.663993429261,
+    5868.499800186115,
+    7858.7191608922685,
+    8385.497359127416,
+    7774.833120214056,
+    6789.402598400773,
+    5534.694707714712,
+    4440.007291338125
   ],
-  "total_co2_t": 506485.5,
+  "total_co2_t": 96504.16302240029,
   "marginal_resource": [
     {
-      "kind": "fossil",
-      "plant_name": "Martin Lake",
-      "fuel": "coal",
-      "co2_t_per_mwh": 0.99
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Martin Lake",
-      "fuel": "coal",
-      "co2_t_per_mwh": 0.99
-    },
-    {
       "kind": "curtailed_renewables",
       "plant_name": null,
-      "fuel": "wind",
+      "fuel": null,
       "co2_t_per_mwh": 0.0
     },
     {
       "kind": "curtailed_renewables",
       "plant_name": null,
-      "fuel": "wind",
+      "fuel": null,
       "co2_t_per_mwh": 0.0
     },
     {
       "kind": "curtailed_renewables",
       "plant_name": null,
-      "fuel": "wind",
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
+      "co2_t_per_mwh": 0.0
+    },
+    {
+      "kind": "curtailed_renewables",
+      "plant_name": null,
+      "fuel": null,
       "co2_t_per_mwh": 0.0
     },
     {
       "kind": "fossil",
-      "plant_name": "Martin Lake",
+      "plant_name": "W A Parish",
       "fuel": "coal",
-      "co2_t_per_mwh": 0.99
+      "co2_t_per_mwh": 0.9218246228374958
     },
     {
       "kind": "fossil",
-      "plant_name": "Wolf Hollow",
+      "plant_name": "Cedar Bayou 4",
       "fuel": "gas",
-      "co2_t_per_mwh": 0.43
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Wolf Hollow",
-      "fuel": "gas",
-      "co2_t_per_mwh": 0.43
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Wolf Hollow",
-      "fuel": "gas",
-      "co2_t_per_mwh": 0.43
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Wolf Hollow",
-      "fuel": "gas",
-      "co2_t_per_mwh": 0.43
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Panda Temple",
-      "fuel": "gas",
-      "co2_t_per_mwh": 0.39
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Panda Temple",
-      "fuel": "gas",
-      "co2_t_per_mwh": 0.39
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Panda Temple",
-      "fuel": "gas",
-      "co2_t_per_mwh": 0.39
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Panda Temple",
-      "fuel": "gas",
-      "co2_t_per_mwh": 0.39
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Panda Temple",
-      "fuel": "gas",
-      "co2_t_per_mwh": 0.39
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Panda Temple",
-      "fuel": "gas",
-      "co2_t_per_mwh": 0.39
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Cedar Bayou",
-      "fuel": "gas",
-      "co2_t_per_mwh": 0.58
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Cedar Bayou",
-      "fuel": "gas",
-      "co2_t_per_mwh": 0.58
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Cedar Bayou",
-      "fuel": "gas",
-      "co2_t_per_mwh": 0.58
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Cedar Bayou",
-      "fuel": "gas",
-      "co2_t_per_mwh": 0.58
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Cedar Bayou",
-      "fuel": "gas",
-      "co2_t_per_mwh": 0.58
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Cedar Bayou",
-      "fuel": "gas",
-      "co2_t_per_mwh": 0.58
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Oak Grove",
-      "fuel": "coal",
-      "co2_t_per_mwh": 0.97
-    },
-    {
-      "kind": "fossil",
-      "plant_name": "Oak Grove",
-      "fuel": "coal",
-      "co2_t_per_mwh": 0.97
+      "co2_t_per_mwh": 0.35605092941187144
     }
   ]
 }
