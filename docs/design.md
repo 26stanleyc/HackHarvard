@@ -29,7 +29,7 @@ Open gap: coordination across *independent, competing* companies with different 
 1. The novel claim is coordination across competing companies plus payouts for avoided emissions. The herding insight is prior work; cite the Nature Communications paper.
 2. Herding must show up in our own simulator before anything else gets built.
 3. (Revised after second opinion) ML forecasts the future grid; a calibrated simulator answers the what-ifs. The forecast model predicts next-24h demand, wind and solar from real EIA-930 history. Carbon intensity is never an ML label taken from the simulator: the "average intensity" signal is computed from EIA-930 fuel mix x fuel emission factors (for training/eval) and, at plan time, by running the simulator on forecast inputs. No ML model is trained on simulator output.
-4. Chalk serves forecasts and features on every clearing run. (Access is settled in hour 0, with a cutoff at hour 6; see Next Steps.)
+4. Chalk serves forecasts and features on every clearing run once credentials exist. Until then the local provider stands in behind the same interface (see B7 and M4).
 5. Payouts use a visible, stated carbon price ($/ton) and a stated pool size.
 
 Dropped: federated learning. The coordinator needs only flexibility bids. Privacy = data minimization: companies submit a bid, never usage history; in a real deployment each company sees only its own slot and receipt. The demo shows the operator/auditor view of all receipts, labeled as such.
@@ -175,6 +175,12 @@ Each team member signs up for their own free keys; keys live in `.env` files tha
 | ERCOT (optional) | Curtailment, prices | Public API needs free registration plus a subscription key and hourly ID tokens; data only back to Dec 11, 2023 (earlier via ERCOT's Data Access Portal). The open-source `gridstatus` library may read some public ERCOT data without a key; unverified. |
 | Chalk | Feature serving, model serving | Credentials from the Chalk sponsor team. |
 
+**Key status (2026-10-17):** EIA and ERCOT keys obtained. Chalk credentials and the api.data.gov key are pending. Build with placeholders until they arrive:
+
+- **Chalk (placeholder):** the forecast sits behind a `ForecastProvider` interface with two implementations. `LocalForecastProvider` is fully built and used whenever any `CHALK_*` variable is empty. `ChalkForecastProvider` is written (feature classes, resolvers and the serving call in `backend/chalk/`) but not deployed until credentials exist. The API reports `forecast.source = "local"` and the UI shows "Forecast: local model (Chalk credentials pending)". Swapping in Chalk later is a config change plus a deploy, not a code change elsewhere.
+- **api.data.gov (placeholder):** CAMPD validation is skipped. Validation (b) uses EIA-930 fuel mix x fuel emission factors instead, and the README and credibility strip say so. The CAMPD check is a single optional script that runs only when `DATA_GOV_API_KEY` is set.
+- **Config hygiene:** `backend/clearinghouse/config.py` loads `.env`, reports each key as "set" or "missing" by name only, and never logs or returns key values.
+
 ## Frontend
 
 - **Stack:** whatever the frontend person ships fastest (e.g., Next.js + a chart library). Talks only to the API contract above.
@@ -188,7 +194,7 @@ Each team member signs up for their own free keys; keys live in `.env` files tha
 ## Open Questions
 
 - ERCOT or CAISO (decide in hour 1 based on whether the eGRID plant-to-region join and curtailment data are easy).
-- Chalk access (account, credits, local dev). Resolved in hour 0.
+- Chalk access (account, credits, local dev). Pending; build proceeds with the placeholder in B7.
 - Default carbon price, pool size and background % for the story (all visible, user-adjustable inputs).
 - Whether herding appears at realistic flexible-load shares. If it appears only at very large shares, say so in the pitch.
 - Backend hosting: Python dependencies (pandas, LightGBM, Chalk client) may be too heavy for serverless; decide between a serverless Python function and a small container host in hour 0.
@@ -202,43 +208,118 @@ Each team member signs up for their own free keys; keys live in `.env` files tha
 - Shapley shares sum to v(full coalition); receipts for every bid; payouts respect the pool.
 - A judge can create companies, submit bids and watch all three acts end to end against the live backend, with `POST /api/clear` under ~5 s for 8 bids.
 - Interactive features work end to end: day picker, hover shows real plant names, Beat the coordinator scores under ~1 s, leave-the-coalition updates without a new request.
-- Chalk serves forecasts on every clear with latency shown (or the hour-6 fallback is used and stated in the UI).
+- Chalk serves forecasts on every clear with latency shown, or, while credentials are pending, the local provider is used and the UI says so.
 - Any number on screen traces to a data source or a line of code.
 
 ## Distribution Plan
 
 Frontend and backend deployed separately behind the API contract, plus a recorded fallback video. Public GitHub repo (`backend/`, `frontend/`, `fixtures/`, `docs/`) with a README naming every data source and the calibration results.
 
-## Next Steps
+## Build Milestones
 
-Split by track. With 3 people: **Backend-Grid** (B1, B4), **Backend-Coordinator** (B2, B3, B5, B6), **Frontend**. With 2 people: one backend, one frontend.
+The build is a sequence of milestones. Each one has deliverables and checks that prove it works. Milestones are labeled by track (Backend, Frontend, Integration) so a team can split them; a single builder works through them in order.
 
-**Hour 0 (all):** agree the API contract (B6) and repo layout; add `.gitignore` (including `.env`); get data keys (B7) and confirm Chalk access; pick region; decide backend hosting.
+### Protocol
 
-**Backend-Grid**
-- Hours 0-3: uncalibrated merit-order stack (eGRID + EIA-930) and the herding gate (strategies 1-3 on a synthetic population with yesterday-as-forecast inputs). **Go/no-go at hour 3:** if no herding gap appears at any plausible share, the team rethinks the story before building further.
-- Hours 3-6: calibration (named parameters, validation (a), (b), (c), curtailment data if found).
-- Hours 6-12: precompute the adoption chart; expose calibration numbers for `/api/meta`; curate the 3-4 demo days and marginal-plant detail (name, fuel, CO2 rate) for the hover.
-- Hours 12-18: performance (vectorization, caching) to hit the ~5 s target; help integration.
+1. **One milestone at a time, in order.** Do not start the next milestone until every check in the current one passes.
+2. **Iterate inside the milestone:** run the checks, fix what fails, re-run. If a check still fails after 5 fix attempts, stop and report it as blocked (what failed, what was tried, the recommendation) instead of moving on.
+3. **Pre-registered thresholds:** pass criteria are written here before the code runs and are never loosened after seeing results. A missed threshold is reported honestly, not tuned away.
+4. **Close each milestone:** commit with the milestone ID in the message (e.g. "M2: herding gate"), append the results (checks run, numbers, decisions) to `docs/progress.md`, and push.
+5. **Stop and ask the user when:** the M2 herding gate fails; any change to the API contract (B6) or the premises is needed; a missing key blocks a check that has no placeholder.
+6. **Never** commit `.env` or print key values.
 
-**Backend-Coordinator**
-- Hours 0-1: write `fixtures/clear_response.json` matching B6 and hand it to Frontend.
-- Hours 0-6: Chalk setup, point-in-time training data, forecast model, serving. **Hour 6 cutoff:** if Chalk is not serving forecasts, switch to the local fallback and keep Chalk for features only.
-- Hours 3-12: strategies 1-4 with placement trace, herding metric, coalition runs, exact Shapley, payouts (against the uncalibrated simulator and local forecast at first).
-- Hour ~8 milestone: `POST /api/clear` live end to end (uncalibrated is fine).
-- Hours 8-12: `POST /api/evaluate` and leave-one-out settlement.
-- Hours 12-18: swap in the calibrated simulator and Chalk forecast; validation and error handling.
+### M0. Scaffold and config (Backend + Frontend)
+- **Deliverables:** `backend/` Python 3.12 project (uv) with `clearinghouse/` package; `frontend/` Next.js app; `fixtures/clear_response.json` and `fixtures/evaluate_response.json` hand-written to match B6; `backend/clearinghouse/config.py` per B7.
+- **Checks:**
+  - `uv run pytest` passes a smoke test.
+  - The config command prints each key as set/missing by name only (no values).
+  - `git check-ignore .env` confirms `.env` is ignored; `git status` shows no secrets.
+  - Both fixtures parse and match the B6 shapes (schema test).
+  - `npm run build` succeeds on the empty frontend.
 
-**Frontend**
-- Hours 1-8: all four screens against the fixture (fixture mode clearly labeled).
-- Hours 8-12: the three-act animation from `coordinator_trace`; receipts.
-- Hour 12 milestone: switch from fixture to the live API.
-- Hours 12-18: day picker and hover tooltip first (cheap), then Beat the coordinator and leave-the-coalition toggles; loading/error states, credibility strip, "load example scenario", responsive polish. If time runs short, Beat the coordinator is the first interactive feature to cut.
+### M1. Data ingestion (Backend)
+- **Deliverables:** reproducible download scripts and cached data (raw files gitignored) for: EIA-930 ERCOT (balancing authority ERCO) hourly demand and net generation by fuel for one full year (2024); eGRID2023 plant data for ERCOT; EIA monthly fuel costs for Texas power plants; ERCOT wind and solar production with potential output, if the reports exist (for curtailment).
+- **Checks:**
+  - EIA-930: at least 360 days of hourly data, with under 2% missing hours (gaps listed).
+  - Hourly demand within a plausible ERCOT range (20-90 GW).
+  - Sum of generation by fuel within 2% of total net generation for at least 95% of hours.
+  - eGRID: more than 100 ERCOT fossil plants, each with capacity, heat rate and CO2 rate; plants with missing values listed and handled explicitly.
+  - Curtailment decision recorded in `docs/progress.md`: modeled (with data source) or not modeled (savings stated as conservative).
 
-**Everyone**
-- Hour 18: feature freeze.
-- Hours 18-22: stretch goals only if success criteria are met (rolling re-plan replay of a real day; multi-user live bidding from phones, which needs shared server state); otherwise strengthen validation.
-- Hours 22-24: record the fallback video, README with sources and calibration numbers, rehearse a 3-minute pitch.
+### M2. Uncalibrated simulator and herding gate (Backend, GO/NO-GO)
+- **Deliverables:** merit-order simulator (B1) with `emissions(load_profile)` and per-hour marginal plant; strategies 1-3 (B3) on a synthetic bid population with yesterday-as-forecast inputs; herding results written to `docs/results/herding_gate.json`.
+- **Checks (simulator):**
+  - Zero added load reproduces baseline emissions exactly.
+  - Adding load never lowers total generation; emissions change matches the marginal plant's CO2 rate for a small added load.
+  - One simulated day runs in under 50 ms.
+- **Checks (herding gate, pre-registered):** computed on at least 5 days not used for anything else, at flexible-load shares from 0 to 30% of peak.
+  - **GO** if realized savings fall at least 10% short of predicted savings (herding gap ≥ 10% of predicted) at some share ≤ 20% of peak on a majority of the days.
+  - **NO-GO** otherwise: stop, write up what was found, and ask the user before building further.
+
+### M3. Calibration and validation (Backend)
+- **Deliverables:** fitted named parameters (per-fuel availability factor, monthly fuel price scaling) on training days; `docs/results/calibration.json` with validation (a), (b) and (c) on held-out days.
+- **Checks:**
+  - Training and held-out days do not overlap (test).
+  - Validation (a), (b), (c) computed and saved. Target: hourly fossil CO2 error within 15% (mean absolute percentage error). If the target is missed after 5 attempts using only the named parameters, record the real number and continue; do not add parameters to hit it.
+  - Herding gate re-run on the calibrated simulator; result recorded (if the conclusion flips, stop and ask the user).
+
+### M4. Forecast model with Chalk placeholder (Backend)
+- **Deliverables:** next-24h forecasts of demand, wind and solar from EIA-930 history (gradient boosting); `ForecastProvider` interface with `LocalForecastProvider` (working) and `ChalkForecastProvider` (written, not deployed) per B7.
+- **Checks:**
+  - No leakage: a test confirms every feature uses only data available before the forecast time.
+  - On held-out test days, the demand forecast beats the yesterday-as-forecast baseline (lower mean absolute percentage error). Wind and solar results are reported either way.
+  - With empty `CHALK_*` variables, the local provider is selected and the response reports `source: "local"`.
+  - Forecast for one day returns in under 500 ms (cached per day after first call).
+
+### M5. Coordinator and settlement (Backend)
+- **Deliverables:** strategies 1-4 with placement trace and planning-time fallback (B3); herding metric; exact Shapley for up to 8 bids, leave-one-out, payouts with pool proration (B5).
+- **Checks:**
+  - Every schedule satisfies its bid: energy delivered within 0.1%, only inside the window, never above max MW.
+  - Shapley efficiency: shares sum to v(full coalition) within 1e-6.
+  - Symmetry: two identical bids get identical shares; a zero-energy bid gets zero.
+  - Strategy 4 is never worse than strategy 3 on the forecast (the fallback guarantee).
+  - Payouts: proration when the pool is short; a negative share pays $0.
+  - Leave-one-out matches a full re-clear without that bid.
+  - Deterministic: identical input gives identical output.
+  - A full clear with 8 bids finishes in under 5 s.
+
+### M6. Backend API (Backend)
+- **Deliverables:** FastAPI app implementing every endpoint in B6, including `/api/evaluate`; fixtures regenerated from real responses.
+- **Checks:**
+  - Contract tests: each endpoint's response validates against the B6 schema (pydantic models).
+  - `422` with per-bid messages for infeasible bids; `/api/evaluate` rejects schedules outside a window or above max MW.
+  - The server boots locally and a scripted `curl` run of every endpoint succeeds.
+  - Latency: `/api/clear` with 8 bids under 5 s, `/api/evaluate` under 1 s.
+  - Regenerated fixtures still pass the schema test.
+
+### M7. Frontend core in fixture mode (Frontend; can start right after M0)
+- **Deliverables:** story screen, bid builder, watch-the-coordinator (three acts animated from `coordinator_trace`), results with receipts; everything runs on the fixtures with a visible "fixture mode" label.
+- **Checks:**
+  - `npm run build`, lint and type check pass.
+  - In the browser preview: every screen renders from the fixtures, all three acts play, no console errors.
+  - Layout checked at desktop and phone widths (screenshots saved).
+
+### M8. Interactive features and live API (Integration)
+- **Deliverables:** day picker, plant-on-the-margin hover, Beat the coordinator, leave-the-coalition toggles; frontend switched from fixtures to the live backend.
+- **Checks (end to end in the browser against the local backend):**
+  - "Load example scenario", run, all three acts, receipts.
+  - Hover shows real eGRID plant names.
+  - A hand-dragged schedule gets a score from `/api/evaluate`.
+  - Leave-the-coalition updates payouts with no new network request (checked in the network log).
+  - With the backend stopped, the error state appears and inputs are kept.
+  - The day picker re-runs the demo for each curated day.
+
+### M9. Polish and ship (Integration)
+- **Deliverables:** README (how to run, data sources, calibration numbers, key status and placeholders), deployment, fallback video (recorded by the team).
+- **Checks:**
+  - Fresh clone plus the README steps produce a running app.
+  - All tests, lint, type check and build pass.
+  - `.env` has never been committed (checked in git history).
+  - Every number on screen traces to a data source or code (spot-check five).
+
+### Mapping to a team
+
+With 2-3 people: Backend takes M1-M6 in order; Frontend takes M7 right after M0 (using the fixtures) and then M8 once M6 passes; M9 is shared. Hour 0 for everyone: agree the API contract (B6), get keys (B7), pick the region, decide backend hosting. Feature freeze at hour 18; stretch goals (rolling re-plan replay, multi-user live bidding) only after M8 passes.
 
 ## Future Directions (post-hackathon, not in the 24h scope)
 
