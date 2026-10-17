@@ -137,3 +137,28 @@ Checks (`uv run pytest -q` → 140 passed; ruff clean):
 - 8-bid clear: 1.36 s (target < 5 s); 1 / 3 / 5 bids: 0.004 / 0.020 / 0.11 s.
 
 **Honest results (planned on yesterday-as-forecast, scored on actuals; not tuned):** with the 3 fixture bids, coordination does not beat strategy 3 on actuals — on 2024-01-16 coordinated = strategy 3 (v ≡ 0); on 2024-04-11 v(N) = 0; on 2024-08-20 it beats strategy 3 on the forecast by 97 t but loses on actuals by 341 t (forecast error), so every share is negative and pays $0. With 8 larger bids, coordination beats strategy 3 on actuals on 2024-01-16 (+668 t) and 2024-08-20 (+296 t); on 2024-04-11 the fallback fired.
+
+## M4. Forecast model with Chalk placeholder — PASS (2026-10-17)
+
+- **Model:** scikit-learn `HistGradientBoostingRegressor`, one per target (demand, wind, solar). **Deviation:** LightGBM is a declared dependency but its macOS wheel needs a system `libomp` that is not installed, so it cannot be imported; HistGradientBoosting is the same histogram gradient-boosting method and needs no system change. Each model predicts a difference/ratio from a leakage-free base feature. Settings chosen only by blocked monthly CV inside the training period (one month held out, 14-day buffer); the test period was never used for tuning. Fixed seeds; retraining is byte-identical.
+- **Forecast time (adopted): 00:00 CST on target day D** (B2 "next-24h"), using only hours that ended by then — the same information as the pre-registered yesterday-as-forecast baseline. Features: same-hour lags 1/2/3/7/14 days, D-2..D-8 same-hour mean, last value and 24 h change, 24 h/168 h means, 24 h max/min, 10-hour level shift, calendar (hour, day of week, weekend, US federal holiday, day of year). No weather data.
+- **Rejected setting (kept on record):** issuing at 10:00 CST on D-1 (the orchestrator's original brief) was rejected because the yesterday baseline then used data after the issue time, an inconsistent comparison. Under it demand scored 4.33% vs 3.99% (fail). Stored under `rejected_issue_time_d-1_10:00` in `docs/results/forecast_metrics.json`.
+- **Providers** (`clearinghouse/forecast/`): `ForecastProvider` (`get_forecast(region, date)`, `get_bid_features(bid)`); `ForecastResult` = ML demand/wind/solar + previous-day same-hour nuclear, hydro, other, storage, net imports (a single missing slot falls back one more day, e.g. 2024-03-28 14:00 interchange) + curtailment = previous day's curtailed share of wind+solar applied to the forecast. No `avg_intensity` (the API adds it by running the simulator on these inputs, premise 3). `LocalForecastProvider` caches per date. `ChalkForecastProvider` calls Chalk's REST API (`POST https://api.chalk.ai/v1/oauth/token`, then `POST {engine}/v1/query/online` with `X-Chalk-Env-Id`; shapes from the public chalkpy client source), unit-tested with a mocked transport only, never deployed. `get_provider()` returns Chalk iff all `CHALK_*` are set.
+- **Chalk project** `backend/chalk/` (separate; not imported/tested/linted): `GridHour`, `GridDay`, `FlexBid` feature classes, history/model-serving/bid-feature resolvers, point-in-time offline query (`training_data.py`), `sync_from_app.py`. Deploy with `chalk apply`, then fill `CHALK_*` in `.env`; the app switches automatically.
+
+Test period 2024-10-01..12-31 (MAE MW / normalized MAE / MAPE %; solar MAPE daylight only):
+
+| Target | Adopted (00:00 D) | Yesterday | 2-day persistence | Rejected (10:00 D-1) |
+|---|---|---|---|---|
+| demand | **1529 / 0.031 / 3.09** | 1942 / 0.040 / 3.99 | 2852 / 0.058 / 5.88 | 2128 / 0.044 / 4.33 |
+| wind | **4089 / 0.316 / 61.7** | 6123 / 0.472 / 77.1 | 7331 / 0.566 / 101.1 | 5686 / 0.439 / 78.6 |
+| solar | **1063** / 0.207 / 29.0 | 1101 / 0.215 / **28.2** | 1390 / 0.271 / 37.5 | 1183 / 0.231 / 33.9 |
+
+ERCOT's own day-ahead demand forecast (EIA-930 DF) scores 1.82% — reference only (issue time undocumented). Wind and solar have no weather inputs, so their errors are large; stated.
+
+Checks (`uv run pytest -q` → 162 passed; ruff clean):
+- No leakage — PASS: every feature's source hour ends by the issue time (7 dates, and every train/test day under both settings); features and every provider field are unchanged when all data at/after the issue time is replaced with random values or NaN.
+- Demand beats yesterday-as-forecast — PASS (3.09% vs 3.99%).
+- Empty `CHALK_*` → local provider, `source: "local"` — PASS.
+- One-day forecast < 500 ms — PASS (56-80 ms first call after a one-time 2.4 s load; cached 0.012 ms). All four demo days forecast without NaN.
+- Chalk request construction (mock transport) — PASS.

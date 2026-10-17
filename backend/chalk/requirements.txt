@@ -1,0 +1,10 @@
+# Requirements of the Chalk deployment only (NOT the app: chalkpy pins pandas<2.3 / requests<2.32,
+# which conflicts with backend/pyproject.toml; see docs/progress.md M0).
+chalkpy
+numpy
+pandas
+pyarrow
+joblib
+# Must match the version that trained the artifacts (see src/vendor/artifacts/feature_spec.json:
+# sklearn_version) so the pickled HistGradientBoosting models load.
+scikit-learn==1.9.1

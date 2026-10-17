@@ -1,0 +1,7 @@
+# Chalk project for the Carbon Clearinghouse forecast (https://docs.chalk.ai/docs/configuration).
+# `project` must match the project name in the Chalk dashboard (case-sensitive).
+project: carbon-clearinghouse
+environments:
+  default:
+    runtime: python311
+    requirements: ./requirements.txt

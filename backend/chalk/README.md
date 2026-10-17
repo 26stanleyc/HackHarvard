@@ -1,0 +1,86 @@
+# Chalk project: day-ahead grid forecast + bid features
+
+A separate, self-contained Chalk project. The app does **not** import it, pytest does not run it,
+and ruff skips it (`backend/pyproject.toml` excludes `chalk/`). It has its own
+`requirements.txt` because `chalkpy` pins `pandas<2.3` / `requests<2.32`, which conflicts with
+the app's stack (see `docs/progress.md`, M0). Status: **written, not deployed** (Chalk
+credentials pending). Nothing here has been run against Chalk.
+
+## What it defines
+
+| File | Contents |
+|---|---|
+| `src/features.py` | `GridHour` (one EIA-930 hourly slot; `ts` = slot **end**), `GridDay` (target day keyed `"ERCO:YYYY-MM-DD"`, `as_of` = 00:00 CST on D, `hours` has-many, windowed 1d/7d aggregations, 24-value forecast outputs), `FlexBid` (raw bid fields as inputs plus derived features) |
+| `src/resolvers.py` | offline + online history resolvers, `forecast_grid_day` model-serving resolver (loads the **same** trained artifacts as the app), `flex_bid_features` |
+| `sql/grid_hours.chalk.sql.example` | production data path: SQL resolver over a PostgreSQL table (inactive until a source exists) |
+| `training_data.py` | point-in-time offline query for leakage-free training data |
+| `sync_from_app.py` | vendors the app's forecast code, artifacts and history into `src/vendor/` (generated, gitignored) |
+| `chalk.yaml`, `requirements.txt` | project config ([docs](https://docs.chalk.ai/docs/configuration)) |
+
+One implementation serves both paths: `sync_from_app.py` copies
+`clearinghouse/forecast/{features,model,provider}.py` into `src/vendor/`, so the Chalk resolver
+computes exactly the features, model inputs and bid features that `LocalForecastProvider` does.
+
+## Point-in-time correctness (design B2)
+
+`GridHour.ts` is the end of the hourly slot, the instant its value is known. Chalk never returns
+feature values whose time is after the query time ([time docs](https://docs.chalk.ai/docs/time)).
+So an offline query with `input_times` = each target day's issue time (00:00 CST on D) sees
+only slots that ended by then (`training_data.py`). This is the app's leakage rule
+(slot start < as_of, equivalently slot end <= as_of), which `tests/test_forecast.py` checks on the
+local feature builder. The online model resolver also re-filters `ts <= as_of` and asserts the
+leakage check before predicting.
+
+Issue time: **00:00 CST on the target day D** (design B2 "next-24h"). All of D-1 is observed,
+so the persistence inputs (nuclear, hydro, other, storage, net imports, curtailment fraction:
+previous day's same hour) are point-in-time correct too, online and locally. An earlier setting
+(10:00 CST on D-1) was rejected because the pre-registered yesterday baseline would then use
+data after the issue time; it is kept on record in `docs/results/forecast_metrics.json`.
+
+## Deploy (once credentials exist)
+
+```bash
+cd backend
+uv run python chalk/sync_from_app.py      # vendor code + artifacts + history
+cd chalk
+python -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
+chalk login                               # or use client credentials
+chalk apply --await                       # https://docs.chalk.ai/cli/apply
+```
+
+Then set in the repo-root `.env`:
+
+```
+CHALK_CLIENT_ID=...
+CHALK_CLIENT_SECRET=...
+CHALK_ENVIRONMENT=...   # environment id or name
+```
+
+The app switches automatically: `clearinghouse.forecast.get_provider()` returns
+`ChalkForecastProvider` when all three are non-empty, and `/api/clear` reports
+`forecast.source = "chalk"` with the measured latency. No code changes elsewhere.
+
+## REST calls the app makes (`clearinghouse/forecast/chalk.py`)
+
+1. `POST https://api.chalk.ai/v1/oauth/token` with
+   `{"client_id", "client_secret", "grant_type": "client_credentials"}`. The response includes
+   `access_token`, `expires_in`, `engines` and `environment_id_to_name`
+   ([auth docs](https://docs.chalk.ai/docs/online-authentication)).
+2. `POST {engines[env_id]}/v1/query/online` with headers `Authorization: Bearer ...`,
+   `X-Chalk-Env-Id` and `X-Chalk-Deployment-Type: engine`, and a body like
+   `{"inputs": {"grid_day.id": "ERCO:2024-10-14"}, "outputs": ["grid_day.demand_mw", ...]}`. The
+   response is `{"data": [{"field", "value", ...}], "errors", "meta"}`. Bid features use the same
+   call with `flex_bid.*` inputs and outputs.
+
+The REST shapes come from the public chalkpy client source
+([PyPI](https://pypi.org/project/chalkpy/), `chalk/client/client_impl.py` and `models.py`),
+because docs.chalk.ai documents the auth flow but has no REST reference page.
+
+## Model serving note
+
+The resolver loads the pickled scikit-learn `HistGradientBoostingRegressor` artifacts at first
+use (module-level cache), so `scikit-learn` in `requirements.txt` must match the training version
+recorded in `feature_spec.json`. Chalk also has a model registry
+([docs](https://docs.chalk.ai/docs/model_registry)), using `ModelReference` and
+`make_model_resolver`. It is a later option once the project is deployed. The resolver-based path
+keeps the feature code shared with the app.

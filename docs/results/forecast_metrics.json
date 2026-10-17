@@ -1,0 +1,362 @@
+{
+  "milestone": "M4",
+  "as_of_rule": "as_of = 00:00 CST on target day D (next-24h forecast; all of D-1 available); only slots with start < as_of (i.e. ended by as_of) are used",
+  "weather_data": "none (not in the dataset); wind/solar rely on lags and calendar only",
+  "model": "sklearn HistGradientBoostingRegressor, one per target (deviation from LightGBM: its macOS wheel needs a system libomp that is not installed; see model.py)",
+  "model_selection": "settings chosen by blocked monthly CV inside the training period (under the rejected 10:00 D-1 issue time) and kept unchanged for the adopted issue time; the test period was never used for tuning",
+  "train_days": {
+    "first": "2023-12-16",
+    "last": "2024-09-30",
+    "n_days": 290
+  },
+  "test_days": {
+    "first": "2024-10-01",
+    "last": "2024-12-31",
+    "n_days": 92
+  },
+  "baselines": {
+    "yesterday": "previous CST day's actual same-hour value (pre-registered yesterday-as-forecast); fully available at as_of = 00:00 CST on D",
+    "persistence_2d": "same hour two CST days earlier (context)",
+    "ercot_day_ahead_reference": "EIA-930 'Demand Forecast (MW)' reported by ERCOT; issue time undocumented, reference only"
+  },
+  "metric_notes": {
+    "nmae": "MAE / mean actual over the evaluated hours",
+    "mape_daylight_pct": "solar MAPE over hours with actual > 5% of the period's peak solar",
+    "train_period_cv": "blocked monthly CV inside the training period (14-day buffer); reported, not used to tune the adopted setting"
+  },
+  "pass_criterion": "test-period demand MAPE: model < yesterday (adopted issue time)",
+  "demand_pass": true,
+  "results": {
+    "demand": {
+      "model": {
+        "mae_mw": 1528.7837,
+        "rmse_mw": 2313.6389,
+        "nmae": 0.0312,
+        "bias_mw": 203.1108,
+        "mape_pct": 3.0908
+      },
+      "yesterday": {
+        "mae_mw": 1942.0385,
+        "rmse_mw": 2801.8534,
+        "nmae": 0.0397,
+        "bias_mw": 126.4497,
+        "mape_pct": 3.9932
+      },
+      "persistence_2d": {
+        "mae_mw": 2852.1608,
+        "rmse_mw": 3824.977,
+        "nmae": 0.0583,
+        "bias_mw": 201.3963,
+        "mape_pct": 5.8754
+      },
+      "ercot_day_ahead_reference": {
+        "mae_mw": 885.3293,
+        "rmse_mw": 1181.1119,
+        "nmae": 0.0181,
+        "bias_mw": 217.6716,
+        "mape_pct": 1.8162
+      },
+      "by_hour_group_mape_pct": {
+        "hours_0_9": {
+          "model": 2.2556,
+          "yesterday": 4.0413
+        },
+        "hours_10_23": {
+          "model": 3.6874,
+          "yesterday": 3.9589
+        }
+      },
+      "train_period_cv": {
+        "model": {
+          "mae_mw": 2011.7605,
+          "rmse_mw": 3068.726,
+          "nmae": 0.0376,
+          "bias_mw": 18.0695,
+          "mape_pct": 3.7335
+        },
+        "yesterday": {
+          "mae_mw": 2448.3438,
+          "rmse_mw": 3517.0577,
+          "nmae": 0.0457,
+          "bias_mw": -41.4453,
+          "mape_pct": 4.6332
+        },
+        "persistence_2d": {
+          "mae_mw": 3620.8236,
+          "rmse_mw": 4982.0247,
+          "nmae": 0.0676,
+          "bias_mw": -67.0316,
+          "mape_pct": 6.8508
+        }
+      }
+    },
+    "wind": {
+      "model": {
+        "mae_mw": 4088.9568,
+        "rmse_mw": 5157.2833,
+        "nmae": 0.3155,
+        "bias_mw": -269.9489,
+        "mape_pct": 61.7317
+      },
+      "yesterday": {
+        "mae_mw": 6122.7174,
+        "rmse_mw": 7818.2121,
+        "nmae": 0.4724,
+        "bias_mw": -103.5634,
+        "mape_pct": 77.0821
+      },
+      "persistence_2d": {
+        "mae_mw": 7330.5566,
+        "rmse_mw": 9026.0293,
+        "nmae": 0.5655,
+        "bias_mw": -303.3392,
+        "mape_pct": 101.1364
+      },
+      "train_period_cv": {
+        "model": {
+          "mae_mw": 4039.2328,
+          "rmse_mw": 5109.3506,
+          "nmae": 0.3206,
+          "bias_mw": 22.5675,
+          "mape_pct": 60.0479
+        },
+        "yesterday": {
+          "mae_mw": 5502.7862,
+          "rmse_mw": 7289.16,
+          "nmae": 0.4367,
+          "bias_mw": 14.9532,
+          "mape_pct": 70.5368
+        },
+        "persistence_2d": {
+          "mae_mw": 6549.9132,
+          "rmse_mw": 8325.9491,
+          "nmae": 0.5198,
+          "bias_mw": 61.2167,
+          "mape_pct": 88.6113
+        }
+      }
+    },
+    "solar": {
+      "model": {
+        "mae_mw": 1062.8037,
+        "rmse_mw": 2237.5802,
+        "nmae": 0.2073,
+        "bias_mw": 201.5727,
+        "mape_daylight_pct": 28.9825,
+        "daylight_hours": 923
+      },
+      "yesterday": {
+        "mae_mw": 1100.6898,
+        "rmse_mw": 2395.8899,
+        "nmae": 0.2147,
+        "bias_mw": 18.601,
+        "mape_daylight_pct": 28.1963,
+        "daylight_hours": 923
+      },
+      "persistence_2d": {
+        "mae_mw": 1390.3822,
+        "rmse_mw": 2982.1655,
+        "nmae": 0.2711,
+        "bias_mw": 68.8605,
+        "mape_daylight_pct": 37.4547,
+        "daylight_hours": 923
+      },
+      "daylight_threshold_mw": 1030.4,
+      "train_period_cv": {
+        "model": {
+          "mae_mw": 1040.8232,
+          "rmse_mw": 2008.0822,
+          "nmae": 0.1923,
+          "bias_mw": 16.6904,
+          "mape_daylight_pct": 27.9646,
+          "daylight_hours": 3357
+        },
+        "yesterday": {
+          "mae_mw": 1155.3994,
+          "rmse_mw": 2267.7103,
+          "nmae": 0.2134,
+          "bias_mw": -19.9871,
+          "mape_daylight_pct": 29.4448,
+          "daylight_hours": 3357
+        },
+        "persistence_2d": {
+          "mae_mw": 1476.0014,
+          "rmse_mw": 2849.2255,
+          "nmae": 0.2726,
+          "bias_mw": -42.9282,
+          "mape_daylight_pct": 37.9318,
+          "daylight_hours": 3357
+        }
+      }
+    }
+  },
+  "rejected_issue_time_d-1_10:00": {
+    "as_of_rule": "as_of = 10:00 CST on day D-1 (day-ahead style)",
+    "note": "rejected: yesterday baseline used data after issue time (inconsistent comparison)",
+    "demand_pass_under_this_setting": false,
+    "results": {
+      "demand": {
+        "model": {
+          "mae_mw": 2128.4871,
+          "rmse_mw": 2945.8296,
+          "nmae": 0.0435,
+          "bias_mw": 5.6549,
+          "mape_pct": 4.327
+        },
+        "yesterday": {
+          "mae_mw": 1942.0385,
+          "rmse_mw": 2801.8534,
+          "nmae": 0.0397,
+          "bias_mw": 126.4497,
+          "mape_pct": 3.9932
+        },
+        "persistence_2d": {
+          "mae_mw": 2852.1608,
+          "rmse_mw": 3824.977,
+          "nmae": 0.0583,
+          "bias_mw": 201.3963,
+          "mape_pct": 5.8754
+        },
+        "ercot_day_ahead_reference": {
+          "mae_mw": 885.3293,
+          "rmse_mw": 1181.1119,
+          "nmae": 0.0181,
+          "bias_mw": 217.6716,
+          "mape_pct": 1.8162
+        },
+        "by_hour_group_mape_pct": {
+          "hours_0_9": {
+            "model": 3.6744,
+            "yesterday": 4.0413
+          },
+          "hours_10_23": {
+            "model": 4.7932,
+            "yesterday": 3.9589
+          }
+        },
+        "train_period_cv": {
+          "model": {
+            "mae_mw": 2842.973,
+            "rmse_mw": 3996.0826,
+            "nmae": 0.0531,
+            "bias_mw": 8.6987,
+            "mape_pct": 5.2664
+          },
+          "yesterday": {
+            "mae_mw": 2448.3438,
+            "rmse_mw": 3517.0577,
+            "nmae": 0.0457,
+            "bias_mw": -41.4453,
+            "mape_pct": 4.6332
+          },
+          "persistence_2d": {
+            "mae_mw": 3620.8236,
+            "rmse_mw": 4982.0247,
+            "nmae": 0.0676,
+            "bias_mw": -67.0316,
+            "mape_pct": 6.8508
+          }
+        }
+      },
+      "wind": {
+        "model": {
+          "mae_mw": 5686.259,
+          "rmse_mw": 6681.3926,
+          "nmae": 0.4387,
+          "bias_mw": -1370.8365,
+          "mape_pct": 78.6137
+        },
+        "yesterday": {
+          "mae_mw": 6122.7174,
+          "rmse_mw": 7818.2121,
+          "nmae": 0.4724,
+          "bias_mw": -103.5634,
+          "mape_pct": 77.0821
+        },
+        "persistence_2d": {
+          "mae_mw": 7330.5566,
+          "rmse_mw": 9026.0293,
+          "nmae": 0.5655,
+          "bias_mw": -303.3392,
+          "mape_pct": 101.1364
+        },
+        "train_period_cv": {
+          "model": {
+            "mae_mw": 5339.0673,
+            "rmse_mw": 6395.7263,
+            "nmae": 0.4237,
+            "bias_mw": 170.6861,
+            "mape_pct": 86.1146
+          },
+          "yesterday": {
+            "mae_mw": 5502.7862,
+            "rmse_mw": 7289.16,
+            "nmae": 0.4367,
+            "bias_mw": 14.9532,
+            "mape_pct": 70.5368
+          },
+          "persistence_2d": {
+            "mae_mw": 6549.9132,
+            "rmse_mw": 8325.9491,
+            "nmae": 0.5198,
+            "bias_mw": 61.2167,
+            "mape_pct": 88.6113
+          }
+        }
+      },
+      "solar": {
+        "model": {
+          "mae_mw": 1183.1099,
+          "rmse_mw": 2470.0712,
+          "nmae": 0.2307,
+          "bias_mw": 277.4914,
+          "mape_daylight_pct": 33.9293,
+          "daylight_hours": 923
+        },
+        "yesterday": {
+          "mae_mw": 1100.6898,
+          "rmse_mw": 2395.8899,
+          "nmae": 0.2147,
+          "bias_mw": 18.601,
+          "mape_daylight_pct": 28.1963,
+          "daylight_hours": 923
+        },
+        "persistence_2d": {
+          "mae_mw": 1390.3822,
+          "rmse_mw": 2982.1655,
+          "nmae": 0.2711,
+          "bias_mw": 68.8605,
+          "mape_daylight_pct": 37.4547,
+          "daylight_hours": 923
+        },
+        "daylight_threshold_mw": 1030.4,
+        "train_period_cv": {
+          "model": {
+            "mae_mw": 1138.2962,
+            "rmse_mw": 2139.7765,
+            "nmae": 0.2103,
+            "bias_mw": 81.9339,
+            "mape_daylight_pct": 30.9864,
+            "daylight_hours": 3357
+          },
+          "yesterday": {
+            "mae_mw": 1155.3994,
+            "rmse_mw": 2267.7103,
+            "nmae": 0.2134,
+            "bias_mw": -19.9871,
+            "mape_daylight_pct": 29.4448,
+            "daylight_hours": 3357
+          },
+          "persistence_2d": {
+            "mae_mw": 1476.0014,
+            "rmse_mw": 2849.2255,
+            "nmae": 0.2726,
+            "bias_mw": -42.9282,
+            "mape_daylight_pct": 37.9318,
+            "daylight_hours": 3357
+          }
+        }
+      }
+    }
+  }
+}
