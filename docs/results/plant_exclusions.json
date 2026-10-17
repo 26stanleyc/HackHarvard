@@ -1,0 +1,204 @@
+{
+  "summary": {
+    "source": "EPA eGRID2023 rev2 (egrid2023_data_rev2.xlsx, PLNT23 + GEN23)",
+    "selection": "BACODE == ERCO and PLFUELCT in {COAL, GAS, OIL}",
+    "fossil_plants_total": 299,
+    "fossil_capacity_total_gw": 82.008,
+    "plants_used": 283,
+    "capacity_used_gw": 80.804,
+    "plants_imputed": 3,
+    "capacity_imputed_gw": 1.595,
+    "plants_excluded": 16,
+    "capacity_excluded_gw": 1.204,
+    "used_by_fuel": {
+      "coal": {
+        "plants": 10,
+        "capacity_gw": 15.601
+      },
+      "gas": {
+        "plants": 247,
+        "capacity_gw": 64.945
+      },
+      "oil": {
+        "plants": 26,
+        "capacity_gw": 0.258
+      }
+    }
+  },
+  "rules": [
+    "Excluded: nameplate capacity, 2023 net generation (PLNGENAN) or 2023 heat input (PLHTIAN) missing or <= 0.",
+    "Imputed: heat input and generation present but PLCO2RTA missing or 0 -> CO2 rate = heat rate x EPA coefficient for the primary fuel (PLPRMFL)."
+  ],
+  "epa_kg_co2_per_mmbtu": {
+    "NG": 53.06,
+    "BIT": 93.28,
+    "SUB": 97.17,
+    "LIG": 97.72,
+    "DFO": 73.96,
+    "RFO": 75.1,
+    "PC": 102.41
+  },
+  "epa_source": "EPA GHG Emission Factors Hub, Table 1 (stationary combustion), kg CO2/MMBtu",
+  "excluded": [
+    {
+      "orispl": 6181,
+      "name": "J T Deely",
+      "fuel": "coal",
+      "primary_fuel_code": "SUB",
+      "capacity_mw": 932.0,
+      "reason": "no positive 2023 net generation (PLNGENAN=NaN); no 2023 heat input (PLHTIAN=0) -> retired/inactive, excluded"
+    },
+    {
+      "orispl": 3548,
+      "name": "Decker Creek",
+      "fuel": "gas",
+      "primary_fuel_code": "NG",
+      "capacity_mw": 206.0,
+      "reason": "no positive 2023 net generation (PLNGENAN=0) -> retired/inactive, excluded"
+    },
+    {
+      "orispl": 60910,
+      "name": "NET Power La Porte Station",
+      "fuel": "gas",
+      "primary_fuel_code": "NG",
+      "capacity_mw": 25.5,
+      "reason": "no positive 2023 net generation (PLNGENAN=0); no 2023 heat input (PLHTIAN=0) -> retired/inactive, excluded"
+    },
+    {
+      "orispl": 10184,
+      "name": "Central Utility Plant",
+      "fuel": "gas",
+      "primary_fuel_code": "NG",
+      "capacity_mw": 14.3,
+      "reason": "no positive 2023 net generation (PLNGENAN=NaN); no 2023 heat input (PLHTIAN=0) -> retired/inactive, excluded"
+    },
+    {
+      "orispl": 67308,
+      "name": "AbbVie Waco",
+      "fuel": "gas",
+      "primary_fuel_code": "NG",
+      "capacity_mw": 5.6,
+      "reason": "no positive 2023 net generation (PLNGENAN=0); no 2023 heat input (PLHTIAN=0) -> retired/inactive, excluded"
+    },
+    {
+      "orispl": 67317,
+      "name": "HEBTEMDistCenter",
+      "fuel": "gas",
+      "primary_fuel_code": "NG",
+      "capacity_mw": 4.8,
+      "reason": "no positive 2023 net generation (PLNGENAN=0); no 2023 heat input (PLHTIAN=0) -> retired/inactive, excluded"
+    },
+    {
+      "orispl": 58069,
+      "name": "PRSI FCC Generator",
+      "fuel": "oil",
+      "primary_fuel_code": "PC",
+      "capacity_mw": 4.7,
+      "reason": "no positive 2023 net generation (PLNGENAN=0); no 2023 heat input (PLHTIAN=0) -> retired/inactive, excluded"
+    },
+    {
+      "orispl": 64770,
+      "name": "WAL202",
+      "fuel": "oil",
+      "primary_fuel_code": "DFO",
+      "capacity_mw": 1.3,
+      "reason": "no positive 2023 net generation (PLNGENAN=0); no 2023 heat input (PLHTIAN=0) -> retired/inactive, excluded"
+    },
+    {
+      "orispl": 67310,
+      "name": "HEB00055",
+      "fuel": "gas",
+      "primary_fuel_code": "NG",
+      "capacity_mw": 1.2,
+      "reason": "no positive 2023 net generation (PLNGENAN=0); no 2023 heat input (PLHTIAN=0) -> retired/inactive, excluded"
+    },
+    {
+      "orispl": 66594,
+      "name": "HEB00594",
+      "fuel": "gas",
+      "primary_fuel_code": "NG",
+      "capacity_mw": 1.2,
+      "reason": "no positive 2023 net generation (PLNGENAN=NaN); no 2023 heat input (PLHTIAN=0) -> retired/inactive, excluded"
+    },
+    {
+      "orispl": 67311,
+      "name": "HEB00760",
+      "fuel": "gas",
+      "primary_fuel_code": "NG",
+      "capacity_mw": 1.2,
+      "reason": "no positive 2023 net generation (PLNGENAN=0); no 2023 heat input (PLHTIAN=0) -> retired/inactive, excluded"
+    },
+    {
+      "orispl": 67314,
+      "name": "HEB00790",
+      "fuel": "gas",
+      "primary_fuel_code": "NG",
+      "capacity_mw": 1.2,
+      "reason": "no positive 2023 net generation (PLNGENAN=0); no 2023 heat input (PLHTIAN=0) -> retired/inactive, excluded"
+    },
+    {
+      "orispl": 67315,
+      "name": "HEB00796",
+      "fuel": "gas",
+      "primary_fuel_code": "NG",
+      "capacity_mw": 1.2,
+      "reason": "no positive 2023 net generation (PLNGENAN=0); no 2023 heat input (PLHTIAN=0) -> retired/inactive, excluded"
+    },
+    {
+      "orispl": 64884,
+      "name": "WAL1801",
+      "fuel": "gas",
+      "primary_fuel_code": "NG",
+      "capacity_mw": 1.2,
+      "reason": "no positive 2023 net generation (PLNGENAN=0); no 2023 heat input (PLHTIAN=0) -> retired/inactive, excluded"
+    },
+    {
+      "orispl": 64796,
+      "name": "WAL537",
+      "fuel": "gas",
+      "primary_fuel_code": "NG",
+      "capacity_mw": 1.2,
+      "reason": "no positive 2023 net generation (PLNGENAN=0); no 2023 heat input (PLHTIAN=0) -> retired/inactive, excluded"
+    },
+    {
+      "orispl": 64958,
+      "name": "WAL5479",
+      "fuel": "gas",
+      "primary_fuel_code": "NG",
+      "capacity_mw": 1.2,
+      "reason": "no positive 2023 net generation (PLNGENAN=0); no 2023 heat input (PLHTIAN=0) -> retired/inactive, excluded"
+    }
+  ],
+  "imputed": [
+    {
+      "orispl": 8063,
+      "name": "Decordova",
+      "fuel": "gas",
+      "primary_fuel_code": "NG",
+      "capacity_mw": 626.7,
+      "heat_rate_mmbtu_per_mwh": 15.5205,
+      "co2_t_per_mwh": 0.8235,
+      "reason": "imputed CO2: eGRID PLCO2RTA=0; heat rate 15.520 MMBtu/MWh x 53.06 kg/MMBtu (NG, EPA GHG Emission Factors Hub, Table 1 (stationary combustion), kg CO2/MMBtu)"
+    },
+    {
+      "orispl": 3492,
+      "name": "Morgan Creek",
+      "fuel": "gas",
+      "primary_fuel_code": "NG",
+      "capacity_mw": 536.4,
+      "heat_rate_mmbtu_per_mwh": 13.417,
+      "co2_t_per_mwh": 0.7119,
+      "reason": "imputed CO2: eGRID PLCO2RTA=0; heat rate 13.417 MMBtu/MWh x 53.06 kg/MMBtu (NG, EPA GHG Emission Factors Hub, Table 1 (stationary combustion), kg CO2/MMBtu)"
+    },
+    {
+      "orispl": 3464,
+      "name": "Greens Bayou",
+      "fuel": "gas",
+      "primary_fuel_code": "NG",
+      "capacity_mw": 432.0,
+      "heat_rate_mmbtu_per_mwh": 14.8145,
+      "co2_t_per_mwh": 0.7861,
+      "reason": "imputed CO2: eGRID PLCO2RTA=0; heat rate 14.815 MMBtu/MWh x 53.06 kg/MMBtu (NG, EPA GHG Emission Factors Hub, Table 1 (stationary combustion), kg CO2/MMBtu)"
+    }
+  ]
+}

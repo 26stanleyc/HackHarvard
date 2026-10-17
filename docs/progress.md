@@ -29,3 +29,25 @@ Checks:
 - `npm run build`, `npm run lint`, `npm run typecheck` → clean (re-run by orchestrator).
 - Browser preview: every screen renders from fixtures; all three acts play (trace 30/30); hover shows marginal plants; paint + score works; leave toggle updates payouts with no network request; no app console errors.
 - Layout at 1440 and 375 wide, no horizontal scroll; screenshots in `docs/screenshots/m7-*.png`.
+
+## M1. Data ingestion — PASS (2026-10-17)
+
+- **Code:** `backend/scripts/download_data.py` (reproducible downloads into gitignored `backend/data/raw/`; skips datasets already present; key values scrubbed from any error text) and `backend/scripts/build_processed.py` (raw → `backend/data/processed/`, committed, 1.3 MB). Modules in `backend/clearinghouse/data/` (`eia930`, `egrid`, `fuel_prices`, `curtailment`, `days`, `timebase`), each with `build_*()` and a cached `load_*()`. Missing values stay NaN.
+- **Sources:** EIA-930 six-month bulk files (no key); eGRID2023 rev2 (PLNT23 + GEN23); EIA API v2 Texas monthly fuel cost (Electric Power sector 98 for coal/gas; sector 1 for oil, withheld in 98); ERCOT NP3-965-ER 60-day SCED disclosure (curtailment); ERCOT NP4-732/737 (validation).
+- **Time base (decision):** the model day is 24 hourly slots in fixed CST (UTC-6), midnight to midnight, every day (no DST). During daylight saving time slot h is wall-clock hour h+1 CDT. Tested on known rows, including both DST transitions.
+- **Curtailment (decision): modeled** from ERCOT NP3-965-ER 60-day SCED as Σ max(0, HSL − base point) per 15-min snapshot, averaged to hours (ERCOT-instructed curtailment, conservative). Validated against NP4-732/737 where they overlap (`docs/results/curtailment_validation.json`): output correlation 0.9997 wind / 0.9985 solar, HSL correlation 0.9998 / 0.9999; NP4's HSL − output measure is ~25% higher because it also counts under-performance. 2024 curtailment: wind 5.46 TWh, solar 3.16 TWh (mean 610 / 358 MW, max 9.9 / 10.3 GW).
+
+Checks (`uv run pytest -q` → 53 passed; ruff clean):
+- EIA-930 2024: 8,784 hours, 365/366 CST days complete (≥360), 0.011% incomplete hours (<2%). Gap list: 2024-03-28 14:00 CST (interchange only).
+- Demand 36.2–85.5 GW, mean 52.8 GW — 100% inside 20–90 GW.
+- Fuel sum within 2% of net generation for 100.00% of 2024 hours (max deviation 0.18%).
+- eGRID ERCOT fossil: 299 plants (82.0 GW); 283 used (80.8 GW: coal 10 / 15.6 GW, gas 247 / 64.9 GW, oil 26 / 0.26 GW), all with capacity, heat rate and CO2 rate > 0. Imputed 3 (Decordova, Morgan Creek, Greens Bayou: CO2 = heat rate × 53.06 kg/MMBtu); excluded 16 (1.2 GW; no 2023 generation or heat input, e.g. J T Deely retired). Every plant and reason: `docs/results/plant_exclusions.json`. 26 CHP plants have heat rates < 6 MMBtu/MWh as published by eGRID (flagged in `data_note`).
+- Fuel emission factors (generation-weighted eGRID, t/MWh): coal 1.0545, gas 0.3943, oil 1.3129, other 0.1820, zero-carbon 0 (`fuel_emission_factors.json`).
+- Fuel prices present for all 2024 months (gas $1.47–3.97/MMBtu, coal $1.87–2.08).
+- Curtailment: all 8,784 hours of 2024 present, no gaps, all ≥ 0.
+
+**Pre-registered day split** (`backend/data/processed/days.json`, fixed seeds, built before any simulator code existed). 363 candidate days (excluded 2024-03-28 missing interchange; 2024-08-22/23 precaution).
+- Demo days (by input-data rules): 2024-03-29 windy spring night (overnight wind 25.7 GW, 67% of demand); 2024-04-11 sunny mild day (solar 18% of demand, mean demand 43.4 GW); 2024-08-20 summer heat peak (peak 85.5 GW); 2024-01-16 cold winter morning (06-09 demand 77.8 GW).
+- Herding-gate days (7, used for nothing else): 2024-02-03, 03-18, 03-27, 04-24, 04-27, 09-03, 11-29.
+- Calibration: 248 train / 104 holdout (70/30 stratified by month). Demo, gate and holdout days are never trained on.
+- Forecast (M4): train before 2024-10-01 CST, test 2024-10-01..2024-12-31.

@@ -1,0 +1,68 @@
+{
+  "units": "metric tons CO2 per MWh",
+  "source": "EPA eGRID2023 rev2, ERCOT (BACODE ERCO) plants",
+  "eia930_column_map": {
+    "coal": "coal_mw",
+    "gas": "gas_mw",
+    "oil": "oil_mw",
+    "other": "other_mw",
+    "nuclear": "nuclear_mw",
+    "hydro": "hydro_mw",
+    "wind": "wind_mw",
+    "solar": "solar_mw",
+    "storage": "storage_mw",
+    "unknown": "unknown_mw"
+  },
+  "factors": {
+    "coal": 1.05452,
+    "gas": 0.39433,
+    "oil": 1.31288,
+    "other": 0.18196,
+    "nuclear": 0.0,
+    "hydro": 0.0,
+    "wind": 0.0,
+    "solar": 0.0,
+    "storage": 0.0,
+    "unknown": 0.39433
+  },
+  "detail": {
+    "coal": {
+      "plants": 10,
+      "gen_twh": 62.518,
+      "basis": "plants.parquet (generation-weighted)"
+    },
+    "gas": {
+      "plants": 247,
+      "gen_twh": 229.432,
+      "basis": "plants.parquet (generation-weighted)"
+    },
+    "oil": {
+      "plants": 26,
+      "gen_twh": 0.14,
+      "basis": "plants.parquet (generation-weighted)"
+    },
+    "other": {
+      "plants": 16,
+      "gen_twh": 5.937,
+      "basis": "generation-weighted eGRID CO2 output rate of ERCOT plants with PLFUELCT in {BIOMASS, OFSL, OTHF} and positive 2023 generation; missing rates (batteries, waste heat) count as 0; biomass CO2 as reported by eGRID (0 for most). Dominated by Channel Energy Center (other gases). EIA-930 'other' is ~0.2 GW in ERCO, so this choice moves hourly CO2 by well under 1%."
+    },
+    "nuclear": {
+      "basis": "no direct combustion emissions (storage: charging emissions are counted when the charging energy is generated)"
+    },
+    "hydro": {
+      "basis": "no direct combustion emissions (storage: charging emissions are counted when the charging energy is generated)"
+    },
+    "wind": {
+      "basis": "no direct combustion emissions (storage: charging emissions are counted when the charging energy is generated)"
+    },
+    "solar": {
+      "basis": "no direct combustion emissions (storage: charging emissions are counted when the charging energy is generated)"
+    },
+    "storage": {
+      "basis": "no direct combustion emissions (storage: charging emissions are counted when the charging energy is generated)"
+    },
+    "unknown": {
+      "basis": "never reported by ERCO in EIA-930; set to the gas factor if ever needed"
+    }
+  }
+}

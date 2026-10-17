@@ -1,0 +1,23 @@
+{
+  "note": "SCED (NP3-965-ER) vs NP4-732/737 system-wide hourly reports, overlapping hours only. Curtailment: SCED = sum(max(0, HSL - Base Point)); NP4 = max(0, HSLSystemWide - genSystemWide).",
+  "wind": {
+    "overlap_hours_output": 10224,
+    "corr_telemetered_vs_np4_gen": 0.9997,
+    "overlap_hours_hsl": 3085,
+    "hsl_overlap_first_utc": "2024-09-24 16:00:00+00:00",
+    "corr_sced_hsl_vs_np4_hsl": 0.9998,
+    "curtailment_sced_twh": 2.047,
+    "curtailment_np4_twh": 2.867,
+    "corr_curtailment": 0.9805
+  },
+  "solar": {
+    "overlap_hours_output": 10018,
+    "corr_telemetered_vs_np4_gen": 0.9985,
+    "overlap_hours_hsl": 3085,
+    "hsl_overlap_first_utc": "2024-09-24 16:00:00+00:00",
+    "corr_sced_hsl_vs_np4_hsl": 0.9999,
+    "curtailment_sced_twh": 1.156,
+    "curtailment_np4_twh": 1.465,
+    "corr_curtailment": 0.9501
+  }
+}
