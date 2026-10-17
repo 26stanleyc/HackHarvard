@@ -1,0 +1,70 @@
+{
+  "ercot_wind": {
+    "days_with_posting": 417,
+    "days_total": 428,
+    "missing_days": [
+      "2023-12-01",
+      "2023-12-02",
+      "2023-12-03",
+      "2023-12-04",
+      "2023-12-05",
+      "2023-12-06",
+      "2023-12-07",
+      "2023-12-08",
+      "2023-12-09",
+      "2023-12-10",
+      "2023-12-11"
+    ],
+    "posting_minutes_before_issue": {
+      "min": 4.1,
+      "median": 4.8,
+      "max": 4.9
+    }
+  },
+  "ercot_solar": {
+    "days_with_posting": 417,
+    "days_total": 428,
+    "missing_days": [
+      "2023-12-01",
+      "2023-12-02",
+      "2023-12-03",
+      "2023-12-04",
+      "2023-12-05",
+      "2023-12-06",
+      "2023-12-07",
+      "2023-12-08",
+      "2023-12-09",
+      "2023-12-10",
+      "2023-12-11"
+    ],
+    "posting_minutes_before_issue": {
+      "min": 3.6,
+      "median": 4.8,
+      "max": 4.9
+    }
+  },
+  "om_wind100": {
+    "hours": 8400,
+    "of_hours": 10272,
+    "first": "2024-02-17 00:00 CST",
+    "last_missing": "2024-02-16 23:00 CST"
+  },
+  "om_wind_power": {
+    "hours": 8400,
+    "of_hours": 10272,
+    "first": "2024-02-17 00:00 CST",
+    "last_missing": "2024-02-16 23:00 CST"
+  },
+  "om_ghi": {
+    "hours": 9067,
+    "of_hours": 10272,
+    "first": "2024-01-20 05:00 CST",
+    "last_missing": "2024-01-20 04:00 CST"
+  },
+  "om_temp": {
+    "hours": 9755,
+    "of_hours": 10272,
+    "first": "2023-12-01 00:00 CST",
+    "last_missing": "2024-01-20 05:00 CST"
+  }
+}

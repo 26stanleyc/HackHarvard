@@ -4,6 +4,9 @@
 on the test period, (c) empty CHALK_* -> local provider with source "local", (d) one-day
 forecast under 500 ms and cached, (e) Chalk REST request construction with a mock transport
 (no network). Needs ``scripts/train_forecast.py`` to have been run (artifacts + metrics json).
+M10 additions: candidate selection by training CV only, the adoption rule, the default artifacts,
+and the provider ignoring forecast inputs for slots after the target day. Leakage checks of the
+forecast inputs themselves are in ``test_forecast_inputs.py``.
 """
 
 from __future__ import annotations
@@ -168,6 +171,52 @@ def test_demand_model_mape_beats_yesterday_baseline():
         f"demand MAPE model {d['model']['mape_pct']:.3f}% vs yesterday "
         f"{d['yesterday']['mape_pct']:.3f}% (strict 2-day persistence "
         f"{d['persistence_2d']['mape_pct']:.3f}%)")
+
+
+# --- M10: selection, adoption rule, default artifacts ----------------------------------------
+
+
+def test_m10_chosen_by_training_cv_and_adoption_rule_applied():
+    m = json.loads(METRICS.read_text())
+    m10 = m["m10"]
+    for t in F.TARGETS:
+        r = m10["results"][t]
+        cv = r["cv_selection"]
+        assert r["chosen"] == min(cv, key=lambda n: cv[n]["mae_mw"])
+        assert r["test"]["m4"] == m["results"][t]["model"]  # M4 reproduced exactly
+    wind = m10["results"]["wind"]
+    adopted = wind["test"][wind["chosen"]]["mae_mw"] < m["results"]["wind"]["model"]["mae_mw"]
+    assert m10["adopted"] is adopted
+    assert m["default_model"] == ("M10" if adopted else "M4")
+
+
+def test_default_artifacts_match_default_model_and_demand_beats_yesterday():
+    m = json.loads(METRICS.read_text())
+    spec = json.loads((M.ARTIFACT_DIR / M.SPEC_FILE).read_text())
+    assert spec["model_set"] == m["default_model"]
+    specs = M.specs_from(spec)
+    if m["default_model"] == "M4":
+        assert specs == M.SPECS
+        return
+    for t in F.TARGETS:
+        chosen = m["m10"]["results"][t]["chosen"]
+        assert specs[t] == {"m4": M.SPECS[t], **M.m10_candidates(t)}[chosen]
+    d = m["m10"]["results"]["demand"]
+    assert d["test"][d["chosen"]]["mape_pct"] < d["test"]["yesterday"]["mape_pct"]
+
+
+def test_provider_ignores_forecast_inputs_for_later_slots(local):
+    from clearinghouse.data.forecast_inputs import load_forecast_inputs
+
+    date = "2024-11-04"
+    fin = load_forecast_inputs().copy()
+    late = fin["ts_cst"] >= pd.Timestamp("2024-11-05 00:00")
+    cols = list(F.EXOG_SERIES)
+    fin.loc[late, cols] = fin.loc[late, cols] * 3.0 + 1234.0
+    a = local.get_forecast("ERCO", date)
+    b = LocalForecastProvider(forecast_inputs=fin).get_forecast("ERCO", date)
+    for name in HOURLY_FIELDS:
+        np.testing.assert_array_equal(getattr(a, name), getattr(b, name))
 
 
 # --- (c) provider switch ---------------------------------------------------------------------

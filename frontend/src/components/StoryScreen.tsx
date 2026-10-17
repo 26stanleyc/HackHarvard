@@ -255,7 +255,7 @@ export function CredibilityStrip({
           <div className="kicker mb-1.5">Forecast</div>
           <div className="text-sm text-ink" data-testid="forecast-source">{forecastSourceText(forecast)}</div>
           <div className="mt-0.5 text-xs text-muted">
-            next-24h demand, wind, solar · gradient boosting on EIA-930 history
+            next-24h demand, wind, solar · gradient boosting; inputs under Data sources
             {forecast ? " · latency = this request's forecast call" : ""}
           </div>
         </div>
@@ -265,12 +265,25 @@ export function CredibilityStrip({
         <ul className="grid gap-x-6 gap-y-0.5 text-xs text-ink-2 md:grid-cols-2">
           {meta.data_sources.map((s) => (
             <li key={s} className="break-words">
-              {s}
+              {linkify(s)}
             </li>
           ))}
         </ul>
         <Source className="mt-2">GET /api/meta{API_MODE === "fixture" ? " · fixture: recorded response" : ""}</Source>
       </div>
     </section>
+  );
+}
+
+/** Renders URLs in a data-source line as links (Open-Meteo's CC BY 4.0 terms ask for a link). */
+function linkify(text: string) {
+  return text.split(/(https?:\/\/[^\s,)]+)/).map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a key={i} href={part} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+        {part}
+      </a>
+    ) : (
+      part
+    ),
   );
 }

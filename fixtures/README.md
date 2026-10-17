@@ -29,6 +29,6 @@ engine's 1% blocks, aggregated to at most 200 steps (several entries may share a
 `forecast.latency_ms` is the measured wall time of that request's forecast call, so it changes
 on every regeneration.
 
-Example-scenario outcome at generation time: total CO2 default 96,347 t, independent_average 96,347 t, independent_marginal 96,347 t, coordinated 96,347 t; fallback_fired=false; total avoided vs independent_marginal 0.0 t; payouts $0 of $100,000.
+Example-scenario outcome at generation time: total CO2 default 96,343 t, independent_average 96,343 t, independent_marginal 96,343 t, coordinated 96,343 t; fallback_fired=false; total avoided vs independent_marginal 0.0 t; payouts $0 of $100,000.
 
 `backend/tests/test_fixtures_schema.py` validates every file here.

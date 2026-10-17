@@ -1,0 +1,133 @@
+{
+  "method": "6 k-means centroids (lat/lon, weighted by nameplate MW, random_state=0) of eGRID2023 ERCOT plants per fuel; weight = cluster nameplate share. Load centers weighted by 2020 Census MSA population.",
+  "wind": [
+    {
+      "id": "wind_0",
+      "lat": 31.133,
+      "lon": -101.61,
+      "capacity_mw": 4822.5,
+      "n_plants": 22,
+      "weight": 0.130161
+    },
+    {
+      "id": "wind_1",
+      "lat": 27.136,
+      "lon": -98.007,
+      "capacity_mw": 8496.0,
+      "n_plants": 42,
+      "weight": 0.229309
+    },
+    {
+      "id": "wind_2",
+      "lat": 33.431,
+      "lon": -99.261,
+      "capacity_mw": 6246.3,
+      "n_plants": 30,
+      "weight": 0.168589
+    },
+    {
+      "id": "wind_3",
+      "lat": 34.755,
+      "lon": -101.605,
+      "capacity_mw": 4558.8,
+      "n_plants": 25,
+      "weight": 0.123043
+    },
+    {
+      "id": "wind_4",
+      "lat": 32.323,
+      "lon": -100.735,
+      "capacity_mw": 10411.6,
+      "n_plants": 52,
+      "weight": 0.281012
+    },
+    {
+      "id": "wind_5",
+      "lat": 32.017,
+      "lon": -97.706,
+      "capacity_mw": 2515.2,
+      "n_plants": 13,
+      "weight": 0.067886
+    }
+  ],
+  "solar": [
+    {
+      "id": "solar_0",
+      "lat": 29.28,
+      "lon": -95.969,
+      "capacity_mw": 2088.2,
+      "n_plants": 14,
+      "weight": 0.137002
+    },
+    {
+      "id": "solar_1",
+      "lat": 32.428,
+      "lon": -100.288,
+      "capacity_mw": 3027.4,
+      "n_plants": 16,
+      "weight": 0.198621
+    },
+    {
+      "id": "solar_2",
+      "lat": 31.495,
+      "lon": -102.761,
+      "capacity_mw": 5127.4,
+      "n_plants": 31,
+      "weight": 0.336397
+    },
+    {
+      "id": "solar_3",
+      "lat": 33.28,
+      "lon": -96.046,
+      "capacity_mw": 1939.1,
+      "n_plants": 23,
+      "weight": 0.12722
+    },
+    {
+      "id": "solar_4",
+      "lat": 28.258,
+      "lon": -98.944,
+      "capacity_mw": 1248.9,
+      "n_plants": 31,
+      "weight": 0.081938
+    },
+    {
+      "id": "solar_5",
+      "lat": 31.629,
+      "lon": -97.083,
+      "capacity_mw": 1811.1,
+      "n_plants": 22,
+      "weight": 0.118822
+    }
+  ],
+  "load": [
+    {
+      "id": "load_dallas_fort_worth",
+      "lat": 32.897,
+      "lon": -97.038,
+      "population_2020": 7637387,
+      "weight": 0.38964
+    },
+    {
+      "id": "load_houston",
+      "lat": 29.76,
+      "lon": -95.37,
+      "population_2020": 7122240,
+      "weight": 0.363358
+    },
+    {
+      "id": "load_san_antonio",
+      "lat": 29.424,
+      "lon": -98.494,
+      "population_2020": 2558143,
+      "weight": 0.13051
+    },
+    {
+      "id": "load_austin",
+      "lat": 30.267,
+      "lon": -97.743,
+      "population_2020": 2283371,
+      "weight": 0.116492
+    }
+  ]
+}

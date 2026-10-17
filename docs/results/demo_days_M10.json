@@ -1,0 +1,94 @@
+{
+  "model_set": "M10",
+  "scenario": "example scenario (one company per preset, default background/carbon price/pool)",
+  "days": {
+    "2024-03-29": {
+      "label": "Windy spring night",
+      "forecast_mae_mw": {
+        "demand": 866.3,
+        "wind": 611.4,
+        "solar": 1771.4
+      },
+      "total_co2_t": {
+        "default": 96343.4,
+        "independent_average": 96343.4,
+        "independent_marginal": 96343.4,
+        "coordinated": 96343.4
+      },
+      "coordinated_vs_default_t": 0.0,
+      "value_of_coordination_t": 0.0,
+      "fallback_fired": false,
+      "paid_usd": 0.0,
+      "herding_gap_t": {
+        "independent_average": 0.0,
+        "independent_marginal": 0.0
+      }
+    },
+    "2024-04-11": {
+      "label": "Sunny mild day",
+      "forecast_mae_mw": {
+        "demand": 501.3,
+        "wind": 794.6,
+        "solar": 461.9
+      },
+      "total_co2_t": {
+        "default": 298554.0,
+        "independent_average": 299726.5,
+        "independent_marginal": 299045.3,
+        "coordinated": 298802.8
+      },
+      "coordinated_vs_default_t": 248.8,
+      "value_of_coordination_t": 242.5,
+      "fallback_fired": false,
+      "paid_usd": 14370.0,
+      "herding_gap_t": {
+        "independent_average": 0.2,
+        "independent_marginal": 275.1
+      }
+    },
+    "2024-08-20": {
+      "label": "Summer heat peak",
+      "forecast_mae_mw": {
+        "demand": 586.2,
+        "wind": 743.2,
+        "solar": 152.2
+      },
+      "total_co2_t": {
+        "default": 620687.8,
+        "independent_average": 620386.5,
+        "independent_marginal": 618936.1,
+        "coordinated": 618936.1
+      },
+      "coordinated_vs_default_t": -1751.7,
+      "value_of_coordination_t": 0.0,
+      "fallback_fired": true,
+      "paid_usd": 4062.0,
+      "herding_gap_t": {
+        "independent_average": 35.3,
+        "independent_marginal": 203.7
+      }
+    },
+    "2024-01-16": {
+      "label": "Cold winter morning",
+      "forecast_mae_mw": {
+        "demand": 3939.0,
+        "wind": 769.6,
+        "solar": 790.2
+      },
+      "total_co2_t": {
+        "default": 714912.7,
+        "independent_average": 715357.9,
+        "independent_marginal": 714811.7,
+        "coordinated": 714851.4
+      },
+      "coordinated_vs_default_t": -61.3,
+      "value_of_coordination_t": -39.7,
+      "fallback_fired": false,
+      "paid_usd": 0.0,
+      "herding_gap_t": {
+        "independent_average": 243.8,
+        "independent_marginal": 5.1
+      }
+    }
+  }
+}

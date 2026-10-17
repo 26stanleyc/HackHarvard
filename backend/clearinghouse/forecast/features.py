@@ -20,8 +20,14 @@ slot is not available at ``as_of`` is set to NaN instead of being read (with ``a
 "same hour 1 day earlier" for target hours >= 10). Calendar features (hour, day of week, day of
 year, US federal holiday) are known in advance and read no data.
 
-No weather data is used (none is in the dataset), so wind and solar forecasts rely on
-persistence-type lags and calendar only.
+M4 used no weather data. M10 adds forecasts that were already PUBLISHED at ``as_of``
+(``clearinghouse.data.forecast_inputs``; ``EXOG_FEATURES``): ERCOT's wind/solar forecasts from the
+latest posting before ``as_of`` and Open-Meteo GFS forecasts with lead >= 48 h. They are indexed by
+their VALID time (the target slot), so their leakage contract is about publication time, not slot
+time: each value carries a source time in the same flat-index units (hours since the first day's
+00:00 CST) -- the ERCOT posting time, or the latest possible GFS run initialization plus a 12 h
+publication allowance -- and ``leakage_violations`` requires it to be before ``as_of`` like any
+other source.
 
 Series live on a flat hourly grid: index ``i = day * 24 + hour`` where ``day`` counts CST days
 from the first day of the processed EIA-930 window (2023-12-01).
@@ -64,7 +70,22 @@ DATA_FEATURES = (
     "lag2d_plus_diff",
     "lag2d_times_ratio",
 )
-FEATURES = (*CALENDAR_FEATURES, *DATA_FEATURES)
+FEATURES = (*CALENDAR_FEATURES, *DATA_FEATURES)  # M4
+
+# M10 forecast inputs (``clearinghouse.data.forecast_inputs``), per target.
+OM_PUBLICATION_ALLOWANCE_H = 12  # hours from GFS run initialization to publication (actual 4-6)
+EXOG_SERIES = ("ercot_stwpf", "ercot_wgrpp", "ercot_wind_cophsl", "ercot_stppf", "ercot_pvgrpp",
+               "ercot_solar_cophsl", "om_wind100", "om_wind_power", "om_ghi", "om_temp")
+EXOG_SOURCE = {"ercot_wind_posted_utc": "ercot_wind", "ercot_solar_posted_utc": "ercot_solar",
+               "om_run_init_max_utc": "om"}  # time column -> source-index series name suffix
+EXOG_BY_TARGET = {
+    "wind": ("ercot_stwpf", "ercot_wgrpp", "ercot_wind_cophsl", "om_wind100", "om_wind_power",
+             "wind_base_ercot"),
+    "solar": ("ercot_stppf", "ercot_pvgrpp", "ercot_solar_cophsl", "om_ghi", "solar_base_ercot"),
+    "demand": ("om_temp", "om_temp_prev", "om_temp_max", "om_temp_min"),
+}
+EXOG_FEATURES = tuple(f for t in TARGETS for f in EXOG_BY_TARGET[t])
+ALL_FEATURES = (*FEATURES, *EXOG_FEATURES)
 
 
 def as_of_index(day: np.ndarray | int, as_of_hour: int = AS_OF_HOUR) -> np.ndarray:
@@ -119,6 +140,31 @@ def make_grid(eia: pd.DataFrame, columns: tuple[str, ...] | None = None) -> Grid
     cols = columns or tuple(c for c in df.columns if c.endswith("_mw"))
     series = {c: df[c].to_numpy(dtype="float64").copy() for c in cols}
     return Grid(first_day=pd.Timestamp(dates[0]), dates=dates, series=series)
+
+
+def add_forecast_inputs(grid: Grid, inputs: pd.DataFrame) -> Grid:
+    """Add the M10 forecast-input series (values by valid slot) and their source-index series.
+
+    ``src_<name>`` holds, per valid slot, the time the value was available in flat-index units:
+    the ERCOT posting time, or the latest possible GFS run initialization + the publication
+    allowance. NaN where the value is missing.
+    """
+    fgrid = make_grid(inputs, EXOG_SERIES)
+    if fgrid.dates != grid.dates:
+        raise ValueError("EIA-930 and forecast-input tables cover different CST days")
+    grid.series.update(fgrid.series)
+    origin = pd.Timestamp(grid.first_day, tz="UTC") + pd.Timedelta(hours=6)  # day 0 00:00 CST
+    df = inputs.sort_values("ts_utc")
+    for col, name in EXOG_SOURCE.items():
+        hours = (pd.to_datetime(df[col], utc=True) - origin) / pd.Timedelta(hours=1)
+        if name == "om":
+            hours = hours + OM_PUBLICATION_ALLOWANCE_H
+        grid.series[f"src_{name}"] = hours.to_numpy(dtype="float64")
+    return grid
+
+
+def has_forecast_inputs(grid: Grid) -> bool:
+    return all(c in grid.series for c in EXOG_SERIES)
 
 
 def _take(values: np.ndarray, idx: np.ndarray, avail_before: np.ndarray) -> np.ndarray:
@@ -216,11 +262,52 @@ def build_features(grid: Grid, target: str, days: np.ndarray,
     for name in CALENDAR_FEATURES:
         src[name] = np.full(len(t), np.nan)
 
-    X = pd.DataFrame({name: feats[name] for name in FEATURES})
+    _exog_features(grid, feats, src, d, t, a)
+
+    X = pd.DataFrame({name: feats[name] for name in ALL_FEATURES})
     X.insert(0, "hour_slot", h)
     X.insert(0, "day", d)
-    S = pd.DataFrame({name: src[name] for name in FEATURES})
+    S = pd.DataFrame({name: src[name] for name in ALL_FEATURES})
     return X, S
+
+
+def _exog_features(grid: Grid, feats: dict, src: dict, d: np.ndarray, t: np.ndarray,
+                   a: np.ndarray) -> None:
+    """M10 features. A value whose source time is not before ``as_of`` is masked (NaN), like an
+    unavailable lag; everything is NaN, with no source, when the grid has no forecast inputs."""
+    n = len(t)
+    if not has_forecast_inputs(grid):
+        for name in EXOG_FEATURES:
+            feats[name], src[name] = np.full(n, np.nan), np.full(n, np.nan)
+        return
+    s = grid.series
+
+    def put(name: str, col: str, idx: np.ndarray, src_name: str) -> None:
+        sv = s[f"src_{src_name}"][idx]
+        v = np.where(sv < a, s[col][idx], np.nan)
+        feats[name] = v
+        src[name] = np.where(np.isfinite(v), sv, np.nan)
+
+    for col in ("ercot_stwpf", "ercot_wgrpp", "ercot_wind_cophsl"):
+        put(col, col, t, "ercot_wind")
+    for col in ("ercot_stppf", "ercot_pvgrpp", "ercot_solar_cophsl"):
+        put(col, col, t, "ercot_solar")
+    for col in ("om_wind100", "om_wind_power", "om_ghi", "om_temp"):
+        put(col, col, t, "om")
+    put("om_temp_prev", "om_temp", t - HOURS, "om")  # same slot on D-1, same lead rule
+    day_idx = d[:, None] * HOURS + np.arange(HOURS)[None, :]
+    with np.errstate(all="ignore"):
+        for name, agg in (("om_temp_max", np.max), ("om_temp_min", np.min)):
+            sv = np.max(s["src_om"][day_idx], axis=1)
+            v = np.where(sv < a, agg(s["om_temp"][day_idx], axis=1), np.nan)  # NaN if any missing
+            feats[name] = v
+            src[name] = np.where(np.isfinite(v), sv, np.nan)
+    # Candidate bases: ERCOT's forecast, or the M4 base on days without a posting.
+    for name, col, fallback in (("wind_base_ercot", "ercot_stwpf", "mean24h"),
+                                ("solar_base_ercot", "ercot_stppf", "same_hour_latest")):
+        ok = np.isfinite(feats[col])
+        feats[name] = np.where(ok, feats[col], feats[fallback])
+        src[name] = np.where(ok, src[col], src[fallback])
 
 
 def target_values(grid: Grid, target: str, days: np.ndarray) -> np.ndarray:

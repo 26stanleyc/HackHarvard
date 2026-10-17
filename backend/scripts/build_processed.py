@@ -6,7 +6,7 @@ Usage (from backend/)::
 
 Raw inputs: backend/data/raw (gitignored; fetch with scripts/download_data.py).
 Outputs: backend/data/processed/*.parquet + *.json (committed), docs/results/plant_exclusions.json,
-docs/results/curtailment_validation.json.
+docs/results/curtailment_validation.json, docs/results/forecast_inputs_coverage.json (M10).
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 
 from clearinghouse.config import DATA_PROCESSED
-from clearinghouse.data import curtailment, days, egrid, eia930, fuel_prices
+from clearinghouse.data import curtailment, days, egrid, eia930, forecast_inputs, fuel_prices
 
 
 def _step(name, fn, *args):
@@ -95,7 +95,9 @@ def main() -> None:
     curt = _step("curtailment", curtailment.build_curtailment)
     validation = _step("curtailment NP4 validation", curtailment.validate_against_np4, curt)
     split = _step("days", days.build_days, eia, curt)
+    _, coverage = _step("forecast inputs (M10)", forecast_inputs.build_forecast_inputs)
     summarize(eia, plants, prices, curt, split, validation)
+    print(f"Forecast inputs (M10) coverage: {coverage}")
 
 
 if __name__ == "__main__":

@@ -6,7 +6,9 @@ constructor; forecasts are cached per date, so a repeat call for the same day is
 
 Issue time: 00:00 CST on the target day (``features.AS_OF_RULE``). The persistence inputs come
 from the previous CST day, which has fully elapsed by then, so every number in a result uses
-only data available at ``as_of``.
+only data available at ``as_of``. The M10 forecast inputs (ERCOT postings before ``as_of``,
+Open-Meteo GFS forecasts with lead >= 48 h) are always loaded; the models in the artifact
+directory decide which features are used (``model.specs_from``).
 """
 
 from __future__ import annotations
@@ -21,6 +23,7 @@ import pandas as pd
 
 from clearinghouse.data.curtailment import load_curtailment
 from clearinghouse.data.eia930 import load_eia930
+from clearinghouse.data.forecast_inputs import load_forecast_inputs
 from clearinghouse.forecast import features as F
 from clearinghouse.forecast import model as M
 from clearinghouse.forecast.provider import (
@@ -45,17 +48,26 @@ class LocalForecastProvider(ForecastProvider):
     source = "local"
 
     def __init__(self, artifact_dir: Path = M.ARTIFACT_DIR, eia: pd.DataFrame | None = None,
-                 curtailment: pd.DataFrame | None = None):
+                 curtailment: pd.DataFrame | None = None,
+                 forecast_inputs: pd.DataFrame | None = None):
         if F.AS_OF_HOUR != HOURS:
             raise RuntimeError("persistence inputs assume as_of = 00:00 CST on the target day")
         self.models, self.spec = M.load(artifact_dir)
+        self.specs = M.specs_from(self.spec)
         eia = load_eia930() if eia is None else eia
         curt = load_curtailment() if curtailment is None else curtailment
+        fin = load_forecast_inputs() if forecast_inputs is None else forecast_inputs
         self.grid = F.make_grid(eia)
         cgrid = F.make_grid(curt, ("wind_curtailed_mw", "solar_curtailed_mw"))
         if cgrid.dates != self.grid.dates:
             raise ValueError("EIA-930 and curtailment tables cover different CST days")
         self.grid.series.update(cgrid.series)
+        F.add_forecast_inputs(self.grid, fin)
+        uses_inputs = any(f in F.EXOG_FEATURES for s in self.specs.values() for f in s.features)
+        self._ml_method = ("HistGradientBoosting day-ahead model, features from slots before "
+                           "as_of" + (" plus ERCOT wind/solar forecasts from the latest posting "
+                                      "before as_of and Open-Meteo GFS forecasts (lead >= 48 h)"
+                                      if uses_inputs else " (no weather data)"))
         self._cache: dict[str, ForecastResult] = {}
         self._lock = threading.Lock()
 
@@ -110,7 +122,7 @@ class LocalForecastProvider(ForecastProvider):
         fc = {}
         for target in F.TARGETS:
             X, _ = F.build_features(g, target, days)
-            fc[target] = M.predict(self.models[target], M.SPECS[target], X)
+            fc[target] = M.predict(self.models[target], self.specs[target], X)
 
         src = self._source_index(d)
         persisted = {name: sign * self._persist(g.series[col], src, name in OPTIONAL)
@@ -130,8 +142,7 @@ class LocalForecastProvider(ForecastProvider):
             demand_mw=fc["demand"], wind_mw=fc["wind"], solar_mw=fc["solar"],
             curtailed_mw=curtailed, **persisted,
             methods={
-                "demand_wind_solar": "HistGradientBoosting day-ahead model, features from slots "
-                                     "before as_of (no weather data)",
+                "demand_wind_solar": self._ml_method,
                 "nuclear_hydro_other_storage_net_imports": f"persistence: {src_note}",
                 "curtailed": f"persistence of curtailment fraction of wind+solar ({src_note}) "
                              "applied to forecast wind+solar, clipped to [0, wind+solar]",

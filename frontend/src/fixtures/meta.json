@@ -38,7 +38,8 @@
     "EPA eGRID2023 rev2 plant data (PLNT23 + GEN23): ERCOT fossil plant capacity, heat rate, CO2 rate and names",
     "EIA API v2 monthly Texas fuel cost for power plants (coal and gas: Electric Power sector 98; oil: sector 1)",
     "ERCOT NP3-965-ER 60-day SCED disclosure: modeled wind and solar curtailment (HSL minus base point), validated against ERCOT NP4-732/737",
-    "Forecast: local gradient-boosted model on EIA-930 history, issued 00:00 CST on the day (day-ahead demand, wind, solar; Chalk credentials pending)",
+    "Forecast: local gradient-boosted model on EIA-930 history, issued 00:00 CST on the day (day-ahead demand, wind, solar; Chalk credentials pending); inputs also include ERCOT's own wind and solar forecasts (NP4-732/737, latest posting before the issue time) and archived GFS weather forecasts (lead >= 48 h)",
+    "Weather data by Open-Meteo.com (https://open-meteo.com/, CC BY 4.0): archived GFS forecasts from the Previous Runs API (100 m wind, solar radiation, 2 m temperature) at capacity-weighted ERCOT wind and solar sites and 4 load centers",
     "CAMPD validation skipped (api.data.gov key pending); validation (b) uses EIA-930 fuel mix x eGRID emission factors",
     "Simulator calibrated on 248 training days, validated on 104 held-out days (2024)",
     "Illustrative defaults: carbon price $50/t, payout pool $100,000, background flexible load 10% of forecast peak"

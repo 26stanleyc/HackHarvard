@@ -12,6 +12,7 @@ slot END in UTC). ``src/vendor/`` is generated: it is gitignored.
 
 from __future__ import annotations
 
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -34,6 +35,13 @@ REWRITES = {
 
 
 def main() -> None:
+    spec = json.loads((BACKEND / "data" / "processed" / "forecast" / "feature_spec.json")
+                      .read_text())
+    if spec.get("model_set", "M4") != "M4":
+        # M10 models read forecast inputs (ERCOT postings, Open-Meteo forecasts) indexed by valid
+        # time; the Chalk resolvers only serve history with ts <= now, so they would get NaN.
+        raise SystemExit("the default forecast artifacts are M10 (forecast inputs), which this "
+                         "Chalk project does not serve yet; src/vendor/ keeps the M4 snapshot")
     if VENDOR.exists():
         shutil.rmtree(VENDOR)
     (VENDOR / "data").mkdir(parents=True)

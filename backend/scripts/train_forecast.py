@@ -1,4 +1,4 @@
-"""M4: train the day-ahead forecast models, save artifacts, write test metrics.
+"""M4 + M10: train the day-ahead forecast models, save artifacts, write test metrics.
 
     uv run python scripts/train_forecast.py
 
@@ -18,9 +18,16 @@
   with as_of = 10:00 CST on D-1. Rejected because the yesterday baseline then uses D-1 data after
   the issue time (inconsistent comparison). The M4 check is judged on the adopted setting only.
 
-Outputs: ``backend/data/processed/forecast/{demand,wind,solar}.joblib`` + ``feature_spec.json``;
-``docs/results/forecast_metrics.json``. Deterministic (fixed seeds; sklearn HGB is
-deterministic for fixed data and random_state).
+M10 (design M10; pre-registered there): the same split and baselines. Per target, candidates
+{M4, M10-A (M4 spec + forecast inputs), M10-B (A with ERCOT's forecast as base; wind and solar)}
+are compared by blocked monthly CV inside the training period only, and the lowest CV MAE is
+chosen. Test metrics are then reported for every candidate (the chosen one is flagged; the test
+period chooses nothing). Adoption rule: the M10 set becomes the default artifacts iff its test
+wind MAE is below M4's; otherwise the M4 models are saved as the default.
+
+Outputs: ``backend/data/processed/forecast/{demand,wind,solar}.joblib`` + ``feature_spec.json``
+(the default model set); ``docs/results/forecast_metrics.json``. Deterministic (fixed seeds;
+sklearn HGB is deterministic for fixed data and random_state).
 """
 
 from __future__ import annotations
@@ -35,6 +42,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from clearinghouse.config import RESULTS_DIR  # noqa: E402
 from clearinghouse.data import load_days, load_eia930  # noqa: E402
+from clearinghouse.data.forecast_inputs import load_forecast_inputs  # noqa: E402
 from clearinghouse.forecast import features as F  # noqa: E402
 from clearinghouse.forecast import model as M  # noqa: E402
 
@@ -80,6 +88,12 @@ def blocked_monthly_cv(grid: F.Grid, spec: M.ModelSpec, days: np.ndarray,
         model = M.fit(spec, X[tr], y[tr])
         pred[te] = M.predict(model, spec, X[te])
     return pred
+
+
+def blocked_monthly_cv_mae(grid, spec, days, as_of_hour, daylight):
+    oof = blocked_monthly_cv(grid, spec, days, as_of_hour)
+    y = F.target_values(grid, spec.target, days)
+    return metrics(y, oof, spec.target, daylight), oof
 
 
 def run(as_of_hour: int, grid: F.Grid, train_days: np.ndarray, test_days: np.ndarray,
@@ -130,6 +144,57 @@ def run(as_of_hour: int, grid: F.Grid, train_days: np.ndarray, test_days: np.nda
     return models, results
 
 
+def m10(grid: F.Grid, train_days: np.ndarray, test_days: np.ndarray, m4: dict,
+        demo: dict[str, int]) -> tuple[dict, dict, dict]:
+    """M10 candidate selection (training CV only), test metrics, demo-day errors."""
+    models, specs, out = {}, {}, {}
+    for target in F.TARGETS:
+        col = F.SERIES_COL[target]
+        Xtr, Str = F.build_features(grid, target, train_days)
+        Xte, Ste = F.build_features(grid, target, test_days)
+        for X, S in ((Xtr, Str), (Xte, Ste)):
+            bad = F.leakage_violations(X, S)
+            if bad:
+                raise AssertionError(f"leakage in {target}: {bad[:3]}")
+        ytr = F.target_values(grid, target, train_days)
+        yte = F.target_values(grid, target, test_days)
+        dl_tr = DAYLIGHT_FRACTION * float(ytr.max()) if target == "solar" else None
+        dl_te = DAYLIGHT_FRACTION * float(yte.max()) if target == "solar" else None
+        cands = {"m4": M.SPECS[target], **M.m10_candidates(target)}
+        cv, oof, test, fitted = {}, {}, {}, {}
+        for name, spec in cands.items():
+            cv[name], oof[name] = blocked_monthly_cv_mae(grid, spec, train_days, F.AS_OF_HOUR,
+                                                         dl_tr)
+            fitted[name] = M.fit(spec, Xtr, ytr)
+            test[name] = metrics(yte, M.predict(fitted[name], spec, Xte), target, dl_te)
+        chosen = min(cands, key=lambda n: cv[n]["mae_mw"])
+        models[target], specs[target] = fitted[chosen], cands[chosen]
+        r = {"cv_selection": {n: cv[n] for n in cands}, "chosen": chosen,
+             "test": {**{n: test[n] for n in cands},
+                      "yesterday": metrics(yte, shifted(grid, col, test_days, 1), target, dl_te)}}
+        ref = {"wind": "ercot_stwpf", "solar": "ercot_stppf"}.get(target)
+        if ref is not None:
+            v = Xte[ref].to_numpy()
+            ok = np.isfinite(v)
+            r["test"][f"{ref}_direct_reference"] = {
+                **metrics(yte[ok], v[ok], target, dl_te), "hours": int(ok.sum()),
+                "note": "ERCOT forecast of uncurtailed potential, used directly as a forecast of "
+                        "EIA-930 output; reference only"}
+        # Demo days are inside the training period: in-sample (fit on all training days) vs
+        # out-of-fold (blocked CV) MAE on those days, chosen spec and M4.
+        rows = {k: np.flatnonzero(np.repeat(train_days, F.HOURS) == d) for k, d in demo.items()}
+        r["demo_days_mae_mw"] = {}
+        for n in dict.fromkeys(("m4", chosen)):
+            ins = M.predict(fitted[n], cands[n], Xtr)
+            r["demo_days_mae_mw"][n] = {
+                k: {"in_sample": round(float(np.mean(np.abs(ins[i] - ytr[i]))), 1),
+                    "out_of_fold": round(float(np.mean(np.abs(oof[n][i] - ytr[i]))), 1)}
+                for k, i in rows.items()}
+        out[target] = r
+    adopted = out["wind"]["test"][out["wind"]["chosen"]]["mae_mw"] < m4["wind"]["model"]["mae_mw"]
+    return models, specs, {"results": out, "adopted": bool(adopted)}
+
+
 def headline(r: dict, target: str) -> str:
     key = "mape_pct" if target != "solar" else "mape_daylight_pct"
     cells = []
@@ -142,6 +207,7 @@ def headline(r: dict, target: str) -> str:
 def main() -> None:
     eia = load_eia930()
     grid = F.make_grid(eia)
+    F.add_forecast_inputs(grid, load_forecast_inputs())
     split = load_days()["forecast_split"]
     first = F.MIN_HISTORY_DAYS
     train_end = grid.day_index(split["train_end_exclusive"])
@@ -158,7 +224,7 @@ def main() -> None:
     payload = {
         "milestone": "M4",
         "as_of_rule": F.AS_OF_RULE,
-        "weather_data": "none (not in the dataset); wind/solar rely on lags and calendar only",
+        "weather_data": "M4: none (wind/solar rely on lags and calendar only); M10: see m10.inputs",
         "model": "sklearn HistGradientBoostingRegressor, one per target (deviation from "
                  "LightGBM: its macOS wheel needs a system libomp that is not installed; "
                  "see model.py)",
@@ -195,7 +261,26 @@ def main() -> None:
             "results": rejected,
         },
     }
-    M.save(models, {"train_days": payload["train_days"], "test_days": payload["test_days"]})
+    demo = {x["date"]: grid.day_index(x["date"]) for x in load_days()["demo_days"]}
+    m10_models, m10_specs, m10_payload = m10(grid, train_days, test_days, results, demo)
+    adopted = m10_payload["adopted"]
+    payload["m10"] = {
+        "rule": "per target, lowest training-period blocked-CV MAE among {m4, m10_a_inputs, "
+                "m10_b_ercot_base}; M4 hyperparameters unchanged; test period chooses nothing",
+        "adoption_rule": "M10 becomes the default model set iff its test wind MAE < M4's",
+        "inputs": "ERCOT NP4-732/737 latest posting before as_of; Open-Meteo gfs_global "
+                  "*_previous_day2 (lead >= 48 h); see clearinghouse/data/forecast_inputs.py",
+        **m10_payload,
+    }
+    payload["default_model"] = "M10" if adopted else "M4"
+    default_specs = m10_specs if adopted else M.SPECS
+    default_models = m10_models if adopted else models
+    payload["default_specs"] = {t: s.base + " | " + ("+inputs" if any(
+        f in F.EXOG_FEATURES for f in s.features) else "M4 features")
+        for t, s in default_specs.items()}
+    M.save(default_models, {"train_days": payload["train_days"],
+                            "test_days": payload["test_days"],
+                            "model_set": payload["default_model"]}, specs=default_specs)
     METRICS_FILE.parent.mkdir(parents=True, exist_ok=True)
     METRICS_FILE.write_text(json.dumps(payload, indent=2) + "\n")
 
@@ -217,6 +302,17 @@ def main() -> None:
         print(f"{t:<7}| {headline(rejected[t], t)}")
     print(f"M4 demand criterion (model MAPE < yesterday MAPE): {'PASS' if passed else 'FAIL'} "
           f"({d['model']['mape_pct']:.3f}% vs {d['yesterday']['mape_pct']:.3f}%)")
+    print("\nM10 (CV MAE on training period -> chosen; test MAE MW / nMAE / MAPE%):")
+    for t in F.TARGETS:
+        r = m10_payload["results"][t]
+        cvs = ", ".join(f"{n} {v['mae_mw']:.0f}" for n, v in r["cv_selection"].items())
+        print(f"{t:<7} CV: {cvs} -> {r['chosen']}")
+        for n, m in r["test"].items():
+            key = "mape_pct" if t != "solar" else "mape_daylight_pct"
+            print(f"         test {n:<32} {m['mae_mw']:>7.0f} {m['nmae']:>6.3f} {m[key]:>7.2f}")
+        print(f"         demo days MAE (in-sample / out-of-fold): {r['demo_days_mae_mw']}")
+    print(f"M10 adoption (wind test MAE < M4): {'ADOPTED' if adopted else 'NOT ADOPTED'}; "
+          f"default model set = {payload['default_model']}")
     print(f"wrote {METRICS_FILE} and artifacts in {M.ARTIFACT_DIR}")
 
 

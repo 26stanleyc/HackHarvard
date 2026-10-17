@@ -14,12 +14,18 @@ relative to the base, plus the base itself.
 Configurations below were chosen ONLY by blocked monthly cross-validation inside the training
 period (each fold holds out one calendar month of Dec 2023 - Sep 2024 with a 14-day buffer); the
 test period (2024-10-01..2024-12-31) was not used for any choice. Fixed seeds, deterministic.
+
+M10 (``m10_candidates``): the same specs plus each target's forecast inputs
+(``features.EXOG_BY_TARGET``); for wind and solar also a variant whose base is ERCOT's own
+forecast. ``scripts/train_forecast.py`` picks per target by training-period CV only. The saved
+artifacts are self-describing: ``load`` returns the specs they were trained with
+(``specs_from``), so the provider never assumes which model set is the default.
 """
 
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, fields, replace
 from pathlib import Path
 
 import joblib
@@ -34,8 +40,11 @@ from clearinghouse.forecast import features as F
 ARTIFACT_DIR = DATA_PROCESSED / "forecast"
 SPEC_FILE = "feature_spec.json"
 SEED = 0
-# Features that are already scale-free / differences: never re-expressed relative to the base.
-_NO_RELATIVE = {*F.CALENDAR_FEATURES, "recent10h_ratio", "recent10h_diff", "last_obs_delta24"}
+# Features that are already scale-free / differences, or not in MW (weather): never re-expressed
+# relative to the base.
+_NO_RELATIVE = {*F.CALENDAR_FEATURES, "recent10h_ratio", "recent10h_diff", "last_obs_delta24",
+                "om_wind100", "om_wind_power", "om_ghi", "om_temp", "om_temp_prev", "om_temp_max",
+                "om_temp_min"}
 
 
 @dataclass(frozen=True)
@@ -74,6 +83,16 @@ SPECS: dict[str, ModelSpec] = {
                        max_iter=300, learning_rate=0.03, max_leaf_nodes=7, min_samples_leaf=200,
                        clip_min=0.0),
 }
+
+
+def m10_candidates(target: str) -> dict[str, ModelSpec]:
+    """M10 candidates for one target: M4 hyperparameters unchanged (no re-tuning)."""
+    m4 = SPECS[target]
+    a = replace(m4, features=(*m4.features, *F.EXOG_BY_TARGET[target]))
+    out = {"m10_a_inputs": a}
+    if target in ("wind", "solar"):
+        out["m10_b_ercot_base"] = replace(a, base=f"{target}_base_ercot")
+    return out
 
 
 def design_matrix(X: pd.DataFrame, spec: ModelSpec) -> tuple[np.ndarray, np.ndarray]:
@@ -133,7 +152,8 @@ def predict(model: HistGradientBoostingRegressor, spec: ModelSpec, X: pd.DataFra
 
 
 def save(models: dict[str, HistGradientBoostingRegressor], extra: dict,
-         out_dir: Path = ARTIFACT_DIR) -> None:
+         out_dir: Path = ARTIFACT_DIR, specs: dict[str, ModelSpec] | None = None) -> None:
+    specs = SPECS if specs is None else specs
     out_dir.mkdir(parents=True, exist_ok=True)
     for target, m in models.items():
         joblib.dump(m, out_dir / f"{target}.joblib", compress=3)
@@ -145,23 +165,36 @@ def save(models: dict[str, HistGradientBoostingRegressor], extra: dict,
         "as_of_hour_counted_on_d_minus_1": F.AS_OF_HOUR,
         "rejected_as_of": "10:00 CST on D-1 (yesterday baseline would use data after issue time)",
         "time_base": "fixed CST (UTC-6), 24 slots/day, slot h = [h:00, h+1:00)",
-        "features": list(F.FEATURES),
+        "features": list(F.ALL_FEATURES),
         "calendar_features": list(F.CALENDAR_FEATURES),
+        "forecast_input_features": {t: list(v) for t, v in F.EXOG_BY_TARGET.items()},
         "series_columns": F.SERIES_COL,
         "lag_days": list(F.LAG_DAYS),
         "same_hour_mean_days": list(F.SAME_HOUR_MEAN_DAYS),
         "windows_h": list(F.WINDOWS_H),
         "specs": {t: {**asdict(s), "features": list(s.features),
-                      "design_columns": column_names(s)} for t, s in SPECS.items()},
+                      "design_columns": column_names(s)} for t, s in specs.items()},
         **extra,
     }
     (out_dir / SPEC_FILE).write_text(json.dumps(spec, indent=2) + "\n")
 
 
+def specs_from(spec: dict) -> dict[str, ModelSpec]:
+    """The ModelSpec each saved model was trained with (from ``feature_spec.json``)."""
+    names = {f.name for f in fields(ModelSpec)}
+    out = {}
+    for t in F.TARGETS:
+        d = {k: v for k, v in spec["specs"][t].items() if k in names}
+        out[t] = ModelSpec(**{**d, "features": tuple(d["features"])})
+        unknown = ({*out[t].features, out[t].base}) - set(F.ALL_FEATURES)
+        if unknown:
+            raise ValueError(f"forecast artifacts use unknown features {sorted(unknown)}; "
+                             "re-run scripts/train_forecast.py")
+    return out
+
+
 def load(in_dir: Path = ARTIFACT_DIR) -> tuple[dict[str, HistGradientBoostingRegressor], dict]:
     spec = json.loads((in_dir / SPEC_FILE).read_text())
-    if spec.get("features") != list(F.FEATURES):
-        raise ValueError("forecast artifacts were trained with a different feature list; "
-                         "re-run scripts/train_forecast.py")
+    specs_from(spec)  # validates the feature names
     models = {t: joblib.load(in_dir / f"{t}.joblib") for t in F.TARGETS}
     return models, spec

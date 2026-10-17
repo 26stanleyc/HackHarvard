@@ -18,6 +18,14 @@ Datasets (see backend/data/raw/SOURCES.md for exact URLs, columns and quirks):
                    (~10 MB) per operating day; zips are not kept.
 * ``ercot_np4``    ERCOT NP4-732-CD (wind) / NP4-737-CD (solar) hourly system-wide reports, used to
                    validate the SCED aggregate (needs ERCOT_* keys).
+* ``ercot_np4_pit`` (M10) the same two reports, point in time: for each target CST day D, every
+                   posting in ``[I - 6 h, I)`` where I = 00:00 CST on D (the forecast issue time),
+                   rows for D's delivery hours only. ``clearinghouse.data.forecast_inputs`` keeps
+                   the latest posting before I (needs ERCOT_* keys).
+* ``open_meteo``   (M10) Open-Meteo Previous Runs API, model ``gfs_global``, ``*_previous_day2``
+                   only (archived forecasts, lead >= 48 h) at the points in
+                   ``data/processed/weather_points.json`` (built from the eGRID workbook). Free
+                   non-commercial tier, no key; data CC BY 4.0 ("Weather data by Open-Meteo.com").
 
 Keys come from ``clearinghouse.config`` (repo-root .env). Key values are never printed: any error
 text is scrubbed of them before printing. Nothing touches the network or reads keys for a
@@ -78,6 +86,17 @@ NP4_MONTHS = ("2023-12", "2025-12")
 # ERCOT published corrupted NP4 actuals (5-15x too high) in these postings.
 NP4_CORRUPT_POSTINGS = ("2024-08-22T15:00", "2024-08-23T16:00")
 
+# M10 point-in-time ERCOT forecasts: target CST days (ERCOT Public API data start 2023-12-11).
+PIT_FIRST_DAY, PIT_LAST_DAY = "2023-12-12", "2025-01-31"
+PIT_WINDOW_H = 6
+
+OPEN_METEO_URL = "https://previous-runs-api.open-meteo.com/v1/forecast"
+OPEN_METEO_MODEL = "gfs_global"
+OPEN_METEO_VARS = ("wind_speed_100m_previous_day2", "shortwave_radiation_previous_day2",
+                   "temperature_2m_previous_day2")
+# UTC dates covering CST 2023-12-01 00:00 .. 2025-02-01 00:00 (end of the last slot)
+OPEN_METEO_START, OPEN_METEO_END = "2023-11-30", "2025-02-01"
+
 # ---------------------------------------------------------------- output paths
 EIA930_DIR = DATA_RAW / "eia930" / "bulk"
 EGRID_FILE = DATA_RAW / "egrid" / "egrid2023_data_rev2.xlsx"
@@ -87,6 +106,10 @@ SCED_DAILY_DIR = ERCOT_DIR / "sced_hourly"
 SCED_FILE = ERCOT_DIR / "ercot_sced_wind_solar_hourly_2023-12_2025-01.csv"
 NP4_FILES = {name: ERCOT_DIR / name / f"ercot_{name}_hourly_actual_median_2023-12_2025-12.csv"
              for _, _, name in NP4_REPORTS}
+PIT_DIR = ERCOT_DIR / "np4_pit"
+PIT_FILES = {name: PIT_DIR / f"ercot_{name}_postings_before_issue_{PIT_FIRST_DAY}_{PIT_LAST_DAY}"
+                   ".csv" for _, _, name in NP4_REPORTS}
+OPEN_METEO_FILE = DATA_RAW / "open_meteo" / f"{OPEN_METEO_MODEL}_previous_day2_hourly.csv"
 
 
 # ---------------------------------------------------------------- helpers
@@ -366,6 +389,85 @@ def get_ercot_np4(force: bool) -> None:
             f"{int(bad.sum())} corrupt-window rows dropped)")
 
 
+def _pit_rows(api: Ercot, report: str, endpoint: str,
+              day: str) -> tuple[list[list], list[str]]:
+    """Postings in [I - 6 h, I) for CST day ``day``, delivery rows on its local dates."""
+    issue_utc = pd.Timestamp(day, tz="UTC") + pd.Timedelta(hours=6)  # 00:00 CST on day
+    local = [(issue_utc - pd.Timedelta(hours=h)).tz_convert("America/Chicago")
+             for h in (PIT_WINDOW_H, 0)]
+    d = pd.Timestamp(day)
+    j = api.get(f"/{report}/{endpoint}", {
+        "postedDatetimeFrom": local[0].strftime("%Y-%m-%dT%H:%M:%S"),
+        "postedDatetimeTo": local[1].strftime("%Y-%m-%dT%H:%M:%S"),
+        "deliveryDateFrom": d.strftime("%Y-%m-%d"),
+        "deliveryDateTo": (d + pd.Timedelta(days=1)).strftime("%Y-%m-%d"),
+        "size": "5000"})
+    if j["_meta"]["totalPages"] > 1:
+        raise RuntimeError(f"{report} {day}: more than one page")
+    fields = [f["name"] for f in j["fields"]]
+    return [[day, *r] for r in j["data"]], fields
+
+
+def get_ercot_np4_pit(force: bool) -> None:
+    api = Ercot()
+    days = [str(x.date()) for x in pd.date_range(PIT_FIRST_DAY, PIT_LAST_DAY, freq="D")]
+    for report, endpoint, name in NP4_REPORTS:
+        part_dir = PIT_DIR / f"{name}_by_month"
+        part_dir.mkdir(parents=True, exist_ok=True)
+        for month in sorted({d[:7] for d in days}):
+            fn = part_dir / f"{name}_{month}.csv"
+            if fn.exists() and not force:
+                continue
+            mdays = [d for d in days if d.startswith(month)]
+            results = []
+            for d in mdays:  # sequential, ~28 requests/min (ERCOT allows 30/min)
+                for attempt in range(5):
+                    try:
+                        results.append(_pit_rows(api, report, endpoint, d))
+                        break
+                    except RuntimeError:
+                        log(f"  {report} {d}: rate limited, waiting 60 s (attempt {attempt})")
+                        time.sleep(60)
+                else:
+                    raise SystemExit(f"{report} {d}: ERCOT request kept failing")
+                time.sleep(2.1)
+            fields = results[0][1]
+            rows = [r for rows_, _ in results for r in rows_]
+            pd.DataFrame(rows, columns=["target_day_cst", *fields]).to_csv(fn, index=False)
+            log(f"  wrote {fn.relative_to(DATA_RAW)} ({len(rows)} rows, {len(mdays)} days)")
+        df = pd.concat([pd.read_csv(f) for f in sorted(part_dir.glob(f"{name}_*.csv"))],
+                       ignore_index=True)
+        df.to_csv(PIT_FILES[name], index=False)
+        log(f"  wrote {PIT_FILES[name].relative_to(DATA_RAW)} ({len(df)} rows)")
+
+
+def get_open_meteo(force: bool) -> None:
+    from clearinghouse.data.forecast_inputs import load_or_build_points
+
+    points = load_or_build_points()
+    frames = []
+    for p in points:  # one location per request (limits: 600 calls/min, 10,000/day)
+        params = {"latitude": p["lat"], "longitude": p["lon"], "hourly": ",".join(OPEN_METEO_VARS),
+                  "models": OPEN_METEO_MODEL, "start_date": OPEN_METEO_START,
+                  "end_date": OPEN_METEO_END, "timezone": "GMT", "wind_speed_unit": "ms"}
+        for attempt in range(5):
+            r = requests.get(OPEN_METEO_URL, params=params, timeout=120)
+            if r.status_code == 200:
+                break
+            log(f"  Open-Meteo HTTP {r.status_code} {r.text[:200]}; retrying")
+            time.sleep(20 * (attempt + 1))
+        r.raise_for_status()
+        h = r.json()["hourly"]
+        f = pd.DataFrame(h).rename(columns={"time": "time_utc"})
+        f.insert(0, "point_id", p["id"])
+        frames.append(f)
+        time.sleep(6)  # each request counts ~30 calls (14 months x 3 variables)
+    out = pd.concat(frames, ignore_index=True)
+    OPEN_METEO_FILE.parent.mkdir(parents=True, exist_ok=True)
+    out.to_csv(OPEN_METEO_FILE, index=False)
+    log(f"  wrote {OPEN_METEO_FILE.relative_to(DATA_RAW)} ({len(out)} rows, {len(points)} points)")
+
+
 # ---------------------------------------------------------------- driver
 DATASETS: dict[str, tuple[Callable[[bool], None], Callable[[], list[Path]]]] = {
     "eia930_bulk": (get_eia930_bulk, lambda: [EIA930_DIR / n for n in EIA930_BULK_FILES]),
@@ -373,6 +475,8 @@ DATASETS: dict[str, tuple[Callable[[bool], None], Callable[[], list[Path]]]] = {
     "fuel_prices": (get_fuel_prices, lambda: [FUEL_FILE]),
     "ercot_sced": (get_ercot_sced, lambda: [SCED_FILE]),
     "ercot_np4": (get_ercot_np4, lambda: list(NP4_FILES.values())),
+    "ercot_np4_pit": (get_ercot_np4_pit, lambda: list(PIT_FILES.values())),
+    "open_meteo": (get_open_meteo, lambda: [OPEN_METEO_FILE]),
 }
 
 

@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-10-17T11:03:23+00:00",
+  "generated_utc": "2026-10-17T18:06:58+00:00",
   "config": {
     "preregistration": "docs/results/herding_gate_preregistration.md",
     "days": [
@@ -6040,5 +6040,5 @@
       "curtailed_mwh": 5937.719999999999
     }
   },
-  "runtime_s": 16.27700937501504
+  "runtime_s": 13.27003675000742
 }

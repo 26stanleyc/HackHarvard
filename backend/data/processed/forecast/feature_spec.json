@@ -30,7 +30,22 @@
     "recent10h_diff",
     "recent10h_ratio",
     "lag2d_plus_diff",
-    "lag2d_times_ratio"
+    "lag2d_times_ratio",
+    "om_temp",
+    "om_temp_prev",
+    "om_temp_max",
+    "om_temp_min",
+    "ercot_stwpf",
+    "ercot_wgrpp",
+    "ercot_wind_cophsl",
+    "om_wind100",
+    "om_wind_power",
+    "wind_base_ercot",
+    "ercot_stppf",
+    "ercot_pvgrpp",
+    "ercot_solar_cophsl",
+    "om_ghi",
+    "solar_base_ercot"
   ],
   "calendar_features": [
     "hour",
@@ -40,6 +55,29 @@
     "doy_sin",
     "doy_cos"
   ],
+  "forecast_input_features": {
+    "wind": [
+      "ercot_stwpf",
+      "ercot_wgrpp",
+      "ercot_wind_cophsl",
+      "om_wind100",
+      "om_wind_power",
+      "wind_base_ercot"
+    ],
+    "solar": [
+      "ercot_stppf",
+      "ercot_pvgrpp",
+      "ercot_solar_cophsl",
+      "om_ghi",
+      "solar_base_ercot"
+    ],
+    "demand": [
+      "om_temp",
+      "om_temp_prev",
+      "om_temp_max",
+      "om_temp_min"
+    ]
+  },
   "series_columns": {
     "demand": "demand_mw",
     "wind": "wind_mw",
@@ -101,7 +139,11 @@
         "recent10h_diff",
         "recent10h_ratio",
         "lag2d_plus_diff",
-        "lag2d_times_ratio"
+        "lag2d_times_ratio",
+        "om_temp",
+        "om_temp_prev",
+        "om_temp_max",
+        "om_temp_min"
       ],
       "design_columns": [
         "hour",
@@ -128,12 +170,16 @@
         "recent10h_ratio",
         "lag2d_plus_diff/base",
         "lag2d_times_ratio/base",
+        "om_temp",
+        "om_temp_prev",
+        "om_temp_max",
+        "om_temp_min",
         "base=same_hour_latest"
       ]
     },
     "wind": {
       "target": "wind",
-      "base": "mean24h",
+      "base": "wind_base_ercot",
       "mode": "diff",
       "loss": "squared_error",
       "max_iter": 200,
@@ -166,7 +212,13 @@
         "recent10h_diff",
         "recent10h_ratio",
         "lag2d_plus_diff",
-        "lag2d_times_ratio"
+        "lag2d_times_ratio",
+        "ercot_stwpf",
+        "ercot_wgrpp",
+        "ercot_wind_cophsl",
+        "om_wind100",
+        "om_wind_power",
+        "wind_base_ercot"
       ],
       "design_columns": [
         "hour",
@@ -193,12 +245,18 @@
         "recent10h_ratio",
         "lag2d_plus_diff-base",
         "lag2d_times_ratio-base",
-        "base=mean24h"
+        "ercot_stwpf-base",
+        "ercot_wgrpp-base",
+        "ercot_wind_cophsl-base",
+        "om_wind100",
+        "om_wind_power",
+        "wind_base_ercot-base",
+        "base=wind_base_ercot"
       ]
     },
     "solar": {
       "target": "solar",
-      "base": "same_hour_latest",
+      "base": "solar_base_ercot",
       "mode": "diff",
       "loss": "absolute_error",
       "max_iter": 300,
@@ -231,7 +289,12 @@
         "recent10h_diff",
         "recent10h_ratio",
         "lag2d_plus_diff",
-        "lag2d_times_ratio"
+        "lag2d_times_ratio",
+        "ercot_stppf",
+        "ercot_pvgrpp",
+        "ercot_solar_cophsl",
+        "om_ghi",
+        "solar_base_ercot"
       ],
       "design_columns": [
         "hour",
@@ -258,7 +321,12 @@
         "recent10h_ratio",
         "lag2d_plus_diff-base",
         "lag2d_times_ratio-base",
-        "base=same_hour_latest"
+        "ercot_stppf-base",
+        "ercot_pvgrpp-base",
+        "ercot_solar_cophsl-base",
+        "om_ghi",
+        "solar_base_ercot-base",
+        "base=solar_base_ercot"
       ]
     }
   },
@@ -271,5 +339,6 @@
     "first": "2024-10-01",
     "last": "2024-12-31",
     "n_days": 92
-  }
+  },
+  "model_set": "M10"
 }

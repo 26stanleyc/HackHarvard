@@ -213,3 +213,104 @@ Checks:
 Not done (needs the team):
 - **Deployment.** Needs a hosting account and a decision (design Open Questions: serverless vs small container for the Python backend; e.g. a container host for `uvicorn clearinghouse.api:app` and Vercel for `frontend/` with `NEXT_PUBLIC_API_BASE` and `FRONTEND_ORIGINS` set). Not attempted: publishing to an external service is the team's call.
 - **Fallback video** — recorded by the team (design M9).
+
+## M10. Weather inputs for the forecast — PASS, adopted (2026-10-17)
+
+Milestone and checks pre-registered in `docs/design.md` (M10) and committed (`f762e25`) before any code or result. During the build, this checkout was switched to the teammate branch `chalk-integration` (`6dce5a1`, Chalk deployment, based on `f762e25`). M10 was built and tested on top of it and, by the user's choice, is committed on `chalk-integration`; it reaches `main` when that branch merges.
+
+- **Code:**
+  - `backend/clearinghouse/data/forecast_inputs.py`: ERCOT point-in-time extraction, Open-Meteo slot features, points, processed table.
+  - `backend/scripts/download_data.py`: datasets `ercot_np4_pit` and `open_meteo`.
+  - `backend/clearinghouse/forecast/features.py`: `EXOG_FEATURES`. Each value carries its source time; values not published before `as_of` are masked.
+  - `model.py`: `m10_candidates`; artifacts are self-describing (`specs_from`).
+  - `local.py`: always loads the inputs.
+  - `scripts/train_forecast.py`: M4, then M10 selection and the adoption rule.
+  - `scripts/demo_day_results.py`: new.
+  - Tests: `tests/test_forecast_inputs.py` (new) plus additions in `test_forecast.py` and `test_api.py`.
+  - Outputs: `backend/data/processed/forecast_inputs.parquet` (1.0 MB), `weather_points.json`, `docs/results/forecast_inputs_coverage.json`.
+- **Open-Meteo terms (checked on open-meteo.com):**
+  - The free API is for non-commercial use and needs no key; the downloads ran without one.
+  - Limits: 600 calls/min, 5,000/h, 10,000/day.
+  - Data are CC BY 4.0 with a required link. It is credited in `/api/meta` `data_sources`, rendered as a link on the story screen, and in the README.
+  - Previous Runs semantics: `_previous_dayN` uses each run's lead steps from N×24 h, so every run used was initialized at or before valid time − 24N h.
+- **ERCOT point in time:** one request per target day and report: postings in `[I − 6 h, I)`, delivery dates D..D+1. ERCOT allows 30 requests/min, so the download is sequential with retries.
+  - 417 days each for wind and solar (2023-12-12..2025-01-31). The 11 missing days are before ERCOT's API data start and before the first training day.
+  - The posting used is always the hourly one 3.6–4.9 min before `I`: 23:55 CST, or 00:55 CDT during DST.
+- **Open-Meteo `gfs_global`, `_previous_day2`, 16 points** (6 wind and 6 solar k-means centroids from eGRID2023 ERCOT plants, 37.1 GW wind and 15.2 GW solar; 4 load centers):
+  - 100 m wind from 2024-02-17.
+  - Radiation from 2024-01-20.
+  - Temperature in Dec 2023, then a gap 2023-12-30..2024-01-20, then complete.
+  - Earlier hours are NaN, which the model handles natively.
+- **Data-handling decisions** (made before training; recorded because they refine the milestone text):
+  - (1) **Spring-forward day.** NP4-737 labels 01:00–02:00 CST on 2024-03-10 as "HE3", while NP4-732 labels it "HE2". A start that doesn't exist on the wall clock is now placed by its end time. Tested both ways.
+  - (2) **Completeness rule.** A posting counts as complete when STWPF / STPPF covers all 24 slots; COP HSL / WGRPP / PVGRPP may be NaN. ERCOT left solar COP HSL blank for that hour; the stricter rule would have dropped the whole day.
+  - (3) **Temperature coverage.** The milestone said temperature starts 2024-01-20. Open-Meteo also has it for Dec 2023 (up to 12-29); those values are `_previous_day2` like the rest and are used.
+- **Model selection (training-period blocked CV only, M4 hyperparameters):**
+
+| Target | CV MAE MW: M4 / M10-A (inputs) / M10-B (ERCOT base) | Chosen |
+|---|---|---|
+| demand | 2,012 / 1,921 / — | M10-A |
+| wind | 4,039 / 1,328 / 1,223 | M10-B |
+| solar | 1,041 / 765 / 613 | M10-B |
+
+- **Test period 2024-10-01..12-31** (MAE MW / normalized MAE / MAPE %; solar MAPE over daylight hours). M4 was reproduced exactly. Every candidate is shown; only the CV-chosen one counts.
+
+| Target | M10 (chosen) | M10 other candidate | M4 | Yesterday | ERCOT forecast used directly (reference) |
+|---|---|---|---|---|---|
+| wind | **1,205 / 0.093 / 13.0** | A: 1,365 / 0.105 / 15.8 | 4,089 / 0.316 / 61.7 | 6,123 / 0.472 / 77.1 | STWPF 1,455 / 0.112 / 13.8 |
+| solar | **506 / 0.099 / 12.5** | A: 748 / 0.146 / 17.7 | 1,063 / 0.207 / 29.0 | 1,101 / 0.215 / 28.2 | STPPF 525 / 0.102 / 13.2 |
+| demand | **1,425 / 0.029 / 2.88** | — | 1,529 / 0.031 / 3.09 | 1,942 / 0.040 / 3.99 | (EIA-930 ERCOT day-ahead, reference: 1.82%) |
+
+- **Adoption rule:** M10 wind test MAE 1,205 < 4,089 MW, so **M10 is the default `LocalForecastProvider` model** (`feature_spec.json` `model_set: "M10"`).
+- **Honest notes on the forecast:**
+  - Wind is still biased high (+658 MW on the test period). ERCOT's STWPF is uncurtailed potential: +915 MW used directly.
+  - Our demand forecast is still worse than ERCOT's own day-ahead forecast (1.82%), which M10 does not use (not in the brief; its issue time in EIA-930 is undocumented).
+  - **Demo days are inside the forecast's training period** (M4 split), so the served demo-day forecasts are in-sample. Out-of-fold (blocked CV) wind MAE on the four demo days is 923 / 719 / 784 / 1,031 MW for M10 vs 6,084 / 4,406 / 3,156 / 11,545 for M4, so the in-sample optimism is small next to the improvement.
+  - **2024-01-16 has no archived temperature forecast** (Open-Meteo gap). Its M10 demand forecast is worse than M4's (MAE 3,939 vs 3,498 MW in-sample); wind and solar are much better.
+
+**Effect on the demo days** (example scenario, `scripts/demo_day_results.py`; `docs/results/demo_days_M4.json` vs `demo_days_M10.json`; M4 rows reproduce the M6/M8 numbers). Totals also move because the 10% background load is sized and planned on the forecast, so compare within a row.
+
+| Day | Forecast MAE wind / solar / demand MW, M4 → M10 | Value of coordination (vs acting alone) M4 → M10 | Coordinated − default M4 → M10 | Fallback | Paid M4 → M10 |
+|---|---|---|---|---|---|
+| 03-29 windy night | 3,392 / 1,857 / 1,082 → 611 / 1,771 / 866 | 0 → 0 t | 0 → 0 t (curtailment absorbs all) | no / no | $0 → $0 |
+| 04-11 sunny mild | 3,461 / 3,738 / 703 → 795 / 462 / 501 | 0 → **+242.5 t** | +629 → +249 t | yes → no | $3,585 → $14,370 |
+| 08-20 summer peak | 1,836 / 300 / 697 → 743 / 152 / 586 | +170 → **0 t** | −258 → **−1,752 t** | no → yes | $8,499 → $4,062 |
+| 01-16 cold morning | 8,894 / 2,051 / 3,498 → 770 / 790 / 3,939 | −4.3 → **−39.7 t** | +81 → −61 t | no / no | $48 → $0 |
+
+Reading:
+- A better forecast does not uniformly raise the value of coordination.
+- On 04-11 coordination now beats acting alone (+243 t), but it is still worse than the default schedule on actuals.
+- On 08-20, independent-marginal improves so much (−1.75 kt vs default) that the coordinator's plan is no better on the forecast and the fallback fires (0 t, $4,062 paid under the $0-for-negative-shares rule).
+- On 01-16 coordination loses more (−40 t).
+- Reported as is.
+
+**Adoption chart** (default day 2024-03-29, regenerated): identical up to 12.5% (curtailment absorbs everything).
+- At 30% of peak, M4 → M10: independent-average 98,820 → 98,228 t; independent-marginal 102,683 → 101,736; coordinated 101,260 → 100,872; default 101,276 unchanged.
+- Coordination's gain over acting alone shrinks (1,423 → 863 t) because acting alone improved most. Coordinated is now 404 t below default at 30%, but still 279 t above it at 25%.
+- The average-signal strategy stays lowest at 25–30%.
+
+**Calibrated herding gate re-run:** unchanged (byte-identical apart from timestamp and runtime): GO 6/7. As stated in the milestone, it plans on yesterday-as-forecast by its M2 definition.
+
+Checks:
+- No leakage, every new feature — PASS:
+  - Every ERCOT posting used was before its day's issue time, within 6 h, one posting per day (processed table, all days).
+  - Synthetic-posting unit tests: postings at or after `I` change nothing; DST and both spring-forward labelings handled; incomplete or too-old postings skipped.
+  - Open-Meteo: only `_previous_day2` columns accepted; latest possible run initialization ≤ `I` − 24 h for every slot (+12 h publication allowance still before `I`).
+  - Feature level: every new feature's source time is before `as_of` on every train and test day, under both the adopted and the rejected 10:00 D−1 issue time (ERCOT inputs masked there).
+  - Values published at or after `as_of` are masked; randomizing all inputs for later days leaves features unchanged; the provider ignores perturbed later-day inputs.
+  - Existing M4 leakage tests pass.
+- Same split as M4, no test-period tuning — PASS (selection by training CV; asserted from the metrics file).
+- Wind / solar / demand reported vs M4 and yesterday — PASS (table above).
+- Adopted: demand MAPE 2.88% < yesterday 3.99% — PASS.
+- One-day forecast 63–95 ms first call (< 500 ms), 0.02–0.03 ms cached — PASS.
+- Herding gate re-run, adoption chart and fixtures regenerated, demo days recorded — done.
+- `ForecastProvider` interface and B6 contract unchanged — PASS. `/api/meta` `data_sources` content now names the M10 inputs and the Open-Meteo credit; shape unchanged.
+- `uv run pytest -q` → 210 passed; ruff clean; frontend lint, typecheck, build pass — PASS.
+- Browser: the story screen renders the new source lines and a working Open-Meteo link.
+
+**Open issue for the team: the Chalk deployment still serves M4.**
+- Commit `6dce5a1` deployed the Chalk project with a vendored snapshot of the M4 code and models, and made Chalk the primary provider whenever `CHALK_*` is set, with the local model as fallback.
+- Since M10, the local provider serves M10. Where Chalk credentials are set, live forecasts therefore come from M4 (Chalk), and from M10 only when Chalk fails. Each response says which source served it, but the two model sets differ.
+- This checkout has no `CHALK_*` keys, so everything above ran on the local M10 model.
+- `backend/chalk/sync_from_app.py` now refuses to vendor M10 artifacts, because the Chalk resolvers only serve history with `ts ≤ now`, so the forecast inputs (indexed by valid time) would be NaN.
+- Serving M10 from Chalk needs the forecast-input table as a Chalk feature with point-in-time posting/run times, plus a redeploy. That is a team decision; nothing was redeployed.

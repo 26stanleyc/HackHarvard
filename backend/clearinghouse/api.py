@@ -142,13 +142,22 @@ def calibration() -> dict:
     return {k: (float(raw[k]) if raw.get(k) is not None else None) for k in CALIBRATION_KEYS}
 
 
-def data_sources(forecast_source: str) -> list[str]:
+def data_sources(forecast_source: str, model_set: str = "M4") -> list[str]:
+    """``model_set``: the local provider's forecast artifacts ("M4" or "M10", design M10)."""
+    m10 = forecast_source == "local" and model_set == "M10"
     fc = ("Forecast and bid features: Chalk online queries (day-ahead demand, wind and solar "
           "from the gradient-boosted model served by Chalk; the local model answers if Chalk "
           "fails, and each response says which served it)"
           if forecast_source == "chalk" else
           "Forecast: local gradient-boosted model on EIA-930 history, issued 00:00 CST on the "
-          "day (day-ahead demand, wind, solar; Chalk credentials pending)")
+          "day (day-ahead demand, wind, solar; Chalk credentials pending)"
+          + ("; inputs also include ERCOT's own wind and solar forecasts (NP4-732/737, latest "
+             "posting before the issue time) and archived GFS weather forecasts (lead >= 48 h)"
+             if m10 else ""))
+    weather = [
+        "Weather data by Open-Meteo.com (https://open-meteo.com/, CC BY 4.0): archived GFS "
+        "forecasts from the Previous Runs API (100 m wind, solar radiation, 2 m temperature) at "
+        "capacity-weighted ERCOT wind and solar sites and 4 load centers"] if m10 else []
     return [
         "EIA-930 hourly demand, net generation by fuel and interchange for ERCOT (BA code ERCO), "
         "EIA bulk six-month files, 2024",
@@ -159,6 +168,7 @@ def data_sources(forecast_source: str) -> list[str]:
         "ERCOT NP3-965-ER 60-day SCED disclosure: modeled wind and solar curtailment "
         "(HSL minus base point), validated against ERCOT NP4-732/737",
         fc,
+        *weather,
         "CAMPD validation skipped (api.data.gov key pending); validation (b) uses EIA-930 fuel "
         "mix x eGRID emission factors",
         "Simulator calibrated on 248 training days, validated on 104 held-out days (2024)",
@@ -375,6 +385,7 @@ def adoption_chart() -> dict:
 
 @app.get("/api/meta", response_model=MetaResponse)
 def get_meta() -> dict:
+    provider = get_engine().provider
     return {
         "region": REGION,
         "days": list(demo_days()),
@@ -384,7 +395,8 @@ def get_meta() -> dict:
         "background_pct_default": BACKGROUND_PCT_DEFAULT,
         "max_bids": MAX_BIDS,
         "calibration": calibration(),
-        "data_sources": data_sources(get_engine().provider.source),
+        "data_sources": data_sources(provider.source,
+                                     getattr(provider, "spec", {}).get("model_set", "M4")),
     }
 
 

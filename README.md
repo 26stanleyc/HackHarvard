@@ -39,7 +39,7 @@ backend/scripts/smoke_api.sh http://localhost:8000   # with the backend running
 | Data | `backend/clearinghouse/data/` | EIA-930, eGRID, fuel prices and ERCOT curtailment → hourly fixed-CST (UTC-6) series in `backend/data/processed/` |
 | Simulator | `backend/clearinghouse/simulator.py` | Vectorized merit order of 283 ERCOT fossil plants; added load is first absorbed by curtailed wind/solar, then dispatched up the fossil stack |
 | Calibration | `backend/clearinghouse/calibration.py` | Fits per-fuel availability and a monthly coal-vs-gas price scale on 248 training days, validates on 104 held-out days |
-| Forecast | `backend/clearinghouse/forecast/` | Gradient-boosted next-24h demand, wind and solar from EIA-930 history; `ForecastProvider` with local and Chalk implementations |
+| Forecast | `backend/clearinghouse/forecast/` | Gradient-boosted next-24h demand, wind and solar from EIA-930 history plus (M10) ERCOT's own wind/solar forecasts posted before the issue time and archived GFS weather forecasts; `ForecastProvider` with local and Chalk implementations |
 | Strategies | `backend/clearinghouse/strategies.py` | Default, independent-average (standard carbon-aware tool), independent-marginal, and the coordinator (greedy 1% blocks, earliest deadline first) |
 | Settlement | `backend/clearinghouse/settlement.py` | Exact Shapley over all 2^n coalitions (n ≤ 8), leave-one-out, payouts with pool proration |
 | API | `backend/clearinghouse/api.py` | FastAPI: `/api/meta`, `/api/presets`, `/api/adoption-chart`, `/api/clear`, `/api/evaluate` (contract in `schemas.py`) |
@@ -56,12 +56,14 @@ Every strategy plans on the forecast and is scored on the actual day. The payout
 | EIA API v2, Texas monthly fuel cost (sector 98; oil sector 1) | Merit-order fuel prices | `EIA_API_KEY` |
 | ERCOT NP3-965-ER 60-day SCED disclosure | Hourly wind/solar curtailment (Σ max(0, HSL − base point)) | `ERCOT_*` keys |
 | ERCOT NP4-732-CD / NP4-737-CD | Validation of the curtailment series | `ERCOT_*` keys |
+| ERCOT NP4-732-CD / NP4-737-CD, point in time (M10) | Forecast inputs: STWPF, WGRPP, COP HSL (wind) and STPPF, PVGRPP, COP HSL (solar) from the latest posting before 00:00 CST on the target day | `ERCOT_*` keys |
+| Open-Meteo Previous Runs API, GFS 0.25° (`gfs_global`), `*_previous_day2` only (M10) | Forecast inputs: archived 100 m wind, solar radiation and 2 m temperature forecasts (lead ≥ 48 h) at capacity-weighted ERCOT wind/solar sites (from eGRID) and 4 load centers. Weather data by [Open-Meteo.com](https://open-meteo.com/), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | No key (free non-commercial tier) |
 
 Re-download and rebuild (keys in a repo-root `.env`, see `.env.example`):
 
 ```bash
 cd backend
-uv run python scripts/download_data.py        # raw files → backend/data/raw/ (gitignored, ~430 MB)
+uv run python scripts/download_data.py        # raw files → backend/data/raw/ (gitignored, ~485 MB)
 uv run python scripts/build_processed.py      # → backend/data/processed/
 uv run python scripts/calibrate.py            # → calibrated_params.json, docs/results/calibration.json
 uv run python scripts/train_forecast.py       # → data/processed/forecast/, docs/results/forecast_metrics.json
@@ -76,8 +78,8 @@ uv run python scripts/regenerate_fixtures.py  # → fixtures/
 
 - **Calibration** (104 held-out days): hourly fossil CO2 MAPE **7.7%** (target ≤ 15%); hourly coal-share error **6.9 points**; marginal emission factor simulated **0.627** vs observed **0.549 t/MWh**. The simulator runs somewhat more coal than observed (27% vs 23% share). [`docs/results/calibration.json`](docs/results/calibration.json)
 - **Herding gate** (pre-registered, 7 days used for nothing else): **GO** — 7/7 days on the uncalibrated simulator, 6/7 on the calibrated one. Realized savings of independent-marginal shifting fall ≥ 10% short of the sum of solo savings at flexible-load shares of 2.5–12.5% of peak. [`docs/results/herding_gate_preregistration.md`](docs/results/herding_gate_preregistration.md), [`herding_gate_calibrated.json`](docs/results/herding_gate_calibrated.json)
-- **Forecast** (Oct–Dec 2024 test period, issued 00:00 CST on the day): demand MAPE **3.09%** vs 3.99% for yesterday-as-forecast; wind and solar have no weather inputs and errors are large. [`docs/results/forecast_metrics.json`](docs/results/forecast_metrics.json)
-- **Coordination vs acting alone:** mixed, and shown wherever it lands. On the default demo day (a windy spring night) curtailed wind absorbs all the example companies' load, so every strategy ties and payouts are $0. On the summer heat peak the example coalition avoids 170 t. In the adoption chart (default day), independent-marginal shifting is the worst strategy above 20% adoption and coordination recovers about 1.4 kt of that at 30%, but does not beat the default schedule on actuals. Forecast error is the main reason coordination planned on the forecast can lose on the actual day.
+- **Forecast** (Oct–Dec 2024 test period, issued 00:00 CST on the day; M10 model with ERCOT's own forecasts and archived weather forecasts, all published before the issue time): wind MAE **1,205 MW** (M4 without weather: 4,089; yesterday-as-forecast: 6,123), solar **506 MW** (M4: 1,063), demand MAPE **2.88%** (M4: 3.09%; yesterday: 3.99%). ERCOT's own day-ahead demand forecast (1.82%) is still better than ours. [`docs/results/forecast_metrics.json`](docs/results/forecast_metrics.json)
+- **Coordination vs acting alone:** mixed, and shown wherever it lands. On the default demo day (a windy spring night) curtailed wind absorbs all the example companies' load, so every strategy ties and payouts are $0. With the M10 forecast the example coalition avoids 243 t on the sunny mild day; on the summer heat peak the planning-time fallback fires (value of coordination 0 t, though every company's schedule is now 1.75 kt below default); on the cold winter morning coordination loses 40 t to acting alone. In the adoption chart (default day), independent-marginal shifting is the worst strategy above 20% adoption; at 30% coordination recovers 0.86 kt of that and ends 0.4 kt below the default schedule, while the plain average-signal strategy is lowest. Per-day comparison with the M4 forecast: [`docs/results/demo_days_M4.json`](docs/results/demo_days_M4.json) vs [`demo_days_M10.json`](docs/results/demo_days_M10.json).
 
 ## Key status and placeholders
 

@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-10-17T11:27:26+00:00",
+  "generated_utc": "2026-10-17T18:07:19+00:00",
   "day": "2024-03-29",
   "day_label": "Windy spring night",
   "x_definition": "flexible load as % of the day's ACTUAL peak demand: sum of the population's max_mw = x% x peak (M2 pre-registered share definition)",
@@ -25,16 +25,16 @@
     0,
     0,
     0,
-    0,
-    0,
-    1,
-    2,
-    2,
-    2,
     1,
     0,
     1,
-    1
+    1,
+    2,
+    0,
+    1,
+    1,
+    0,
+    0
   ],
   "population": {
     "n_default": 30,
@@ -94,5 +94,5 @@
     "energy": "duty x max_mw x window_hours",
     "scaling": "sum(max_mw) = share_pct/100 x day's actual peak demand (energy scaled alike)"
   },
-  "runtime_s": 6.0457219170057215
+  "runtime_s": 5.746211082994705
 }
