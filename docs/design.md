@@ -69,6 +69,13 @@ Engine = Approach A. Demo = Approach C as a single-user website. The system spli
    - Act 3, coordinated: the coordinator places blocks of energy hour by hour (animated from the backend's placement trace); each hour shows its marginal resource (coal, gas, or curtailed renewables if modeled) and the CO2 counter updates.
 4. **Results:** strategy comparison, the herding gap callout, and an avoided-carbon receipt per company (labeled operator view; in production each company sees only its own) with its Shapley share and payout.
 
+Interactive features (all run on the already-trained forecast model and the ready coordinator; nothing is trained during the demo):
+
+- **Day picker:** choose one of 3-4 curated real days (e.g., windy spring night, sunny mild day, summer heat peak, cold winter morning). Days are chosen by weather type before any results are seen, not picked for drama. The whole demo re-runs on the chosen day.
+- **Plant on the margin (hover):** hovering any hour shows the real power plant your extra load turns on in that hour (eGRID plant name, fuel, CO2 rate), or "curtailed renewables" if modeled. Makes the abstract "marginal emissions" concrete.
+- **Beat the coordinator:** before Act 3, the user drags their companies' energy blocks into hours by hand and gets a CO2 score. Then the coordinator runs and the two scores are compared side by side.
+- **Leave the coalition:** a toggle per company removes it from coordination; total avoided CO2 and everyone else's Shapley payouts update instantly. Shows that payouts reflect each company's real contribution.
+
 The "coordinator" is an optimizer, not an LLM. Call it the coordinator (or clearing engine) in the pitch.
 
 ## Backend
@@ -84,7 +91,8 @@ The "coordinator" is an optimizer, not an LLM. Call it the coordinator (or clear
   (a) hourly coal vs gas generation split vs EIA-930 actuals;
   (b) marginal emission factor: regress ΔCO2 on Δfossil generation hour-to-hour in the data (EIA-930 fuel mix x emission factors, or CAMPD) and compare with the simulator's marginal rates;
   (c) hourly fossil CO2 error.
-- Output: `emissions(load_profile) -> tons CO2` and per-hour marginal resource.
+- Output: `emissions(load_profile) -> tons CO2` and per-hour marginal resource, including the marginal plant's eGRID name, fuel and CO2 rate (for the hover feature).
+- Day set: 3-4 curated real days (by weather type, chosen before results), all held out from calibration fitting. If ERCOT Public API data is used, pick days on or after Dec 11, 2023 (its earliest date).
 
 ### B2. Forecast model (ML), served by Chalk
 
@@ -121,20 +129,22 @@ The "coordinator" is an optimizer, not an LLM. Call it the coordinator (or clear
 - Exact Shapley over all 2^n coalitions for n ≤ 8 (at most 256 coalition runs, each a single day-ahead plan). Above 8 bids (multi-user stretch only), Monte Carlo Shapley; the API reports the method.
 - Schedules are fixed from the plan; settlement is computed after the fact on actual grid conditions.
 - Payout = Shapley tons x carbon price. If total payouts exceed the pool, prorate. A negative share means $0 paid, shown with an explanation. Check that shares sum to v(full coalition).
+- Leave-one-out: from the same 2^n coalition values (no extra simulation), compute for each company i the total avoided CO2 and the Shapley shares of the remaining companies in the game without i. Returned with the clear response so the leave-the-coalition toggle updates instantly.
 - Gaming note (stated, not solved): bid windows are self-reported; a company could misstate them. Production would fix baselines from declared-in-advance or historical profiles.
 
 ### B6. API contract (agreed in hour 0; stateless JSON over HTTP)
 
-- `GET /api/meta` → `{region, day, carbon_price_default, pool_default_usd, background_pct_default, max_bids: 8, calibration: {coal_gas_split_error, mef_simulated, mef_observed, fossil_co2_error}, data_sources: [...]}`
+- `GET /api/meta` → `{region, days: [{date, label, description}], default_day, carbon_price_default, pool_default_usd, background_pct_default, max_bids: 8, calibration: {coal_gas_split_error, mef_simulated, mef_observed, fossil_co2_error}, data_sources: [...]}`
 - `GET /api/presets` → example companies `[{name, load_type, energy_mwh, earliest_hour, deadline_hour, max_mw, size_reference}]`
 - `GET /api/adoption-chart` → `{x_pct_of_peak: [...], strategies: {default|independent_average|independent_marginal|coordinated: {mean_co2_t: [...], band_low: [...], band_high: [...]}}}`
-- `POST /api/clear` with `{bids: [{id, name, load_type, energy_mwh, earliest_hour, deadline_hour, max_mw}], background_pct, carbon_price, pool_usd}` → 
+- `POST /api/clear` with `{day, bids: [{id, name, load_type, energy_mwh, earliest_hour, deadline_hour, max_mw}], background_pct, carbon_price, pool_usd}` → 
   ```
   {
     forecast: {source: "chalk" | "local", latency_ms, hourly: {demand, wind, solar, avg_intensity}},
     strategies: {
       default | independent_average | independent_marginal | coordinated: {
-        schedule: {bid_id: [24 x MW]}, hourly_co2_t: [24], total_co2_t, marginal_resource: [24]
+        schedule: {bid_id: [24 x MW]}, hourly_co2_t: [24], total_co2_t,
+        marginal_resource: [24 x {kind: "fossil" | "curtailed_renewables", plant_name, fuel, co2_t_per_mwh}]
       }
     },
     herding: {independent_average: {predicted_t, realized_t, gap_t}, independent_marginal: {...}},
@@ -143,18 +153,33 @@ The "coordinator" is an optimizer, not an LLM. Call it the coordinator (or clear
     settlement: {
       baseline: "independent_marginal", method: "exact" | "monte_carlo", coalitions_evaluated,
       total_avoided_t, pool_usd, prorated: bool,
-      per_bid: [{bid_id, shapley_t, payout_usd, vs_default_t, vs_independent_average_t}]
+      per_bid: [{bid_id, shapley_t, payout_usd, vs_default_t, vs_independent_average_t}],
+      leave_one_out: {bid_id: {total_avoided_t, per_bid: [{bid_id, shapley_t, payout_usd}]}}
     }
   }
   ```
+- `POST /api/evaluate` (Beat the coordinator) with `{day, bids, schedule: {bid_id: [24 x MW]}, background_pct}` → `{feasible, errors: [{bid_id, message}], hourly_co2_t: [24], total_co2_t, marginal_resource: [24 x {...}]}`. Checks each bid's energy is met, stays inside its window and never exceeds max MW. Scored on actuals exactly like the strategies, with the other user companies at default so the comparison is with the coordinator's schedule under the same rules. Latency target under ~1 s.
 - Errors: `422` with a per-bid message for infeasible or malformed bids.
 - Latency target: `POST /api/clear` under ~5 s for 8 bids (vectorized simulator; cache the forecast per day).
-- A fixture `fixtures/clear_response.json` matching this shape is committed in hour 1 so the frontend never waits on the backend.
+- Fixtures `fixtures/clear_response.json` and `fixtures/evaluate_response.json` matching these shapes is committed in hour 1 so the frontend never waits on the backend.
+
+### B7. Data access and API keys
+
+Each team member signs up for their own free keys; keys live in `.env` files that are gitignored (add a `.gitignore` before any key exists). Verify each against its docs in hour 0.
+
+| Source | Used for | Access |
+|---|---|---|
+| EIA (EIA-930 hourly demand and generation by fuel) | Simulator inputs, forecast training | API v2 needs a free key (emailed after registering at eia.gov/opendata). EIA's bulk download files need no key; confirm EIA-930 is included. |
+| EPA eGRID | Plant capacity, heat rate, CO2 rate, plant names | Excel download from epa.gov/egrid, no key. Latest detailed edition: eGRID2023. |
+| EPA CAMPD (optional) | Hourly measured emissions for validation | API needs a free api.data.gov key; bulk files at campd.epa.gov/data/bulk-data-files. |
+| ERCOT (optional) | Curtailment, prices | Public API needs free registration plus a subscription key and hourly ID tokens; data only back to Dec 11, 2023 (earlier via ERCOT's Data Access Portal). The open-source `gridstatus` library may read some public ERCOT data without a key; unverified. |
+| Chalk | Feature serving, model serving | Credentials from the Chalk sponsor team. |
 
 ## Frontend
 
 - **Stack:** whatever the frontend person ships fastest (e.g., Next.js + a chart library). Talks only to the API contract above.
 - **Screens:** story (adoption chart + credibility strip), bid builder, watch-the-coordinator (three acts, animation from `coordinator_trace`), results (comparison, herding gap, receipts).
+- **Interactive features:** day picker (re-runs the clear for the chosen day), plant-on-the-margin hover tooltip on every hour, Beat the coordinator (drag blocks into hours, snapped to valid windows and max MW, scored via `/api/evaluate`), leave-the-coalition toggles (read from `settlement.leave_one_out`, no extra request).
 - **Bid builder details:** presets plus custom; client-side feasibility check mirroring the backend rule; max 8 companies; background slider, carbon price and pool inputs; "load example scenario" button for a fast judge demo.
 - **Must show the source of every number:** forecast source and Chalk latency, calibration errors, data sources, which baseline payouts use.
 - **States:** loading (clear in progress), backend error (show message, keep inputs), fixture mode (clearly labeled when running on mock data).
@@ -176,6 +201,7 @@ The "coordinator" is an optimizer, not an LLM. Call it the coordinator (or clear
 - Strategy 4 vs 3 result reported honestly. If coordination does not beat independent-marginal, the story changes; do not tune to force it.
 - Shapley shares sum to v(full coalition); receipts for every bid; payouts respect the pool.
 - A judge can create companies, submit bids and watch all three acts end to end against the live backend, with `POST /api/clear` under ~5 s for 8 bids.
+- Interactive features work end to end: day picker, hover shows real plant names, Beat the coordinator scores under ~1 s, leave-the-coalition updates without a new request.
 - Chalk serves forecasts on every clear with latency shown (or the hour-6 fallback is used and stated in the UI).
 - Any number on screen traces to a data source or a line of code.
 
@@ -187,12 +213,12 @@ Frontend and backend deployed separately behind the API contract, plus a recorde
 
 Split by track. With 3 people: **Backend-Grid** (B1, B4), **Backend-Coordinator** (B2, B3, B5, B6), **Frontend**. With 2 people: one backend, one frontend.
 
-**Hour 0 (all):** agree the API contract (B6) and repo layout; confirm Chalk access; pick region; decide backend hosting.
+**Hour 0 (all):** agree the API contract (B6) and repo layout; add `.gitignore` (including `.env`); get data keys (B7) and confirm Chalk access; pick region; decide backend hosting.
 
 **Backend-Grid**
 - Hours 0-3: uncalibrated merit-order stack (eGRID + EIA-930) and the herding gate (strategies 1-3 on a synthetic population with yesterday-as-forecast inputs). **Go/no-go at hour 3:** if no herding gap appears at any plausible share, the team rethinks the story before building further.
 - Hours 3-6: calibration (named parameters, validation (a), (b), (c), curtailment data if found).
-- Hours 6-12: precompute the adoption chart; expose calibration numbers for `/api/meta`.
+- Hours 6-12: precompute the adoption chart; expose calibration numbers for `/api/meta`; curate the 3-4 demo days and marginal-plant detail (name, fuel, CO2 rate) for the hover.
 - Hours 12-18: performance (vectorization, caching) to hit the ~5 s target; help integration.
 
 **Backend-Coordinator**
@@ -200,13 +226,14 @@ Split by track. With 3 people: **Backend-Grid** (B1, B4), **Backend-Coordinator*
 - Hours 0-6: Chalk setup, point-in-time training data, forecast model, serving. **Hour 6 cutoff:** if Chalk is not serving forecasts, switch to the local fallback and keep Chalk for features only.
 - Hours 3-12: strategies 1-4 with placement trace, herding metric, coalition runs, exact Shapley, payouts (against the uncalibrated simulator and local forecast at first).
 - Hour ~8 milestone: `POST /api/clear` live end to end (uncalibrated is fine).
+- Hours 8-12: `POST /api/evaluate` and leave-one-out settlement.
 - Hours 12-18: swap in the calibrated simulator and Chalk forecast; validation and error handling.
 
 **Frontend**
 - Hours 1-8: all four screens against the fixture (fixture mode clearly labeled).
 - Hours 8-12: the three-act animation from `coordinator_trace`; receipts.
 - Hour 12 milestone: switch from fixture to the live API.
-- Hours 12-18: loading/error states, credibility strip, "load example scenario", responsive polish.
+- Hours 12-18: day picker and hover tooltip first (cheap), then Beat the coordinator and leave-the-coalition toggles; loading/error states, credibility strip, "load example scenario", responsive polish. If time runs short, Beat the coordinator is the first interactive feature to cut.
 
 **Everyone**
 - Hour 18: feature freeze.
