@@ -258,15 +258,18 @@ def test_clear_too_many_bids_422(client):
     assert len(detail) == 1
 
 
-def test_clear_above_shapley_max_skips_settlement(client):
-    """More than SHAPLEY_MAX_BIDS bids: everything but the Shapley settlement is computed."""
+def test_clear_above_shapley_max_settles_by_marginal(client):
+    """More than SHAPLEY_MAX_BIDS bids: settled with marginal-contribution shares."""
     req = clear_req(bids=bids_json(SHAPLEY_MAX_BIDS + 1))
     r = client.post("/api/clear", json=req)
     assert r.status_code == 200, r.text
     resp = ClearResponse.model_validate(r.json())
     st = resp.settlement
-    assert (st.method, st.per_bid, st.leave_one_out, st.prorated) == ("skipped", [], {}, False)
-    assert st.coalitions_evaluated == 1  # the full coalition only
+    n = SHAPLEY_MAX_BIDS + 1
+    assert st.method == "marginal"
+    assert len(st.per_bid) == len(st.leave_one_out) == n
+    assert sum(b.shapley_t for b in st.per_bid) == pytest.approx(st.total_avoided_t, abs=1e-6)
+    assert all(b.payout_usd >= 0 for b in st.per_bid)
     tot = {k: v.total_co2_t for k, v in resp.strategies.items()}
     assert st.total_avoided_t == pytest.approx(
         tot["independent_marginal"] - tot["coordinated"], abs=1e-6)

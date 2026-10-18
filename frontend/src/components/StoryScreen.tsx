@@ -7,24 +7,15 @@ import { STRATEGY_LABEL } from "@/lib/theme";
 import type { AdoptionChartResponse, Calibration, Forecast, MetaResponse } from "@/lib/types";
 import { AdoptionChart, adoptionReadout } from "./AdoptionChart";
 import { HerdingScroll } from "./HerdingScroll";
-import { Button, Details, Source } from "./ui";
+import { Details, Source } from "./ui";
 
-export function StoryScreen({
-  meta,
-  adoption,
-  day,
-  forecast,
-  onNext,
-}: {
-  meta: MetaResponse;
-  adoption: AdoptionChartResponse;
-  day: string;
-  forecast: Forecast | null;
-  onNext: () => void;
-}) {
-  const r = adoptionReadout(adoption);
+/**
+ * Top of the demo page: the headline and the scroll-scrubbed herding animation, ending in an
+ * arrow into the demo below (scrolling or the down-arrow key get there too: it is one page).
+ */
+export function StoryIntro({ meta, onEnter }: { meta: MetaResponse; onEnter: () => void }) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" data-testid="story-intro">
       <header className="max-w-4xl pt-2">
         <div className="kicker mb-3">{meta.region} · clearinghouse for flexible load</div>
         <h1 className="font-serif text-[26px] leading-[1.15] font-semibold tracking-tight text-ink sm:text-[36px] lg:text-[44px] lg:leading-[1.12]">
@@ -35,6 +26,41 @@ export function StoryScreen({
 
       <HerdingScroll />
 
+      <div className="flex justify-center pb-4">
+        <button
+          type="button"
+          onClick={onEnter}
+          data-testid="enter-demo"
+          className="group flex flex-col items-center gap-1.5 rounded-xl px-6 py-3 text-ink-2 hover:text-ink"
+        >
+          <span className="text-sm font-medium">Try the demo</span>
+          <span
+            aria-hidden
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-xl text-white shadow-md transition-transform group-hover:translate-y-0.5"
+          >
+            ↓
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Bottom of the demo page: the adoption chart and the sources behind every number. */
+export function StoryBackground({
+  meta,
+  adoption,
+  day,
+  forecast,
+}: {
+  meta: MetaResponse;
+  adoption: AdoptionChartResponse;
+  day: string;
+  forecast: Forecast | null;
+}) {
+  const r = adoptionReadout(adoption);
+  return (
+    <div className="space-y-8" data-testid="story-background">
       <section className="card p-4 sm:p-6">
         <h3 className="mb-4 text-lg font-semibold text-ink">Daily CO2 as more load becomes flexible</h3>
         <AdoptionChart data={adoption} />
@@ -70,12 +96,6 @@ export function StoryScreen({
         </p>
         <CredibilityStrip meta={meta} day={day} forecast={forecast} />
       </Details>
-
-      <div className="flex justify-end">
-        <Button onClick={onNext} testId="to-bids">
-          See the results <span aria-hidden>→</span>
-        </Button>
-      </div>
     </div>
   );
 }

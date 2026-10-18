@@ -30,15 +30,14 @@ import { CoordinatorView, type Act, type EvalState, type TraceState } from "./Co
 import type { ChartCompany } from "./LoadChart";
 import type { PendingCompany } from "./FleetView";
 import { ResultsLayout, ResultsView } from "./ResultsView";
-import { StoryScreen } from "./StoryScreen";
+import { StoryBackground, StoryIntro } from "./StoryScreen";
 import { Button, ErrorBanner, FixtureBadge } from "./ui";
 
-type Step = "story" | "results" | "coordinator";
+type Step = "results" | "coordinator";
 
 const STEPS: { id: Step; n: number; label: string }[] = [
-  { id: "story", n: 1, label: "The story" },
-  { id: "results", n: 2, label: "Results" },
-  { id: "coordinator", n: 3, label: "Coordinator" },
+  { id: "results", n: 1, label: "Demo" },
+  { id: "coordinator", n: 2, label: "Coordinator" },
 ];
 
 interface Boot {
@@ -85,7 +84,7 @@ export function ClearinghouseApp() {
 
   const [drafts, setDrafts] = useState<BidDraft[]>([]);
   const [scenario, setScenario] = useState<Scenario | null>(null);
-  const [step, setStepRaw] = useState<Step>("story");
+  const [step, setStepRaw] = useState<Step>("results");
 
   const [clearing, setClearing] = useState(false);
   const [clearError, setClearError] = useState<ApiError | null>(null);
@@ -128,9 +127,12 @@ export function ClearinghouseApp() {
     };
   }, [bootTry]);
 
+  // The demo step opens at the demo itself (#demo), below the story intro; other steps at the top.
   const setStep = useCallback((s: Step) => {
     setStepRaw(s);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    if (typeof window === "undefined") return;
+    if (s === "results") requestAnimationFrame(() => document.getElementById("demo")?.scrollIntoView({ behavior: "smooth" }));
+    else window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
   const loadExample = useCallback(() => {
@@ -298,7 +300,7 @@ export function ClearinghouseApp() {
           <FixtureBadge />
         </div>
         <nav aria-label="Steps" className="mx-auto max-w-[1600px] px-4 pb-2">
-          <ol className="grid grid-cols-3 gap-1.5">
+          <ol className="grid grid-cols-2 gap-1.5">
             {STEPS.map((s) => {
               const enabled = s.id === "coordinator" ? !!cleared : !!ready;
               const current = step === s.id;
@@ -355,15 +357,6 @@ export function ClearinghouseApp() {
           </div>
         )}
 
-        {ready && step === "story" && (
-          <StoryScreen
-            meta={boot.meta}
-            adoption={boot.adoption}
-            day={cleared?.request.day ?? scenario.day}
-            forecast={cleared?.response.forecast ?? null}
-            onNext={() => setStep("results")}
-          />
-        )}
         {ready && cleared && step === "coordinator" && (
           <CoordinatorView
             meta={boot.meta}
@@ -387,6 +380,15 @@ export function ClearinghouseApp() {
         )}
         {ready && step === "results" && (
           <ResultsLayout
+            intro={<StoryIntro meta={boot.meta} onEnter={() => setStep("results")} />}
+            below={
+              <StoryBackground
+                meta={boot.meta}
+                adoption={boot.adoption}
+                day={cleared?.request.day ?? scenario.day}
+                forecast={cleared?.response.forecast ?? null}
+              />
+            }
             onNext={cleared ? () => setStep("coordinator") : undefined}
             sidebar={
               <CompanySidebar

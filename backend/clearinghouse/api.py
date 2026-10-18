@@ -444,7 +444,7 @@ def post_clear(req: ClearRequest) -> dict:
     engine = get_engine()
     fc, latency, plan, intensity, score, bg = engine.prepare(req.day, req.background_pct)
     body = clear(req.day, req.bids, req.background_pct, req.carbon_price, req.pool_usd, plan,
-                 score, background=bg, shapley=len(req.bids) <= SHAPLEY_MAX_BIDS)
+                 score, background=bg)
     forecast = {"source": fc.source, "latency_ms": float(latency),
                 "hourly": {**fc.api_hourly(), "avg_intensity": list(intensity)},
                 "fallback_reason": fc.methods.get("fallback_reason")}
