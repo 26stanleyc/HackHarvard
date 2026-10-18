@@ -9,10 +9,12 @@ import {
   loadTypeLabel,
   parseBidCsv,
   presetToDraft,
+  scalePreset,
   sampleBid,
   type BidDraft,
   type CsvRow,
 } from "@/lib/bids";
+import { SCALE as PRESET_SCALE } from "@/lib/defaultCompanies";
 import { fmtInt, hh, windowLabel } from "@/lib/format";
 import type { Preset } from "@/lib/types";
 import { LoadTypeTag } from "./ui";
@@ -149,7 +151,7 @@ export function CompanyModal({
   );
 }
 
-const SLIDER_ENERGY_MAX = 10_000; // MWh
+const SLIDER_ENERGY_MAX = 12_000; // MWh: fits the largest preset at PRESET_SCALE (data center, 10,800)
 const SLIDER_MW_MAX = 2_000; // MW
 
 function GenerateTab({
@@ -213,7 +215,7 @@ function GenerateTab({
                 type="button"
                 title={p.size_reference}
                 data-testid={`modal-preset-${p.load_type}`}
-                onClick={() => set(presetToDraft(p, draft.id, others))}
+                onClick={() => set(presetToDraft(scalePreset(p, PRESET_SCALE), draft.id, others))}
                 className="rounded-md border border-line bg-surface px-2 py-1 text-xs text-ink-2 hover:border-line-strong hover:bg-surface-2"
               >
                 {p.name}

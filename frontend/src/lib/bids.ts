@@ -53,6 +53,17 @@ export function nextBidId(existing: { id: string }[]): string {
   for (let i = 1; ; i++) if (!used.has(`b${i}`)) return `b${i}`;
 }
 
+/** A preset at k times its energy and max MW (the example companies' scale), noted in its size reference. */
+export function scalePreset(p: Preset, k: number): Preset {
+  if (k === 1) return p;
+  return {
+    ...p,
+    energy_mwh: p.energy_mwh * k,
+    max_mw: p.max_mw * k,
+    size_reference: `${p.size_reference} Scaled ${k}× from this size.`,
+  };
+}
+
 export function presetToDraft(p: Preset, id: string, existingNames: string[]): BidDraft {
   let name = p.name;
   let n = 2;

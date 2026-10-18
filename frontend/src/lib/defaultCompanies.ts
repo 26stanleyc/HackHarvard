@@ -2,8 +2,17 @@ import type { Bid } from "./types";
 
 /**
  * The 20 companies the app opens with: four of each preset load type, at different sizes and
- * windows around the preset values. Names are made up (place + kind), not real companies.
+ * windows around the preset values, scaled by SCALE. Names are made up (place + kind), not real
+ * companies.
  */
+
+/**
+ * Size multiplier for energy and max MW. At 1x the 20 companies are about 2% of the summer peak,
+ * too little flexible load to herd; at 3x (about 6-11% of peak on the demo days) herding shows
+ * and coordination has something to fix.
+ */
+export const SCALE = 3;
+
 type Row = [name: string, load_type: string, energy_mwh: number, max_mw: number, earliest: number, deadline: number];
 
 const ROWS: Row[] = [
@@ -33,8 +42,8 @@ export const DEFAULT_BIDS: Bid[] = ROWS.map(([name, load_type, energy_mwh, max_m
   id: `b${i + 1}`,
   name,
   load_type,
-  energy_mwh,
-  max_mw,
+  energy_mwh: energy_mwh * SCALE,
+  max_mw: max_mw * SCALE,
   earliest_hour,
   deadline_hour,
 }));

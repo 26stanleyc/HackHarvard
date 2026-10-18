@@ -260,6 +260,20 @@ class StrategyResult(Model):
     hourly_co2_t: Hourly24
     total_co2_t: float
     marginal_resource: MarginalResource24
+    # The user companies' own share, against the grid with only the background added.
+    # Optional: older recorded fixtures lack them.
+    companies_co2_t: Hourly24 | None = None  # CO2 their load causes per hour
+    companies_fuel_mwh: CompaniesFuel | None = None  # what serves their load per hour
+
+
+class CompaniesFuel(Model):
+    """MWh of the user companies' load per hour by what serves it: spare (curtailed) wind and
+    solar, or extra output of coal / gas / oil plants. The four sum to their load."""
+
+    clean: Hourly24
+    coal: Hourly24
+    gas: Hourly24
+    oil: Hourly24
 
 
 class HerdingMetric(Model):
