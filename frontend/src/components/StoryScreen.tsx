@@ -46,7 +46,7 @@ export function StoryScreen({
 
       <section className="card p-5">
         <div className="kicker mb-2">The herding gap</div>
-        <p className="text-[15px] leading-relaxed text-ink-2">
+        <p className="max-w-3xl text-[15px] leading-relaxed text-ink-2">
           A carbon-aware tool sends every company to the same clean hours. When they all go at once, the
           clean power runs out and gas or coal fills the gap. A coordinator that sees everyone&apos;s bids
           spreads them out.
@@ -59,7 +59,7 @@ export function StoryScreen({
           <div className="kicker mb-2">Reading the chart</div>
           <ChartReading r={r} />
         </div>
-        <p className="text-sm leading-relaxed text-ink-2">
+        <p className="max-w-3xl text-sm leading-relaxed text-ink-2">
           The herding effect itself is prior work (Martin, Powell &amp; Rajagopal, Nature
           Communications, 2025, for EV charging). What is new here is coordination across
           independent, competing companies with different load types, and paying each one only
@@ -192,7 +192,7 @@ function AdoptionCaption({ meta, adoption }: { meta: MetaResponse; adoption: Ado
   const seeds = am.seeds.length > 1 ? `seeds ${am.seeds[0]}–${am.seeds[am.seeds.length - 1]}` : `seed ${am.seeds[0]}`;
   return (
     <div className="mt-3 space-y-1.5" data-testid="adoption-caption">
-      <p className="text-xs leading-relaxed text-ink-2">
+      <p className="max-w-3xl text-xs leading-relaxed text-ink-2">
         Computed on the default day, <span className="font-medium text-ink">{defLabel}</span>{" "}
         (<span className="num">{meta.default_day}</span>), whatever day you pick later. Population:{" "}
         <span className="num">{am.n_bids}</span> synthetic flexible bids per draw,{" "}

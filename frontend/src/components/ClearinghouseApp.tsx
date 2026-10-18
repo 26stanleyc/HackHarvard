@@ -248,7 +248,7 @@ export function ClearinghouseApp() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-30 border-b border-line bg-paper/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-x-3 gap-y-1.5 px-4 py-2.5">
+        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-x-3 gap-y-1.5 px-4 py-2.5">
           <div className="flex min-w-0 items-center gap-2.5">
             <Mark />
             <div className="min-w-0">
@@ -260,7 +260,7 @@ export function ClearinghouseApp() {
           </div>
           <FixtureBadge />
         </div>
-        <nav aria-label="Steps" className="mx-auto max-w-[1180px] px-4 pb-2">
+        <nav aria-label="Steps" className="mx-auto max-w-[1600px] px-4 pb-2">
           <ol className="grid grid-cols-3 gap-1.5">
             {STEPS.map((s) => {
               const enabled = s.id === "coordinator" ? !!cleared : !!ready;
@@ -287,7 +287,7 @@ export function ClearinghouseApp() {
         </nav>
       </header>
 
-      <main className="mx-auto w-full max-w-[1180px] flex-1 px-4 py-6 sm:py-8">
+      <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:py-8">
         {bootError && !boot && (
           <div className="space-y-3">
             <ErrorBanner
@@ -385,11 +385,13 @@ export function ClearinghouseApp() {
       </main>
 
       <footer className="border-t border-line">
-        <div className="mx-auto max-w-[1180px] px-4 py-5 text-xs leading-relaxed text-muted">
+        <div className="mx-auto max-w-[1600px] px-4 py-5 text-xs leading-relaxed text-muted">
+          <p className="max-w-4xl">
           The coordinator is an optimizer, not an LLM. Every number on screen comes from the API
           ({API_MODE === "fixture" ? "fixture mode: backend responses recorded in fixtures/ for the example scenario" : `live: ${API_BASE}`}).
           Bids are additional load on top of real EIA-930 demand; strategies are planned on the
           forecast and scored on the actual day.
+          </p>
         </div>
       </footer>
     </div>
