@@ -9,7 +9,7 @@ import {
   draftError,
   draftToBid,
   nextBidId,
-  presetToDraft,
+  sampleBid,
   type BidDraft,
 } from "@/lib/bids";
 import { fmtInt, fmtPct, fmtUsd, hh, windowLabel } from "@/lib/format";
@@ -22,7 +22,8 @@ import {
   type MetaResponse,
   type Preset,
 } from "@/lib/types";
-import { Button, ErrorBanner, LoadTypeTag, SectionTitle, Source } from "./ui";
+import { CompanyModal } from "./CompanyModal";
+import { Button, ErrorBanner, SectionTitle, Source } from "./ui";
 
 export interface Scenario {
   day: string;
@@ -112,12 +113,20 @@ export function BidBuilder({
     if (e.bid_id) serverErrByBid.set(e.bid_id, [...(serverErrByBid.get(e.bid_id) ?? []), e.message]);
   }
 
-  const addPreset = (p: Preset) =>
-    setDrafts((prev) =>
-      prev.length >= max ? prev : [...prev, presetToDraft(p, nextBidId(prev), prev.map((d) => d.name))],
-    );
-  const addCustom = () =>
-    setDrafts((prev) => (prev.length >= max ? prev : [...prev, customDraft(nextBidId(prev))]));
+  const [modal, setModal] = useState<{ initial: BidDraft; editing: boolean } | null>(null);
+  const openNew = () => {
+    const d = customDraft(nextBidId(drafts));
+    setModal({ initial: { ...d, name: `Company ${d.id.replace(/^b/, "")}`, ...sampleBid(d.load_type) }, editing: false });
+  };
+  const join = (added: BidDraft[]) => {
+    if (modal?.editing) {
+      const [d] = added;
+      setDrafts((prev) => prev.map((x) => (x.id === d.id ? d : x)));
+    } else {
+      setDrafts((prev) => [...prev, ...added].slice(0, max));
+    }
+    setModal(null);
+  };
   const update = (id: string, patch: Partial<BidDraft>) =>
     setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
   const remove = (id: string) => setDrafts((prev) => prev.filter((d) => d.id !== id));
@@ -141,36 +150,16 @@ export function BidBuilder({
                 Load example scenario
               </Button>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {presets.map((p) => (
-                <button
-                  key={p.name}
-                  type="button"
-                  disabled={full}
-                  onClick={() => addPreset(p)}
-                  data-testid={`add-preset-${p.load_type}`}
-                  title={p.size_reference}
-                  className="rounded-md border border-line bg-surface px-2.5 py-1.5 text-left text-xs text-ink-2 hover:border-line-strong hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <span className="font-medium text-ink">+ {p.name}</span>
-                    <LoadTypeTag type={p.load_type} />
-                  </span>
-                  <span className="num mt-0.5 block text-muted">
-                    {fmtInt(p.energy_mwh)} MWh · {fmtInt(p.max_mw)} MW · {windowLabel(p.earliest_hour, p.deadline_hour)}
-                  </span>
-                </button>
-              ))}
-              <button
-                type="button"
-                disabled={full}
-                onClick={addCustom}
-                data-testid="add-custom"
-                className="rounded-md border border-dashed border-line-strong px-2.5 py-1.5 text-xs font-medium text-ink-2 hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                + Custom company
-              </button>
-            </div>
+            <button
+              type="button"
+              disabled={full}
+              onClick={openNew}
+              data-testid="add-company"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-line-strong px-4 py-4 text-sm font-medium text-ink hover:border-accent hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span aria-hidden className="text-lg leading-none text-accent">+</span> Add company
+              <span className="hidden font-normal text-muted sm:inline">· build a bid, start from a preset, or upload a CSV</span>
+            </button>
             {full && <p className="mt-2 text-xs text-muted">Maximum of {max} companies.</p>}
             {drafts.length > shapleyMax && (
               <p className="mt-2 text-xs text-muted" data-testid="shapley-limit-hint">
@@ -178,12 +167,12 @@ export function BidBuilder({
                 payouts (those are computed for up to {shapleyMax} companies).
               </p>
             )}
-            <Source className="mt-3">presets: GET /api/presets · sizes are reference values, see each preset&apos;s note</Source>
+            <Source className="mt-3">presets (inside Add company): GET /api/presets · sizes are reference values, see each preset&apos;s note</Source>
           </div>
 
           {drafts.length === 0 && (
             <div className="card border-dashed p-8 text-center text-sm text-muted">
-              No companies yet. Add a preset above, or load the example scenario.
+              No companies yet. Add a company above, or load the example scenario.
             </div>
           )}
 
@@ -201,9 +190,23 @@ export function BidBuilder({
               loadTypes={loadTypes}
               profile={errors[i] === null ? (profiles.block?.per_bid[d.id] ?? null) : null}
               onChange={(patch) => update(d.id, patch)}
+              onEdit={() => setModal({ initial: d, editing: true })}
               onRemove={() => remove(d.id)}
             />
           ))}
+
+          {modal && (
+            <CompanyModal
+              initial={modal.initial}
+              editing={modal.editing}
+              presets={presets}
+              loadTypes={loadTypes}
+              existing={drafts}
+              slotsLeft={max - drafts.length}
+              onJoin={join}
+              onClose={() => setModal(null)}
+            />
+          )}
         </div>
 
         <aside className="min-w-0 space-y-4 lg:sticky lg:top-28 lg:self-start">
@@ -435,6 +438,7 @@ function BidCard({
   loadTypes,
   profile,
   onChange,
+  onEdit,
   onRemove,
 }: {
   index: number;
@@ -444,6 +448,7 @@ function BidCard({
   loadTypes: { value: string; label: string }[];
   profile: BidFeatures | null;
   onChange: (patch: Partial<BidDraft>) => void;
+  onEdit: () => void;
   onRemove: () => void;
 }) {
   const bid = draftToBid(draft);
@@ -464,6 +469,15 @@ function BidCard({
           className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 text-[15px] font-medium text-ink hover:border-line focus:border-accent focus:outline-none"
         />
         <span className="num hidden text-xs text-muted sm:inline">{draft.id}</span>
+        <button
+          type="button"
+          onClick={onEdit}
+          data-testid={`edit-${draft.id}`}
+          className="rounded px-2 py-1 text-xs text-muted hover:bg-surface-2 hover:text-ink"
+          aria-label={`Edit ${draft.name}`}
+        >
+          Edit
+        </button>
         <button
           type="button"
           onClick={onRemove}
