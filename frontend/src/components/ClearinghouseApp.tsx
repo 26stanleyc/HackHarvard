@@ -26,7 +26,7 @@ import type {
   Preset,
 } from "@/lib/types";
 import { CompanySidebar, scenarioErrors, type CompanyResult, type Scenario } from "./BidBuilder";
-import { CoordinatorView, type Act, type EvalState, type TraceState } from "./CoordinatorView";
+import { BEAT_EDITABLE, CoordinatorView, type Act, type EvalState, type TraceState } from "./CoordinatorView";
 import type { ChartCompany } from "./LoadChart";
 import type { PendingCompany } from "./FleetView";
 import { ResultsLayout, ResultsView } from "./ResultsView";
@@ -74,6 +74,15 @@ function inputKey(scenario: Scenario | null, drafts: BidDraft[]): string {
 function copySchedule(s: Record<string, number[]>, bids: Bid[]): Record<string, number[]> {
   const out: Record<string, number[]> = {};
   for (const b of bids) out[b.id] = (s[b.id] ?? new Array(24).fill(0)).slice();
+  return out;
+}
+
+/** Beat the coordinator's start: the user's companies at default (or empty), the rest at the
+ * coordinator's schedule. */
+function beatStart(res: ClearResponse, bids: Bid[], mine: "default" | "empty"): Record<string, number[]> {
+  const out = copySchedule(res.strategies.coordinated.schedule, bids);
+  for (const b of bids.slice(0, BEAT_EDITABLE))
+    out[b.id] = mine === "default" ? (res.strategies.default.schedule[b.id] ?? new Array(24).fill(0)).slice() : new Array(24).fill(0);
   return out;
 }
 
@@ -170,7 +179,7 @@ export function ClearinghouseApp() {
         setLastRunKey(inputKey(sc, drafts));
         setAct("1");
         setTrace({ idx: 0, max: 0 });
-        setUserSchedule(copySchedule(response.strategies.default.schedule, request.bids));
+        setUserSchedule(beatStart(response, request.bids, "default"));
         setEvalState(EMPTY_EVAL);
         setLeftOut(null);
       } catch (e) {
@@ -250,7 +259,7 @@ export function ClearinghouseApp() {
     (mode: "default" | "empty") => {
       if (!cleared) return;
       const bids = cleared.request.bids;
-      setUserSchedule(mode === "default" ? copySchedule(cleared.response.strategies.default.schedule, bids) : copySchedule({}, bids));
+      setUserSchedule(beatStart(cleared.response, bids, mode));
       setEvalState((e) => ({ ...e, clientErrors: {} }));
     },
     [cleared],
