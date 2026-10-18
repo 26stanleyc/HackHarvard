@@ -20,7 +20,7 @@ const serif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "Carbon Clearinghouse",
+  title: "sage.ai",
   description:
     "Coordinated load shifting across competing companies, with avoided-carbon receipts settled on actual grid conditions.",
 };

@@ -300,7 +300,7 @@ export function ClearinghouseApp() {
           <div className="flex min-w-0 items-center gap-2.5">
             <Mark />
             <div className="min-w-0">
-              <div className="whitespace-nowrap font-serif text-[17px] font-semibold leading-tight text-ink">Carbon Clearinghouse</div>
+              <div className="whitespace-nowrap font-serif text-[17px] font-semibold leading-tight text-ink">sage.ai</div>
               <div className="hidden truncate text-[11px] text-muted sm:block">
                 Coordinated load shifting with avoided-carbon payouts
               </div>

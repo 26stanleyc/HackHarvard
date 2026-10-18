@@ -32,7 +32,7 @@ MAX_TOKENS = 4000
 
 PROMPT = """You read one document image (a utility bill, an hourly load chart, a charging
 schedule, a job scheduler screen, or an emissions report) and extract ONE flexible-load bid
-for a single day for Carbon Clearinghouse.
+for a single day for sage.ai.
 
 Return only a JSON object, no other text:
 {"earliest_hour": int 0-23, "deadline_hour": int 1-24, "energy_mwh": number,

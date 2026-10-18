@@ -1,7 +1,7 @@
 [project]
 name = "clearinghouse"
 version = "0.1.0"
-description = "Carbon Clearinghouse: coordinated load shifting with avoided-emissions payouts (backend)"
+description = "sage.ai: coordinated load shifting with avoided-emissions payouts (backend)"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

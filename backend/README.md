@@ -1,4 +1,4 @@
-# Carbon Clearinghouse backend
+# sage.ai backend
 
 Python 3.12 / uv project. See `../docs/design.md` for the design and milestones.
 

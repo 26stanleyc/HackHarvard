@@ -9,7 +9,7 @@ from clearinghouse.assistant.personas import persona
 
 SUGGESTIONS_MARKER = "SUGGESTIONS:"
 
-SYSTEM = """You are Coordinator Guide, the assistant in the Bids step of Carbon Clearinghouse.
+SYSTEM = """You are Coordinator Guide, the assistant in the Bids step of sage.ai.
 Companies bid flexible electricity use (energy, a time window, max power) on a real 2024 ERCOT
 (Texas) day. A coordinator schedules all bids together on a grid simulator so they do not all
 pile into the same "clean" hours, and pays each company its share of the CO2 that coordination
