@@ -1,18 +1,25 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import herdingRequest from "@/fixtures/herding_scroll_request.json";
 import herdingResponse from "@/fixtures/herding_scroll_response.json";
 import { API_MODE, postClear } from "@/lib/api";
 import { fmtShareT, fmtT, fmtUsd } from "@/lib/format";
 import type { ClearRequest, ClearResponse } from "@/lib/types";
+import type { StoryPayout } from "./GridStory";
 import { Source } from "./ui";
 
+// three.js only runs in the browser, and loads in its own bundle
+const GridStory = dynamic(() => import("./GridStory"), { ssr: false });
+
 /**
- * Scroll-scrubbed explainer: the page's scroll position drives a Blender render from herded to
- * coordinated. Two renders are wired up; VARIANT picks one:
- *   herding: demo-visuals/herding/build_herding.py (HERDING_CAPTIONS=0), cream bar-chart scene
- *   hub:     demo-visuals/grid-hub/build_grid_hub.py with its captions hidden, dark glowing scene
+ * Scroll-scrubbed explainer: the page's scroll position drives an animation from herded to
+ * coordinated. Two are wired up; VARIANT picks one:
+ *   herding: a Blender render, demo-visuals/herding/build_herding.py (HERDING_CAPTIONS=0),
+ *            cream bar-chart scene
+ *   hub:     a live 3D scene (GridStory) in the results replay's light city style: four
+ *            companies around the grid tower, wind and solar on one side, gas and coal on the other
  * Both animations are illustrative; the numbers are a real /api/clear run of the four companies
  * they show (fixtures/herding_scroll_request.json), falling back to the recorded response.
  */
@@ -42,9 +49,12 @@ interface Act {
 }
 
 interface Variant {
-  src: string;
-  poster: string;
+  /** a pre-rendered video, or null for the live GridStory scene */
+  src: string | null;
+  poster?: string;
   dark: boolean;
+  /** captions in a band under the animation instead of over it */
+  band: boolean;
   /** frame ranges follow the keyframes in the variant's build script */
   acts: Act[];
   herdedFrame: number;
@@ -58,6 +68,7 @@ const VARIANTS: Record<"herding" | "hub", Variant> = {
     src: "/media/herding-scrub.mp4",
     poster: "/media/herding-scrub-poster.jpg",
     dark: false,
+    band: false,
     herdedFrame: 250,
     coordinatedFrame: 470,
     acts: [
@@ -93,9 +104,9 @@ const VARIANTS: Record<"herding" | "hub", Variant> = {
     ],
   },
   hub: {
-    src: "/media/grid-hub-scrub.mp4",
-    poster: "/media/grid-hub-scrub-poster.jpg",
-    dark: true,
+    src: null,
+    dark: false,
+    band: true,
     herdedFrame: 215,
     coordinatedFrame: 380,
     acts: [
@@ -103,7 +114,7 @@ const VARIANTS: Record<"herding" | "hub", Variant> = {
         from: 0,
         kicker: "The setup",
         title: "Four companies, one grid",
-        body: "Solar and wind fill the grid's clean-energy core. Each company has flexible load it can run in any hour of its window.",
+        body: "Wind and solar fill the grid's spare clean energy (the ring around the tower). Each company has flexible load it can run in any hour of its window.",
         stat: null,
       },
       {
@@ -116,15 +127,15 @@ const VARIANTS: Record<"herding" | "hub", Variant> = {
       {
         from: 160,
         kicker: "2 · The rush",
-        title: "The clean-energy core runs dry",
-        body: "Gas and coal plants cover the rest, so the savings each company was promised don't all show up.",
+        title: "The spare clean energy runs out",
+        body: "The gas plant covers the rest, so the savings each company was promised don't all show up.",
         stat: "gap",
       },
       {
         from: 243,
         kicker: "3 · Coordinated",
         title: "The clearinghouse schedules everyone together",
-        body: "The companies take turns across the clean hours, so the core never empties and the fossil plant stays dark.",
+        body: "The companies take turns across the clean hours, so the clean energy never runs out and the gas plant stays off.",
         stat: "avoided",
       },
       { from: 412, kicker: "4 · Settlement", title: "Each company is paid for what coordination added", body: SETTLEMENT_BODY, stat: "payouts" },
@@ -145,6 +156,7 @@ function actAt(frame: number): number {
 export function HerdingScroll() {
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const frameRef = useRef(0); // eased scroll position in frames, read by the live scene
   const barRef = useRef<HTMLDivElement>(null);
   const [act, setAct] = useState(0);
   const [data, setData] = useState<{ res: ClearResponse; source: "live" | "recorded" } | null>(() =>
@@ -170,15 +182,16 @@ export function HerdingScroll() {
     const tick = () => {
       const section = sectionRef.current;
       const video = videoRef.current;
-      if (section && video) {
+      if (section) {
         const rect = section.getBoundingClientRect();
         const span = rect.height - window.innerHeight;
         const p = span > 0 ? Math.min(1, Math.max(0, -rect.top / span)) : 0;
         const target = p * (FRAMES - 1);
         shown += (target - shown) * 0.18;
         if (Math.abs(target - shown) < 0.05) shown = target;
+        frameRef.current = shown;
         const t = shown / FPS;
-        if (video.readyState >= 1 && !video.seeking && Math.abs(video.currentTime - t) > 0.5 / FPS) {
+        if (video && video.readyState >= 1 && !video.seeking && Math.abs(video.currentTime - t) > 0.5 / FPS) {
           video.currentTime = t;
         }
         if (barRef.current) barRef.current.style.transform = `scaleX(${shown / (FRAMES - 1)})`;
@@ -212,9 +225,30 @@ export function HerdingScroll() {
     window.scrollTo({ top: top + (frame / (FRAMES - 1)) * span, behavior: "smooth" });
   }, []);
 
+  const storyCompanies = useMemo(
+    () =>
+      REQUEST.bids.map((b, i) => ({
+        id: b.id,
+        label: COMPANY[i]?.label ?? b.name,
+        color: COMPANY[i]?.color ?? "#74776f",
+        maxMw: b.max_mw,
+      })),
+    [],
+  );
+  const payouts = useMemo(() => {
+    const per = data?.res.settlement.per_bid ?? [];
+    const total = per.reduce((s, b) => s + b.payout_usd, 0);
+    if (!per.length || total <= 0) return null;
+    return Object.fromEntries(per.map((b) => [b.bid_id, { usd: b.payout_usd, share: b.payout_usd / total }])) as Record<
+      string,
+      StoryPayout
+    >;
+  }, [data]);
+
   const a = ACTS[act];
-  // The dark variant puts its captions in a band under the video, so the video gets less height.
-  const width = { maxWidth: `calc((100svh - ${headerH + (V.dark ? 305 : 170)}px) * 16 / 9)` };
+  // The band variant puts its captions under the animation, so the animation gets less height.
+  // Never narrower than 22rem: on very short windows the block grows taller instead.
+  const width = { maxWidth: `max(22rem, calc((100svh - ${headerH + (V.band ? 315 : 170)}px) * 16 / 9))` };
   const tone = V.dark ? DARK : LIGHT;
   const coordinated = act >= 3;
   const herded = act >= 1 && act < 3;
@@ -228,7 +262,7 @@ export function HerdingScroll() {
     >
       <div
         className="sticky flex flex-col justify-center gap-3 py-3"
-        style={{ top: headerH, height: `calc(100svh - ${headerH}px)` }}
+        style={{ top: headerH, minHeight: `calc(100svh - ${headerH}px)` }}
       >
         <div
           className="mx-auto flex w-full flex-wrap items-end justify-between gap-2"
@@ -237,7 +271,7 @@ export function HerdingScroll() {
           <div>
             <div className="kicker">The herding effect · scroll to play</div>
             <h2 className="mt-1 font-serif text-lg font-semibold tracking-tight text-ink lg:text-2xl">
-              Same companies, same day: herded vs coordinated
+              Same day: herded vs coordinated
             </h2>
           </div>
           <div role="group" aria-label="Jump to" className="flex rounded-full border border-line bg-surface p-0.5 text-[13px]">
@@ -263,33 +297,39 @@ export function HerdingScroll() {
         </div>
 
         <div
-          className={`relative mx-auto w-full shrink-0 overflow-hidden rounded-[10px] border ${V.dark ? "border-white/10 md:flex md:flex-col-reverse" : "border-line"}`}
-          style={{ ...width, background: V.dark ? "#06080c" : "#f6f5f0" }}
+          className={`relative mx-auto w-full shrink-0 overflow-hidden rounded-[10px] border ${V.dark ? "border-white/10" : "border-line"} ${V.band ? "md:flex md:flex-col-reverse" : ""}`}
+          style={{ ...width, background: V.dark ? "#06080c" : V.band ? "var(--surface)" : "#f6f5f0" }}
         >
           <div
             key={act}
-            className={`herding-fade relative z-10 p-4 ${V.dark ? "md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:items-center md:gap-6 md:px-5 md:py-3 md:[&>*:last-child]:justify-self-end" : "md:absolute md:top-[4.5%] md:left-[3.5%] md:max-w-[50%] md:p-0"}`}
+            className={`herding-fade relative z-10 p-4 ${V.band ? "md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:items-center md:gap-6 md:px-5 md:py-3 md:[&>*:last-child]:justify-self-end" : "md:absolute md:top-[4.5%] md:left-[3.5%] md:max-w-[50%] md:p-0"}`}
             aria-live="polite"
             data-testid="herding-caption"
           >
             <div>
               <div className={`kicker mb-1.5 ${tone.kicker}`}>{a.kicker}</div>
-              <h3 className={`font-serif text-lg leading-snug font-semibold ${V.dark ? "" : "lg:text-[22px]"} ${tone.title}`}>{a.title}</h3>
-              <p className={`mt-1 text-sm leading-relaxed ${V.dark ? "" : "lg:text-[15px]"} ${tone.body}`}>{a.body}</p>
+              <h3 className={`font-serif text-lg leading-snug font-semibold ${V.band ? "" : "lg:text-[22px]"} ${tone.title}`}>{a.title}</h3>
+              <p className={`mt-1 text-sm leading-relaxed ${V.band ? "" : "lg:text-[15px]"} ${tone.body}`}>{a.body}</p>
             </div>
             {a.stat && <StatBlock stat={a.stat} data={data?.res ?? null} tone={tone} />}
           </div>
           <div className="relative">
-            <video
-              ref={videoRef}
-              src={V.src}
-              poster={V.poster}
-              muted
-              playsInline
-              preload="auto"
-              aria-hidden
-              className="block aspect-video w-full"
-            />
+            {V.src ? (
+              <video
+                ref={videoRef}
+                src={V.src}
+                poster={V.poster}
+                muted
+                playsInline
+                preload="auto"
+                aria-hidden
+                className="block aspect-video w-full"
+              />
+            ) : (
+              <div className={`relative aspect-video w-full ${V.band ? "md:border-b md:border-line" : ""}`}>
+                <GridStory frameRef={frameRef} companies={storyCompanies} payouts={payouts} />
+              </div>
+            )}
             <div className={`absolute inset-x-0 bottom-0 h-1 ${V.dark ? "bg-white/10" : "bg-line/60"}`} aria-hidden>
               <div ref={barRef} className={`h-full origin-left ${V.dark ? "bg-white/60" : "bg-ink/70"}`} style={{ transform: "scaleX(0)" }} />
             </div>
@@ -390,7 +430,7 @@ function StatBlock({
 
   return (
     <div className={box} data-testid="stat-payouts">
-      <table className="text-[13px]">
+      <table className="text-[13px] whitespace-nowrap">
         <tbody>
           {data.settlement.per_bid.map((b) => {
             const i = REQUEST.bids.findIndex((x) => x.id === b.bid_id);

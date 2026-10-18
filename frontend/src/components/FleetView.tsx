@@ -1,6 +1,6 @@
 "use client";
 
-import { Grid, Line, OrbitControls, useCursor } from "@react-three/drei";
+import { OrbitControls, useCursor } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Bloom, EffectComposer, ToneMapping } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
@@ -11,7 +11,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type ComponentRef,
   type RefObject,
 } from "react";
 import * as THREE from "three";
@@ -25,6 +24,25 @@ import {
   type MarginalResource,
   type SettlementBid,
 } from "@/lib/types";
+import {
+  BUILD_S,
+  BuildingMesh,
+  CITY,
+  DEMOLISH_S,
+  CityGround,
+  disposeLook,
+  easeOutBack,
+  glowTexture,
+  GridTower,
+  makeLook,
+  newVis,
+  PowerLine,
+  PulseField,
+  TOWER_R,
+  TOWER_TOP,
+  type Stream,
+  type Vis,
+} from "./city";
 import { MarginalLine, type ChartCompany } from "./LoadChart";
 import { Button } from "./ui";
 
@@ -35,22 +53,10 @@ import { Button } from "./ui";
  * settlement sit alongside. Every number comes from the clear response; the city is decoration.
  */
 
-const BG = "#efe9de"; // warm paper ground, fades into the fog at the edges
-const GROUND = "#e8e1d3";
 const ACCENT = "#0f5c45"; // --accent
-const GREEN = "#2fd27f"; // charging glow (added light, so it reads on the light ground)
-const GOLD = "#e3b54f"; // the grid tower and idle power lines
-const LINE_IDLE = "#cdb27a";
-const RIPPLES = 3; // rings rippling out under a charging building
-const RIPPLE_S = 1.8; // seconds for one ring to travel out and fade
 const HOUR_MS = 1000; // playback time per hour of the day
-const BUILD_S = 0.9; // seconds for a new building to rise
 const FLASH_DECAY = 3; // per second: a pulse's highlight fades over about a second
 const PULSE_EVERY_S = 0.32; // a charging building gets a pulse this often
-const PULSE_SPEED = 16; // metres per second along the power line
-const PULSE_TRAIL = 3; // glowing beads per pulse (head + trail)
-const MAX_PULSES = 240;
-const TOWER_R = 1.7; // pulses leave the grid tower at this radius
 const GRID_ID = "__grid";
 // up to this many buildings every one gets a name label; up to twice as many, only lit ones do;
 // beyond that, only the hovered building's card shows (fewer fit on a phone)
@@ -67,6 +73,10 @@ interface FleetRow {
   settle: SettlementBid | undefined;
   /** added in the sidebar since the last run: shown as a building, not yet scheduled */
   pending: boolean;
+  /** removed in the sidebar since the last run: demolished, its lot left until the next run */
+  removed: boolean;
+  /** a pending company just removed: kept only while its demolition plays, outside the layout */
+  ghost?: boolean;
 }
 
 /** A company added in the sidebar that the last run did not include. */
@@ -98,12 +108,15 @@ export function FleetView({
   bids,
   companies,
   pending = [],
+  removed = [],
 }: {
   request: ClearRequest;
   response: ClearResponse;
   bids: Bid[];
   companies: ChartCompany[];
   pending?: PendingCompany[];
+  /** ids from the last run that have since been removed in the sidebar */
+  removed?: string[];
 }) {
   const coordinated = response.strategies.coordinated;
   const [hour, setHour] = useState(0);
@@ -163,8 +176,10 @@ export function FleetView({
     response.settlement.method === "skipped"
       ? `Shapley payouts are computed for up to ${SHAPLEY_MAX_BIDS_DEFAULT} companies; this clear has ${bids.length}.`
       : "No Shapley payout was computed for this clear.";
+  const gone = new Set(removed);
   const cleared = bids.map<FleetRow>((bid, index) => {
-    const mw = coordinated.schedule[bid.id] ?? [];
+    const out = gone.has(bid.id);
+    const mw = out ? [] : (coordinated.schedule[bid.id] ?? []);
     return {
       bid,
       index,
@@ -173,10 +188,11 @@ export function FleetView({
       now: mw[hour] ?? 0,
       settle: per.get(bid.id),
       pending: false,
+      removed: out,
     };
   });
   const clearedIds = new Set(bids.map((b) => b.id));
-  const rows: FleetRow[] = [
+  const liveRows: FleetRow[] = [
     ...cleared,
     ...pending
       .filter((p) => !clearedIds.has(p.id))
@@ -188,8 +204,33 @@ export function FleetView({
         now: 0,
         settle: undefined,
         pending: true,
+        removed: false,
       })),
   ];
+
+  // A new company removed before it ever ran vanishes from the rows; keep it as a ghost while
+  // its demolition plays (state adjusted during render, the React pattern for derived state).
+  const rowsKey = liveRows.map((r) => `${r.bid.id}${r.removed ? "x" : ""}`).join(",");
+  const [seen, setSeen] = useState({ key: rowsKey, rows: liveRows });
+  const [ghosts, setGhosts] = useState<FleetRow[]>([]);
+  if (seen.key !== rowsKey) {
+    const ids = new Set(liveRows.map((r) => r.bid.id));
+    const vanished = seen.rows.filter((r) => !ids.has(r.bid.id) && !r.removed && !r.ghost);
+    if (vanished.length || ghosts.some((g) => ids.has(g.bid.id))) {
+      setGhosts((g) => [
+        ...g.filter((x) => !ids.has(x.bid.id)),
+        ...vanished.map((r) => ({ ...r, mw: [], now: 0, removed: true, ghost: true })),
+      ]);
+    }
+    setSeen({ key: rowsKey, rows: liveRows });
+  }
+  useEffect(() => {
+    if (!ghosts.length) return;
+    const ids = new Set(ghosts.map((g) => g.bid.id));
+    const t = setTimeout(() => setGhosts((g) => g.filter((x) => !ids.has(x.bid.id))), DEMOLISH_S * 1000 + 150);
+    return () => clearTimeout(t);
+  }, [ghosts]);
+  const rows: FleetRow[] = [...liveRows, ...ghosts];
   const running = rows.filter((r) => r.now > EPS_MW);
   const runningPerHour = Array.from({ length: 24 }, (_, h) =>
     rows.filter((r) => (r.mw[h] ?? 0) > EPS_MW).length,
@@ -198,7 +239,8 @@ export function FleetView({
   const labelAll = rows.length <= labelMax;
   const labelLit = running.length <= labelMax * 1.2; // big city: compact tags on lit buildings only
   const hoveredRow = rows.find((r) => r.bid.id === hovered);
-  const pendingCount = rows.length - cleared.length;
+  const pendingCount = liveRows.filter((r) => r.pending).length;
+  const removedCount = cleared.filter((r) => r.removed).length;
 
   const play = () => {
     if (ended) seek(0);
@@ -231,7 +273,7 @@ export function FleetView({
         <div className="min-w-0">
           <div
             className="relative isolate h-[420px] overflow-hidden rounded-lg border border-line sm:h-[520px]"
-            style={{ background: BG }}
+            style={{ background: CITY.bg }}
             role="img"
             aria-label={`3D city of ${rows.length} companies around the grid; ${running.length} drawing power at ${hh(hour)}`}
           >
@@ -269,7 +311,7 @@ export function FleetView({
                   row={r}
                   share={r.settle && totalPaid > 0 ? r.settle.payout_usd / totalPaid : null}
                   compact={!labelAll}
-                  show={hovered !== r.bid.id && (labelAll || r.pending || (labelLit && r.now > EPS_MW))}
+                  show={!r.removed && hovered !== r.bid.id && (labelAll || r.pending || (labelLit && r.now > EPS_MW))}
                   elRef={(el) => {
                     if (el) labelsRef.current.set(r.bid.id, el);
                     else labelsRef.current.delete(r.bid.id);
@@ -280,7 +322,7 @@ export function FleetView({
                 {hoveredRow && <BuildingCard row={hoveredRow} noPayoutNote={noPayoutNote} />}
               </div>
             </div>
-            <Legend pendingCount={pendingCount} />
+            <Legend pendingCount={pendingCount} removedCount={removedCount} />
           </div>
           <ScheduleSlider hour={hour} counts={runningPerHour} total={cleared.length} sliderRef={sliderRef} onScrub={scrub} />
         </div>
@@ -307,17 +349,17 @@ export function FleetView({
   );
 }
 
-function Legend({ pendingCount }: { pendingCount: number }) {
+function Legend({ pendingCount, removedCount }: { pendingCount: number; removedCount: number }) {
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-3 pb-2.5 text-[10px] text-ink-2">
       <span className="flex items-center gap-1.5">
-        <span className="h-1.5 w-1.5 rounded-full" style={{ background: GOLD }} /> Power grid
+        <span className="h-1.5 w-1.5 rounded-full" style={{ background: CITY.gold }} /> Power grid
       </span>
       <span className="flex items-center gap-1.5">
         <span className="h-1.5 w-1.5 rounded-full bg-muted" /> Company (taller = bigger load)
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="h-1.5 w-1.5 rounded-full" style={{ background: GREEN }} /> Drawing power this hour
+        <span className="h-1.5 w-1.5 rounded-full" style={{ background: CITY.green }} /> Drawing power this hour
       </span>
       {pendingCount > 0 && (
         <span className="flex items-center gap-1.5" data-testid="fleet-pending-note">
@@ -325,11 +367,16 @@ function Legend({ pendingCount }: { pendingCount: number }) {
           schedule
         </span>
       )}
+      {removedCount > 0 && (
+        <span className="flex items-center gap-1.5" data-testid="fleet-removed-note">
+          <span className="h-1.5 w-1.5 rounded-sm bg-[#d2c9b8]" /> {removedCount} removed, run to apply
+        </span>
+      )}
     </div>
   );
 }
 
-// --- layout and looks ------------------------------------------------------------
+// --- layout ------------------------------------------------------------------
 
 /** One ring of buildings around the grid up to 10 companies, two rings beyond that. */
 function layout(n: number): { spots: [number, number, number][]; radius: number } {
@@ -350,144 +397,6 @@ function layout(n: number): { spots: [number, number, number][]; radius: number 
     radius: r2,
   };
 }
-
-function hash(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
-  return h >>> 0;
-}
-
-/** Small seeded generator (mulberry32): the same company always gets the same building. */
-function rng(seed: number): () => number {
-  let a = seed;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-type Roof = "plant" | "antenna" | "tank" | "flat";
-
-interface Tier {
-  w: number;
-  d: number;
-  h: number;
-  y: number; // bottom of the tier
-  map: THREE.CanvasTexture;
-  emissive: THREE.CanvasTexture;
-}
-
-interface Look {
-  w: number;
-  d: number;
-  h: number;
-  rot: number;
-  tiers: Tier[];
-  roof: Roof;
-  facade: string;
-  trim: string;
-}
-
-/** A pastel take on the company color with a seeded twist: proportions, setback, roof, windows. */
-function makeLook(id: string, color: string, height: number, compact: boolean): Look {
-  const r = rng(hash(id));
-  const base = new THREE.Color(color);
-  const hsl = { h: 0, s: 0, l: 0 };
-  base.getHSL(hsl);
-  // greens would read as "charging", so green companies get teal-blue buildings instead
-  const hue = hsl.h > 0.2 && hsl.h < 0.47 ? 0.52 + (hsl.h - 0.2) * 0.22 : hsl.h;
-  const facade = new THREE.Color().setHSL(
-    (hue + (r() - 0.5) * 0.04 + 1) % 1,
-    Math.min(0.75, hsl.s * (0.55 + r() * 0.25)),
-    Math.min(0.82, Math.max(0.55, 0.68 + (r() - 0.5) * 0.12)),
-  );
-  const trim = facade.clone().offsetHSL(0, -0.05, -0.12);
-  const scale = compact ? 0.85 : 1;
-  const w = (1.45 + r() * 0.6) * scale;
-  const d = (1.45 + r() * 0.6) * scale;
-  const setback = height > 3.2 && r() < 0.55;
-  const lowH = setback ? height * (0.58 + r() * 0.12) : height;
-  const facadeHex = `#${facade.getHexString()}`;
-  const tiers: Tier[] = [{ w, d, h: lowH, y: 0, ...facadeTextures(facadeHex, w, lowH, r) }];
-  if (setback) {
-    const k = 0.62 + r() * 0.12;
-    const h2 = height - lowH;
-    tiers.push({ w: w * k, d: d * k, h: h2, y: lowH, ...facadeTextures(facadeHex, w * k, h2, r) });
-  }
-  const roofs: Roof[] = ["plant", "antenna", "tank", "flat"];
-  return {
-    w,
-    d,
-    h: height,
-    rot: (r() - 0.5) * 0.16,
-    tiers,
-    roof: roofs[Math.floor(r() * roofs.length)],
-    facade: facadeHex,
-    trim: `#${trim.getHexString()}`,
-  };
-}
-
-/** Window grid for one face: a color map and a matching emissive mask (lit = white). */
-function facadeTextures(facade: string, w: number, h: number, r: () => number) {
-  const cols = Math.max(3, Math.round(w / 0.32));
-  const floors = Math.max(3, Math.round(h / 0.36));
-  const cw = 10;
-  const ch = 12;
-  const mk = () => {
-    const c = document.createElement("canvas");
-    c.width = cols * cw;
-    c.height = floors * ch;
-    return c;
-  };
-  const colorC = mk();
-  const maskC = mk();
-  const ctx = colorC.getContext("2d")!;
-  const mask = maskC.getContext("2d")!;
-  const f = new THREE.Color(facade);
-  const dark = `#${f.clone().multiplyScalar(0.62).getHexString()}`;
-  const mid = `#${f.clone().multiplyScalar(0.8).getHexString()}`;
-  ctx.fillStyle = facade;
-  ctx.fillRect(0, 0, colorC.width, colorC.height);
-  mask.fillStyle = "#000";
-  mask.fillRect(0, 0, maskC.width, maskC.height);
-  const litShare = 0.25 + r() * 0.25;
-  for (let y = 0; y < floors; y++) {
-    for (let x = 0; x < cols; x++) {
-      const v = r();
-      ctx.fillStyle = v < litShare ? "#fff1bf" : v < 0.75 ? dark : mid;
-      ctx.fillRect(x * cw + 2, y * ch + 3, cw - 4, ch - 5);
-      const g = Math.round(150 + r() * 105);
-      mask.fillStyle = `rgb(${g},${g},${g})`;
-      mask.fillRect(x * cw + 2, y * ch + 3, cw - 4, ch - 5);
-    }
-  }
-  const map = new THREE.CanvasTexture(colorC);
-  map.colorSpace = THREE.SRGBColorSpace;
-  map.anisotropy = 4;
-  const emissive = new THREE.CanvasTexture(maskC);
-  return { map, emissive };
-}
-
-/** Soft radial glow drawn once to a canvas; stretched under each lit building. */
-function glowTexture(): THREE.CanvasTexture {
-  const c = document.createElement("canvas");
-  c.width = c.height = 128;
-  const ctx = c.getContext("2d")!;
-  const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 64);
-  g.addColorStop(0, "rgba(255,255,255,1)");
-  g.addColorStop(0.55, "rgba(255,255,255,0.45)");
-  g.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 128, 128);
-  return new THREE.CanvasTexture(c);
-}
-
-const easeOutBack = (p: number) => {
-  const c = 1.4;
-  return 1 + (c + 1) * (p - 1) ** 3 + c * (p - 1) ** 2;
-};
 
 // --- 3D scene ----------------------------------------------------------------
 
@@ -512,56 +421,29 @@ function CityScene({
   useEffect(() => () => glowMap.dispose(), [glowMap]);
   useCursor(hovered !== null);
   const [reduced] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const streams = useRef<Stream[]>([]);
+  const level = useRef(0);
+  const landed = useCallback(
+    (id: string) => {
+      const f = fxRef.current.get(id);
+      if (f) f.flash = 1;
+    },
+    [fxRef],
+  );
 
-  const { spots, radius } = layout(rows.length);
+  // ghosts keep their spot while they come down; everyone else re-flows around them
+  const placed = rows.filter((r) => !r.ghost);
+  const { spots, radius } = layout(placed.length);
+  const spotOf = new Map(placed.map((r, i) => [r.bid.id, spots[i]]));
   const road = radius + 2.6;
   const maxMw = Math.max(1, ...rows.map((r) => (Number.isFinite(r.bid.max_mw) ? r.bid.max_mw : 0)));
-  const shadowR = road + 2;
 
   return (
     <>
       <Frame radius={road + 1.2} />
-      <color attach="background" args={[BG]} />
-      <fog attach="fog" args={[BG, 70 + road * 2, 140 + road * 3]} />
-      <hemisphereLight args={["#fff8ec", "#d8ccb6", 1.9]} />
-      <ambientLight intensity={0.7} />
-      {/* warm low sun from the back left: long soft shadows across the ground, like the reference */}
-      <directionalLight
-        position={[-14, 18, -6]}
-        intensity={2}
-        color="#fff3df"
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-bias={-0.0004}
-        shadow-normalBias={0.03}
-        shadow-camera-left={-shadowR}
-        shadow-camera-right={shadowR}
-        shadow-camera-top={shadowR}
-        shadow-camera-bottom={-shadowR}
-        shadow-camera-near={1}
-        shadow-camera-far={80}
-      />
-
-      <mesh rotation-x={-Math.PI / 2} position-y={-0.01} receiveShadow>
-        <planeGeometry args={[400, 400]} />
-        <meshStandardMaterial color={GROUND} roughness={1} />
-      </mesh>
-      <Grid
-        position-y={0.002}
-        args={[200, 200]}
-        cellSize={1}
-        cellThickness={0.6}
-        cellColor="#ddd3c0"
-        sectionSize={4}
-        sectionThickness={1}
-        sectionColor="#d3c6ad"
-        fadeDistance={road * 2.6}
-        fadeStrength={1.5}
-        infiniteGrid
-      />
-      <RingRoad radius={road} />
-
-      <GridTower fxRef={fxRef} count={rows.length} />
+      <CityGround road={road} shadowR={road + 2} />
+      <GridHub fxRef={fxRef} count={rows.length} levelRef={level} streamsRef={streams} />
+      <GridTower levelRef={level} />
 
       {rows.map((r, i) => (
         <Building
@@ -570,26 +452,27 @@ function CityScene({
           color={r.color}
           height={2 + 3.6 * Math.sqrt(Math.max(0.05, (Number.isFinite(r.bid.max_mw) ? r.bid.max_mw : maxMw / 2) / maxMw))}
           compact={rows.length > 16}
-          position={spots[i]}
+          position={spotOf.get(r.bid.id) ?? [0, 0, 0]}
           mw={r.mw}
           maxMw={r.bid.max_mw}
           pending={r.pending}
+          removed={r.removed}
           delay={reduced ? -1 : i * 0.05}
           timeRef={timeRef}
           fxRef={fxRef}
           glowMap={glowMap}
           hovered={hovered === r.bid.id}
-          onOver={() => setHovered(r.bid.id)}
+          onOver={() => !r.removed && setHovered(r.bid.id)}
           onOut={() => setHovered(null)}
         />
       ))}
 
-      <Pulses fxRef={fxRef} />
+      <PulseField streams={streams} onLand={landed} />
       <Projector ids={rows.map((r) => r.bid.id)} hovered={hovered} fxRef={fxRef} labelsRef={labelsRef} tipRef={tipRef} />
 
-      {/* windows and pulses above full brightness glow */}
+      {/* only the lamp and the brightest windows glow, softly: it is a daylight scene */}
       <EffectComposer multisampling={4}>
-        <Bloom mipmapBlur luminanceThreshold={1} intensity={0.85} radius={0.65} />
+        <Bloom mipmapBlur luminanceThreshold={1} intensity={0.5} radius={0.6} />
         <ToneMapping mode={ToneMappingMode.NEUTRAL} />
       </EffectComposer>
 
@@ -660,54 +543,29 @@ function Projector({
   return null;
 }
 
-function RingRoad({ radius }: { radius: number }) {
-  const dash = useMemo(
-    () =>
-      Array.from({ length: 129 }, (_, i) => {
-        const a = (i / 128) * Math.PI * 2;
-        return new THREE.Vector3(Math.cos(a) * radius, 0.02, Math.sin(a) * radius);
-      }),
-    [radius],
-  );
-  return (
-    <group>
-      <mesh rotation-x={-Math.PI / 2} position-y={0.008} receiveShadow>
-        <ringGeometry args={[radius - 0.6, radius + 0.6, 128]} />
-        <meshStandardMaterial color="#ddd2bc" roughness={1} />
-      </mesh>
-      <Line points={dash} color="#f7f2e8" lineWidth={1.5} dashed dashSize={0.5} gapSize={0.5} />
-    </group>
-  );
-}
-
-/** The power grid: a stepped golden tower with a beacon that brightens as more companies draw power. */
-function GridTower({ fxRef, count }: { fxRef: RefObject<FxMap>; count: number }) {
-  const textures = useMemo(() => {
-    const r = rng(7);
-    return [
-      facadeTextures("#e9c46e", 2.6, 4.6, r),
-      facadeTextures("#ecca78", 2.0, 2.2, r),
-      facadeTextures("#efd084", 1.4, 1.3, r),
-    ];
-  }, []);
-  useEffect(() => () => textures.forEach((t) => (t.map.dispose(), t.emissive.dispose())), [textures]);
-  const beacon = useRef<THREE.MeshBasicMaterial>(null);
-  const halo = useRef<THREE.Mesh>(null);
+/**
+ * The grid's side of the replay: how bright the tower is (share of companies drawing power), the
+ * rings on its plaza, and one pulse stream to every building that is drawing power this hour.
+ */
+function GridHub({
+  fxRef,
+  count,
+  levelRef,
+  streamsRef,
+}: {
+  fxRef: RefObject<FxMap>;
+  count: number;
+  levelRef: RefObject<number>;
+  streamsRef: RefObject<Stream[]>;
+}) {
   const waves = useRef<THREE.Group>(null);
-  const sides = useRef<THREE.MeshStandardMaterial[]>([]);
-  const level = useRef(0);
-  const tiers: [number, number, number][] = [
-    [2.6, 4.6, 0.3],
-    [2.0, 2.2, 4.9],
-    [1.4, 1.3, 7.1],
-  ]; // [width, height, bottom]
-  const top = 8.4;
+  const clean = useMemo(() => new THREE.Color(CITY.clean), []);
 
   useEffect(() => {
     const fx = fxRef.current;
     fx.set(GRID_ID, {
       pos: new THREE.Vector3(0, 0, 0),
-      top: top + 1.6,
+      top: TOWER_TOP + 1.4,
       half: TOWER_R,
       active: false,
       load: 0,
@@ -718,89 +576,49 @@ function GridTower({ fxRef, count }: { fxRef: RefObject<FxMap>; count: number })
   }, [fxRef]);
 
   useFrame((state, dt) => {
+    const out: Stream[] = [];
     let on = 0;
     fxRef.current.forEach((f, id) => {
-      if (id !== GRID_ID && f.active) on++;
+      if (id === GRID_ID || !f.active) return;
+      on++;
+      const dir = new THREE.Vector3(f.pos.x, 0, f.pos.z).normalize();
+      out.push({
+        id,
+        from: dir.clone().multiplyScalar(TOWER_R).setY(0.35),
+        to: f.pos.clone().addScaledVector(dir, -(f.half + 0.1)).setY(0.3),
+        every: PULSE_EVERY_S * (1.15 - 0.3 * f.load),
+        color: clean,
+      });
     });
-    const target = count ? on / count : 0;
+    streamsRef.current = out;
     const k = 1 - Math.exp(-dt * 5);
-    level.current += (target - level.current) * k;
-    const t = state.clock.elapsedTime;
-    const throb = 0.5 + 0.5 * Math.sin(t * 4);
-    if (beacon.current) beacon.current.color.set(GOLD).multiplyScalar(1.2 + level.current * 3 + throb * level.current * 1.5);
-    if (halo.current) {
-      const s = 1 + throb * 0.25 * (0.3 + level.current);
-      halo.current.scale.setScalar(s);
-      ((halo.current.material as THREE.MeshBasicMaterial).opacity = 0.35 + 0.4 * level.current);
-    }
-    sides.current.forEach((m) => (m.emissiveIntensity = 0.15 + level.current * 1.4));
+    levelRef.current += ((count ? on / count : 0) - levelRef.current) * k;
     const wg = waves.current;
     if (wg) {
-      wg.visible = level.current > 0.01;
+      wg.visible = levelRef.current > 0.01;
       wg.children.forEach((ring, i) => {
-        const phase = (t / 2.2 + i / 3) % 1;
+        const phase = (state.clock.elapsedTime / 2.2 + i / 3) % 1;
         const r = 1 + phase * 1.6;
         ring.scale.set(r, r, 1);
-        ((ring as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = (1 - phase) ** 1.5 * Math.min(1, level.current * 2);
+        ((ring as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = (1 - phase) ** 1.5 * Math.min(0.8, levelRef.current * 2);
       });
     }
   });
 
   return (
     <group>
-      {/* plaza and the gold ring around it */}
-      <mesh position-y={0.15} receiveShadow castShadow>
-        <boxGeometry args={[3.6, 0.3, 3.6]} />
-        <meshStandardMaterial color="#efe3c4" roughness={0.9} />
-      </mesh>
       <mesh rotation-x={-Math.PI / 2} position-y={0.012}>
-        <ringGeometry args={[2.75, 2.88, 96]} />
-        <meshBasicMaterial color={GOLD} transparent opacity={0.75} />
+        <ringGeometry args={[2.75, 2.86, 96]} />
+        <meshBasicMaterial color={CITY.gold} transparent opacity={0.6} />
       </mesh>
       <group ref={waves} rotation-x={-Math.PI / 2} position-y={0.02} scale={2.8}>
         {[0, 1, 2].map((i) => (
           <mesh key={i}>
             <ringGeometry args={[0.97, 1, 96]} />
-            <meshBasicMaterial color={GOLD} transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
+            <meshBasicMaterial color={CITY.gold} transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
           </mesh>
         ))}
       </group>
-      {tiers.map(([w, h, y], i) => (
-        <mesh key={i} position-y={y + h / 2} castShadow receiveShadow>
-          <boxGeometry args={[w, h, w]} />
-          {[0, 1, 2, 3, 4, 5].map((f) =>
-            f === 2 || f === 3 ? (
-              <meshStandardMaterial key={f} attach={`material-${f}`} color="#d9ae4f" roughness={0.8} />
-            ) : (
-              <meshStandardMaterial
-                key={f}
-                attach={`material-${f}`}
-                ref={(m) => {
-                  if (m && !sides.current.includes(m)) sides.current.push(m);
-                }}
-                map={textures[i].map}
-                emissiveMap={textures[i].emissive}
-                emissive={GOLD}
-                emissiveIntensity={0.15}
-                roughness={0.75}
-              />
-            ),
-          )}
-        </mesh>
-      ))}
-      {/* mast and beacon */}
-      <mesh position-y={top + 0.6} castShadow>
-        <cylinderGeometry args={[0.05, 0.07, 1.2, 8]} />
-        <meshStandardMaterial color="#b98e3a" />
-      </mesh>
-      <mesh position-y={top + 1.3}>
-        <sphereGeometry args={[0.24, 24, 16]} />
-        <meshBasicMaterial ref={beacon} color={GOLD} toneMapped={false} />
-      </mesh>
-      <mesh ref={halo} position-y={top + 1.3}>
-        <torusGeometry args={[0.55, 0.035, 8, 48]} />
-        <meshBasicMaterial color={GOLD} transparent opacity={0.4} toneMapped={false} />
-      </mesh>
     </group>
   );
 }
@@ -814,6 +632,7 @@ function Building({
   mw,
   maxMw,
   pending,
+  removed,
   delay,
   timeRef,
   fxRef,
@@ -831,6 +650,8 @@ function Building({
   mw: number[];
   maxMw: number;
   pending: boolean;
+  /** removed in the sidebar: plays its demolition, then leaves an empty lot */
+  removed: boolean;
   /** seconds before it starts rising; negative = already built (reduced motion) */
   delay: number;
   timeRef: RefObject<number>;
@@ -840,43 +661,22 @@ function Building({
   onOver: () => void;
   onOut: () => void;
 }) {
-  const look = useMemo(() => makeLook(id, color, height, compact), [id, color, height, compact]);
-  const sideMats = useMemo(
-    () =>
-      look.tiers.map(
-        (t) =>
-          new THREE.MeshStandardMaterial({
-            map: t.map,
-            emissiveMap: t.emissive,
-            emissive: new THREE.Color(GREEN),
-            emissiveIntensity: 0,
-            roughness: 0.8,
-          }),
-      ),
-    [look],
-  );
-  const roofMat = useMemo(() => new THREE.MeshStandardMaterial({ color: look.trim, roughness: 0.9 }), [look]);
-  useEffect(
-    () => () => {
-      sideMats.forEach((m) => m.dispose());
-      roofMat.dispose();
-      look.tiers.forEach((t) => (t.map.dispose(), t.emissive.dispose()));
-    },
-    [sideMats, roofMat, look],
-  );
-
+  const look = useMemo(() => makeLook(id, color, height, compact ? 0.85 : 1), [id, color, height, compact]);
+  useEffect(() => () => disposeLook(look), [look]);
   const root = useRef<THREE.Group>(null);
-  const body = useRef<THREE.Group>(null);
-  const rise = useRef<THREE.Group>(null);
-  const aura = useRef<THREE.MeshBasicMaterial>(null);
-  const glow = useRef<THREE.MeshBasicMaterial>(null);
-  const ripples = useRef<THREE.Group>(null);
-  const dust = useRef<THREE.Mesh>(null);
+  const vis = useRef<Vis>(newVis());
   const born = useRef<number | null>(null);
-  const tint = useMemo(() => new THREE.Color(), []);
-  const white = useMemo(() => new THREE.Color("#ffffff"), []);
-  const mint = useMemo(() => new THREE.Color("#bff5d6"), []);
+  const razed = useRef<number | null>(null);
   const half = Math.max(look.w, look.d) / 2;
+  const [x, , z] = position;
+  const line = useMemo(() => {
+    const dir = new THREE.Vector3(x, 0, z).normalize();
+    const len = Math.hypot(x, z);
+    return {
+      from: dir.clone().multiplyScalar(TOWER_R + 0.9),
+      to: dir.clone().multiplyScalar(Math.max(TOWER_R + 1, len - half - 0.3)),
+    };
+  }, [x, z, half]);
 
   // the shared state the pulses and labels read; created once, moved every frame
   useEffect(() => {
@@ -904,314 +704,69 @@ function Building({
     const t = state.clock.elapsedTime;
     // a company added from the sidebar waits for its editor dialog to close, so the rise is seen
     if (born.current === null && !document.querySelector('[aria-modal="true"]')) {
-      born.current = delay < 0 ? -1e9 : t + delay;
+      // the stagger only applies to the first build of the whole city, not to later additions
+      born.current = delay < 0 ? -1e9 : t + (t < 1.5 ? delay : 0);
     }
     const k = 1 - Math.exp(-dt * 7); // eased, frame-rate independent
 
-    // glide to a new spot when companies are added or removed
-    g.position.x += (position[0] - g.position.x) * k;
-    g.position.z += (position[2] - g.position.z) * k;
+    // demolition starts the frame `removed` turns on, and is undone if the company comes back
+    if (removed && razed.current === null) razed.current = t;
+    if (!removed) razed.current = null;
+    const d = razed.current === null ? 0 : Math.min(1, (t - razed.current) / DEMOLISH_S);
+
+    // glide to a new spot when companies are added or removed (a falling building stays put)
+    if (!removed) {
+      g.position.x += (position[0] - g.position.x) * k;
+      g.position.z += (position[2] - g.position.z) * k;
+    }
     fx.pos.copy(g.position);
     fx.half = half;
 
-    // construction: rise from the ground with a little overshoot, kicking up a ring of dust
     const p = born.current === null ? 0 : Math.min(1, Math.max(0, (t - born.current) / BUILD_S));
     const grown = p >= 1 ? 1 : Math.max(0.001, easeOutBack(p));
-    if (rise.current) {
-      rise.current.scale.set(0.85 + 0.15 * Math.min(1, p * 1.4), grown, 0.85 + 0.15 * Math.min(1, p * 1.4));
-    }
-    if (dust.current) {
-      dust.current.visible = p > 0 && p < 1;
-      const s = 1 + p * 1.6;
-      dust.current.scale.set(s, s, 1);
-      (dust.current.material as THREE.MeshBasicMaterial).opacity = (1 - p) * 0.55;
-    }
-    if (p >= 1 && fx.top < look.h * 0.99 && fx.flash < 0.5) fx.flash = 0.7; // a sparkle as it tops out
-    fx.top = look.h * grown;
+    if (p >= 1 && !removed && fx.top < look.h * 0.99 && fx.flash < 0.5) fx.flash = 0.7; // a sparkle as it tops out
+    fx.top = look.h * grown * (1 - d);
 
     // read the clock here rather than through props: no React render per frame
     const now = mw[Math.min(23, Math.floor(timeRef.current))] ?? 0;
-    const on = !pending && now > EPS_MW;
+    const on = !pending && !removed && now > EPS_MW;
     fx.active = on && p >= 1;
     fx.load = on ? Math.min(1, maxMw > 0 ? now / maxMw : 1) : 0;
     fx.glow += ((fx.active ? 0.6 + 0.4 * fx.load : 0) - fx.glow) * k;
     fx.flash = Math.max(0, fx.flash - dt * FLASH_DECAY * (fx.flash > 0.35 ? 1 : 0.6));
-    const lit = Math.min(1.3, fx.glow + fx.flash * 0.8);
 
-    sideMats.forEach((m) => {
-      m.emissiveIntensity = fx.glow * 1.7 + fx.flash * 2.6;
-      m.color.copy(tint.copy(white).lerp(mint, Math.min(1, lit) * 0.3));
-    });
-    if (aura.current) aura.current.opacity = Math.min(0.3, lit * 0.16);
-    if (glow.current) glow.current.opacity = Math.min(1, lit * 0.8);
-    const b = body.current;
-    if (b) {
-      const s = hovered ? 1.06 : 1 + fx.flash * 0.04;
-      b.scale.setScalar(b.scale.x + (s - b.scale.x) * k);
-    }
-    // charging ripple: rings expand from the building across the ground and fade, staggered
-    const rg = ripples.current;
-    if (rg) {
-      rg.visible = fx.glow > 0.02;
-      rg.children.forEach((ring, i) => {
-        const phase = (t / RIPPLE_S + i / RIPPLES + position[0] * 0.07) % 1;
-        const r = 1 + phase * 1.1;
-        ring.scale.set(r, r, 1);
-        ((ring as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = (1 - phase) ** 1.6 * fx.glow;
-      });
-    }
+    const v = vis.current;
+    v.p = p;
+    v.d = d;
+    v.glow = fx.glow;
+    v.flash = fx.flash;
+    v.hovered = hovered;
   });
 
   return (
     <>
-      <PowerLine id={id} to={position} half={half} pending={pending} fxRef={fxRef} />
+      <PowerLine
+        from={line.from}
+        to={line.to}
+        faint={pending}
+        idle={pending ? "#d8d1c2" : CITY.lineIdle}
+        level={() => {
+          const f = fxRef.current.get(id);
+          return f ? f.glow + f.flash * 0.5 : 0;
+        }}
+      />
       <group ref={root} position={position}>
-        <group ref={ripples} rotation-x={-Math.PI / 2} position-y={0.03} scale={half * 1.25} visible={false}>
-          {Array.from({ length: RIPPLES }, (_, i) => (
-            <mesh key={i}>
-              <ringGeometry args={[0.95, 1, 64]} />
-              <meshBasicMaterial
-                color={GREEN}
-                transparent
-                opacity={0}
-                depthWrite={false}
-                toneMapped={false}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-          ))}
-        </group>
-        <mesh rotation-x={-Math.PI / 2} position-y={0.025}>
-          <planeGeometry args={[half * 4.4, half * 4.4]} />
-          <meshBasicMaterial
-            ref={glow}
-            map={glowMap}
-            color={GREEN}
-            transparent
-            opacity={0}
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
-        <mesh ref={dust} rotation-x={-Math.PI / 2} position-y={0.04} scale={half} visible={false}>
-          <ringGeometry args={[0.9, 1.15, 48]} />
-          <meshBasicMaterial color="#c9b996" transparent opacity={0} depthWrite={false} />
-        </mesh>
-        <group
-          ref={body}
-          rotation-y={look.rot}
-          onPointerOver={(e) => {
-            e.stopPropagation();
-            onOver();
-          }}
-          onPointerOut={onOut}
-          onClick={(e) => {
-            e.stopPropagation();
-            onOver();
-          }}
-        >
-          {/* plinth */}
-          <mesh position-y={0.06} receiveShadow castShadow>
-            <boxGeometry args={[look.w + 0.35, 0.12, look.d + 0.35]} />
-            <meshStandardMaterial color={pending ? "#e4dccb" : "#f1ebdf"} roughness={1} />
-          </mesh>
-          {pending && (
-            <mesh rotation-x={-Math.PI / 2} position-y={0.13}>
-              <ringGeometry args={[half + 0.3, half + 0.38, 4, 1, Math.PI / 4]} />
-              <meshBasicMaterial color="#b3a380" />
-            </mesh>
-          )}
-          <group ref={rise} position-y={0.12}>
-            {look.tiers.map((tier, i) => (
-              <mesh
-                key={i}
-                position-y={tier.y + tier.h / 2}
-                castShadow
-                receiveShadow
-                material={[sideMats[i], sideMats[i], roofMat, roofMat, sideMats[i], sideMats[i]]}
-              >
-                <boxGeometry args={[tier.w, tier.h, tier.d]} />
-              </mesh>
-            ))}
-            <RoofDetail look={look} />
-            {/* soft green shell: the building itself glows while it charges */}
-            <mesh position-y={look.h / 2}>
-              <boxGeometry args={[look.w + 0.22, look.h + 0.2, look.d + 0.22]} />
-              <meshBasicMaterial
-                ref={aura}
-                color={GREEN}
-                transparent
-                opacity={0}
-                depthWrite={false}
-                blending={THREE.AdditiveBlending}
-                side={THREE.BackSide}
-                toneMapped={false}
-              />
-            </mesh>
-          </group>
-        </group>
+        <BuildingMesh
+          look={look}
+          glowMap={glowMap}
+          vis={vis}
+          pending={pending}
+          phase={position[0] * 0.07}
+          onOver={onOver}
+          onOut={onOut}
+        />
       </group>
     </>
-  );
-}
-
-function RoofDetail({ look }: { look: Look }) {
-  const top = look.tiers[look.tiers.length - 1];
-  const y = top.y + top.h;
-  if (look.roof === "plant")
-    return (
-      <mesh position={[top.w * 0.12, y + 0.22, -top.d * 0.1]} castShadow>
-        <boxGeometry args={[top.w * 0.5, 0.44, top.d * 0.45]} />
-        <meshStandardMaterial color="#e9e6df" roughness={0.9} />
-      </mesh>
-    );
-  if (look.roof === "antenna")
-    return (
-      <group position={[-top.w * 0.18, y, top.d * 0.15]}>
-        <mesh position-y={0.55} castShadow>
-          <cylinderGeometry args={[0.03, 0.045, 1.1, 6]} />
-          <meshStandardMaterial color="#6f6a60" />
-        </mesh>
-        <mesh position-y={1.12}>
-          <sphereGeometry args={[0.06, 10, 8]} />
-          <meshBasicMaterial color="#ff5a4a" toneMapped={false} />
-        </mesh>
-      </group>
-    );
-  if (look.roof === "tank")
-    return (
-      <mesh position={[top.w * 0.2, y + 0.28, top.d * 0.18]} castShadow>
-        <cylinderGeometry args={[0.24, 0.24, 0.56, 14]} />
-        <meshStandardMaterial color={look.trim} roughness={0.8} />
-      </mesh>
-    );
-  return (
-    <mesh position-y={y + 0.05}>
-      <boxGeometry args={[top.w * 0.92, 0.1, top.d * 0.92]} />
-      <meshStandardMaterial color={look.trim} roughness={0.9} />
-    </mesh>
-  );
-}
-
-/** Dashed power line on the ground from the grid to one building; it turns green while energized. */
-function PowerLine({
-  id,
-  to,
-  half,
-  pending,
-  fxRef,
-}: {
-  id: string;
-  to: [number, number, number];
-  half: number;
-  pending: boolean;
-  fxRef: RefObject<FxMap>;
-}) {
-  const ref = useRef<ComponentRef<typeof Line>>(null);
-  const idle = useMemo(() => new THREE.Color(pending ? "#cfc6b3" : LINE_IDLE), [pending]);
-  const live = useMemo(() => new THREE.Color(GREEN), []);
-  const points = useMemo(() => {
-    const dir = new THREE.Vector3(to[0], 0, to[2]).normalize();
-    const len = Math.hypot(to[0], to[2]);
-    return [dir.clone().multiplyScalar(TOWER_R + 0.9), dir.clone().multiplyScalar(Math.max(TOWER_R + 1, len - half - 0.3))].map(
-      (p) => p.setY(0.03),
-    );
-  }, [to, half]);
-  useFrame(() => {
-    const m = ref.current?.material;
-    const fx = fxRef.current.get(id);
-    if (!m || !fx) return;
-    m.color.copy(idle).lerp(live, Math.min(1, fx.glow + fx.flash * 0.5));
-    m.opacity = pending ? 0.6 : 0.75 + 0.25 * fx.glow;
-  });
-  return (
-    <Line
-      ref={ref}
-      points={points}
-      color={idle}
-      lineWidth={pending ? 1.5 : 2.4}
-      dashed
-      dashSize={pending ? 0.18 : 0.45}
-      gapSize={pending ? 0.3 : 0.28}
-      transparent
-    />
-  );
-}
-
-interface Pulse {
-  id: string;
-  born: number;
-  dur: number;
-}
-
-/**
- * Electrons from the grid to every building that is drawing power: one as soon as the building
- * switches on (so scrubbing the timeline fires them), then a steady stream while it charges.
- * Each pulse that lands lights its building up for about a second.
- */
-function Pulses({ fxRef }: { fxRef: RefObject<FxMap> }) {
-  const mesh = useRef<THREE.InstancedMesh>(null);
-  const pulses = useRef<Pulse[]>([]);
-  const next = useRef(new Map<string, number>()); // id -> time the next pulse leaves
-  const tmp = useMemo(() => new THREE.Object3D(), []);
-  const color = useMemo(() => new THREE.Color("#b8ffd6").multiplyScalar(5), []);
-  const a = useMemo(() => new THREE.Vector3(), []);
-  const b = useMemo(() => new THREE.Vector3(), []);
-
-  useFrame((state) => {
-    const t = state.clock.elapsedTime;
-    const fx = fxRef.current;
-    fx.forEach((f, id) => {
-      if (id === GRID_ID) return;
-      if (!f.active) {
-        next.current.delete(id);
-        return;
-      }
-      const due = next.current.get(id);
-      if (due === undefined || t >= due) {
-        if (pulses.current.length < MAX_PULSES) {
-          const len = Math.max(1, f.pos.length() - f.half - TOWER_R);
-          pulses.current.push({ id, born: t, dur: len / PULSE_SPEED });
-        }
-        next.current.set(id, t + PULSE_EVERY_S * (1.15 - 0.3 * f.load));
-      }
-    });
-
-    const m = mesh.current;
-    if (!m) return;
-    let n = 0;
-    pulses.current = pulses.current.filter((p) => {
-      const f = fx.get(p.id);
-      if (!f) return false;
-      const u = (t - p.born) / p.dur;
-      if (u >= 1) {
-        f.flash = 1; // landed
-        return false;
-      }
-      const dir = b.set(f.pos.x, 0, f.pos.z).normalize();
-      const len = f.pos.length();
-      for (let j = 0; j < PULSE_TRAIL; j++) {
-        const uj = u - j * 0.045;
-        if (uj < 0) continue;
-        const r = TOWER_R + (len - f.half - TOWER_R) * uj;
-        a.copy(dir).multiplyScalar(r);
-        a.y = 0.35 + Math.sin(Math.PI * uj) * (0.5 + len * 0.04); // a low hop along the line
-        tmp.position.copy(a);
-        tmp.scale.setScalar(j === 0 ? 1 : 0.7 - j * 0.18);
-        tmp.updateMatrix();
-        m.setMatrixAt(n++, tmp.matrix);
-      }
-      return true;
-    });
-    m.count = n;
-    m.instanceMatrix.needsUpdate = true;
-  });
-
-  return (
-    <instancedMesh ref={mesh} args={[undefined, undefined, MAX_PULSES * PULSE_TRAIL]} frustumCulled={false}>
-      <sphereGeometry args={[0.2, 12, 8]} />
-      <meshBasicMaterial color={color} toneMapped={false} />
-    </instancedMesh>
   );
 }
 
@@ -1221,8 +776,8 @@ function GridTag({ running, mw, elRef }: { running: number; mw: number; elRef: (
   return (
     <div ref={elRef} className="absolute left-0 top-0" style={OFFSCREEN}>
       <div className="-translate-x-1/2 -translate-y-full whitespace-nowrap text-center leading-tight" data-testid="fleet-grid-tag">
-        <div className="text-[13px] font-semibold text-ink [text-shadow:0_1px_2px_#efe9de]">Power grid</div>
-        <div className="num text-[10px] text-ink-2 [text-shadow:0_1px_2px_#efe9de]">
+        <div className="text-[13px] font-semibold text-ink [text-shadow:0_1px_2px_#f1eee6]">Power grid</div>
+        <div className="num text-[10px] text-ink-2 [text-shadow:0_1px_2px_#f1eee6]">
           {running ? `${running} drawing · ${fmtInt(mw)} MW` : "no flexible load this hour"}
         </div>
       </div>
@@ -1262,7 +817,7 @@ function NameTag({
     <div ref={elRef} className="absolute left-0 top-0" style={OFFSCREEN}>
       <div
         className={`${show ? "block" : "hidden"} -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md px-1.5 py-0.5 text-center leading-tight transition-colors ${
-          on ? "bg-white/85 shadow-sm ring-1 ring-[#2fd27f]/60" : "bg-[#efe9de]/70"
+          on ? "bg-white/85 shadow-sm ring-1 ring-[#2fd27f]/60" : "bg-[#f1eee6]/70"
         }`}
       >
         <div className="flex items-center justify-center gap-1 text-[11px] font-semibold text-ink">
@@ -1470,7 +1025,7 @@ function CompanyTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => {
+            {rows.filter((r) => !r.ghost).map((r) => {
               const on = r.now > EPS_MW;
               return (
                 <tr
@@ -1483,11 +1038,11 @@ function CompanyTable({
                   <td className="py-1.5 pr-2">
                     <span className="flex items-center gap-1.5">
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: r.color }} />
-                      <span className="text-ink">{r.bid.name}</span>
+                      <span className={r.removed ? "text-muted line-through" : "text-ink"}>{r.bid.name}</span>
                     </span>
                   </td>
                   <td className={`num py-1.5 pr-2 text-right ${on ? "text-accent" : "text-muted"}`}>
-                    {r.pending ? "run to schedule" : on ? `${fmtInt(r.now)} MW` : "idle"}
+                    {r.removed ? "removed · run to apply" : r.pending ? "run to schedule" : on ? `${fmtInt(r.now)} MW` : "idle"}
                   </td>
                   <td className="num py-1.5 text-right font-medium text-ink">{r.settle ? fmtUsd(r.settle.payout_usd) : "—"}</td>
                 </tr>

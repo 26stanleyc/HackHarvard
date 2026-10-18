@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { API_MODE, ApiError, postBidFeatures } from "@/lib/api";
 import {
@@ -130,13 +130,15 @@ export function CompanySidebar({
   // null = closed, "add" = preset picker, otherwise the id of the company being edited
   const [modal, setModal] = useState<string | null>(null);
 
+  // never reuse an id from the last run: a new company would otherwise take over that one's results
+  const takenIds = () => [...drafts, ...[...(results?.keys() ?? [])].map((id) => ({ id }))];
   const addPreset = (p: Preset) => {
-    const id = nextBidId(drafts);
+    const id = nextBidId(takenIds());
     setDrafts((prev) => [...prev, presetToDraft(p, id, prev.map((d) => d.name))]);
     setModal(id);
   };
   const addCustom = () => {
-    const id = nextBidId(drafts);
+    const id = nextBidId(takenIds());
     setDrafts((prev) => [...prev, customDraft(id)]);
     setModal(id);
   };
@@ -598,12 +600,19 @@ function BidCard({
         <HourSelect label="Deadline (excl.)" value={draft.deadline_hour} options={DEADLINE} onChange={(v) => onChange({ deadline_hour: v })} testId={`deadline-${draft.id}`} />
       </div>
 
-      <WindowStrip earliest={bid.earliest_hour} deadline={bid.deadline_hour} color={companyColor(index)} />
+      <WindowStrip
+        earliest={draft.earliest_hour}
+        deadline={draft.deadline_hour}
+        color={companyColor(index)}
+        onChange={(w) => onChange(w)}
+        testId={`window-${draft.id}`}
+      />
       <div className="mt-1.5 flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-muted">
         <span>
           Window <span className="num text-ink-2">{windowLabel(bid.earliest_hour, bid.deadline_hour)}</span> ·{" "}
           <span className="num">{windowH} h</span>
         </span>
+        <span className="text-[11px]">Drag the bar to change it</span>
       </div>
       {profile && <BidProfile f={profile} />}
       {error && (
@@ -661,16 +670,131 @@ function ProfileSourceNote({ block, failed }: { block: BidFeaturesBlock | null; 
   );
 }
 
-function WindowStrip({ earliest, deadline, color }: { earliest: number; deadline: number; color: string }) {
+type WindowDrag = { mode: "start" | "end" | "move" | "new"; anchor: number; e0: number; d0: number };
+
+/**
+ * The bid's window on a 24-hour bar, editable: drag across empty hours to pick a new window,
+ * drag either edge to move it, or drag the window itself to slide it. The edges are also
+ * keyboard sliders (arrow keys). Kept in step with the Earliest / Deadline dropdowns.
+ */
+function WindowStrip({
+  earliest,
+  deadline,
+  color,
+  onChange,
+  testId,
+}: {
+  earliest: number;
+  deadline: number;
+  color: string;
+  onChange: (w: { earliest_hour: number; deadline_hour: number }) => void;
+  testId?: string;
+}) {
+  const bar = useRef<HTMLDivElement>(null);
+  const drag = useRef<WindowDrag | null>(null);
+  const [dragging, setDragging] = useState<WindowDrag["mode"] | null>(null);
+  const posAt = (clientX: number) => {
+    const r = bar.current?.getBoundingClientRect();
+    return r ? Math.min(24, Math.max(0, ((clientX - r.left) / r.width) * 24)) : 0;
+  };
+  const set = (e: number, d: number) => {
+    const e2 = Math.min(23, Math.max(0, e));
+    const d2 = Math.min(24, Math.max(e2 + 1, d));
+    if (e2 !== earliest || d2 !== deadline) onChange({ earliest_hour: e2, deadline_hour: d2 });
+  };
+  const apply = (pos: number) => {
+    const g = drag.current;
+    if (!g) return;
+    if (g.mode === "start") set(Math.min(Math.round(pos), g.d0 - 1), g.d0);
+    else if (g.mode === "end") set(g.e0, Math.max(Math.round(pos), g.e0 + 1));
+    else if (g.mode === "move") {
+      const len = g.d0 - g.e0;
+      const e = Math.min(24 - len, Math.max(0, g.e0 + Math.round(pos - g.anchor)));
+      set(e, e + len);
+    } else {
+      const h = Math.floor(Math.min(pos, 23.999));
+      set(Math.min(g.anchor, h), Math.max(g.anchor, h) + 1);
+    }
+  };
+  const key = (edge: "start" | "end") => (e: ReactKeyboardEvent) => {
+    const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    if (edge === "start") set(Math.min(deadline - 1, earliest + step), deadline);
+    else set(earliest, Math.max(earliest + 1, deadline + step));
+  };
+  const handle = "absolute top-1/2 z-10 h-6 w-2.5 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize rounded-full border-2 border-white bg-ink shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-accent";
+
   return (
-    <div className="mt-3" aria-hidden>
-      <div className="grid h-2.5 grid-cols-24 gap-px overflow-hidden rounded-sm" style={{ gridTemplateColumns: "repeat(24, minmax(0, 1fr))" }}>
-        {Array.from({ length: 24 }, (_, h) => {
-          const inside = h >= earliest && h < deadline;
-          return <div key={h} className={inside ? "" : "hatch bg-surface-2"} style={inside ? { background: color, opacity: 0.55 } : undefined} />;
-        })}
+    <div className="mt-3" data-testid={testId}>
+      <div
+        ref={bar}
+        className={`relative touch-none select-none ${dragging === "move" ? "cursor-grabbing" : "cursor-pointer"}`}
+        onPointerDown={(e) => {
+          if (e.button !== 0) return;
+          const pos = posAt(e.clientX);
+          const near = 0.7;
+          const mode: WindowDrag["mode"] =
+            Math.abs(pos - earliest) <= near ? "start"
+            : Math.abs(pos - deadline) <= near ? "end"
+            : pos > earliest && pos < deadline ? "move"
+            : "new";
+          const anchor = mode === "new" ? Math.floor(Math.min(pos, 23.999)) : pos;
+          drag.current = { mode, anchor, e0: earliest, d0: deadline };
+          setDragging(mode);
+          e.currentTarget.setPointerCapture(e.pointerId);
+          if (mode === "new") set(anchor, anchor + 1);
+        }}
+        onPointerMove={(e) => drag.current && apply(posAt(e.clientX))}
+        onPointerUp={() => {
+          drag.current = null;
+          setDragging(null);
+        }}
+        onPointerCancel={() => {
+          drag.current = null;
+          setDragging(null);
+        }}
+      >
+        <div className="grid h-5 gap-px overflow-hidden rounded" style={{ gridTemplateColumns: "repeat(24, minmax(0, 1fr))" }}>
+          {Array.from({ length: 24 }, (_, h) => {
+            const inside = h >= earliest && h < deadline;
+            return (
+              <div
+                key={h}
+                className={inside ? (dragging === null ? "cursor-grab" : "") : "hatch bg-surface-2 hover:bg-line"}
+                style={inside ? { background: color, opacity: 0.6 } : undefined}
+              />
+            );
+          })}
+        </div>
+        <div
+          role="slider"
+          tabIndex={0}
+          aria-label="Earliest hour"
+          aria-valuemin={0}
+          aria-valuemax={deadline - 1}
+          aria-valuenow={earliest}
+          aria-valuetext={hh(earliest)}
+          onKeyDown={key("start")}
+          className={handle}
+          style={{ left: `${(earliest / 24) * 100}%` }}
+          data-testid={testId && `${testId}-start`}
+        />
+        <div
+          role="slider"
+          tabIndex={0}
+          aria-label="Deadline hour"
+          aria-valuemin={earliest + 1}
+          aria-valuemax={24}
+          aria-valuenow={deadline}
+          aria-valuetext={hh(deadline)}
+          onKeyDown={key("end")}
+          className={handle}
+          style={{ left: `${(deadline / 24) * 100}%` }}
+          data-testid={testId && `${testId}-end`}
+        />
       </div>
-      <div className="num mt-0.5 flex justify-between text-[10px] text-muted">
+      <div className="num mt-1 flex justify-between text-[10px] text-muted">
         <span>00</span>
         <span>06</span>
         <span>12</span>

@@ -74,6 +74,7 @@ export function ResultsView({
   leftOut,
   setLeftOut,
   pending,
+  removed,
 }: {
   request: ClearRequest;
   response: ClearResponse;
@@ -83,11 +84,13 @@ export function ResultsView({
   setLeftOut: (id: string | null) => void;
   /** companies added in the sidebar since the last run */
   pending?: PendingCompany[];
+  /** companies from the last run removed in the sidebar since */
+  removed?: string[];
 }) {
   return (
     <div className="space-y-6">
       <Headline response={response} />
-      <FleetView request={request} response={response} bids={bids} companies={companies} pending={pending} />
+      <FleetView request={request} response={response} bids={bids} companies={companies} pending={pending} removed={removed} />
       <Details>
         <ResultNotes response={response} />
         <ValueBreakdown response={response} />

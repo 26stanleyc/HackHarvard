@@ -206,6 +206,12 @@ export function ClearinghouseApp() {
     );
   }, [cleared, drafts]);
 
+  // companies from the last run removed in the sidebar since: the replay demolishes them
+  const removedCompanies = useMemo(() => {
+    const kept = new Set(drafts.map((d) => d.id));
+    return (cleared?.request.bids ?? []).filter((b) => !kept.has(b.id)).map((b) => b.id);
+  }, [cleared, drafts]);
+
   const companyResults = useMemo(() => {
     if (!cleared) return null;
     const { request, response } = cleared;
@@ -409,6 +415,7 @@ export function ClearinghouseApp() {
                 leftOut={leftOut}
                 setLeftOut={setLeftOut}
                 pending={pendingCompanies}
+                removed={removedCompanies}
               />
             ) : (
               <div className="card h-[520px] animate-pulse" aria-busy="true" aria-label="Running the example companies" />
