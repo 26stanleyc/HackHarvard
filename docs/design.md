@@ -364,6 +364,12 @@ Why: the M4 model has no weather inputs. Its wind forecast is weak (test MAE 4,0
   - In robust mode every schedule satisfies its bid; output is deterministic; an 8-bid `/api/clear` finishes under 5 s.
   - API contract tests, backend tests, ruff, and frontend lint, typecheck and build pass.
 
+### M13. Coordination win rate of at least 75% (Backend; user goal, added after M11)
+- **Goal (user):** the coordinator outperforms each company optimizing on its own in at least 75% of cases.
+- **Metric (fixed before iterating):** at 10% share in the `scripts/scenario_savings.py` rule (K = 10 draws, N = 30 companies, same seeds), the share of runs where E_coordinated < E_independent_marginal strictly, scored on actuals. Ties count as not winning. Both strategies always plan with the same information (the same planning simulator). Baseline (M10 forecast, plain planning, all 92 days): 54.2% wins, 36.7% losses, 9.1% ties.
+- **Overfitting guard (fixed before iterating):** the 92 days 2024-10-01..12-31 are split by date index: **dev** = even indices (46 days), **test** = odd indices (46 days). Every iteration is judged on dev only. A candidate that reaches 75% on dev is run once on test; at most 3 test runs in total, all reported. Success = at least 75% on test.
+- **Allowed changes:** the planning method and the coordinator's optimizer. Not allowed: changing scoring, populations, seeds, days, shares, the strategy-3 definition (beyond using the same planning simulator) or the metric. Mean CO2 saved, % of losses and saved vs business as usual are reported for every candidate so the win rate is not bought by giving up savings.
+
 ### Mapping to a team
 
 With 2-3 people: Backend takes M1-M6 in order; Frontend takes M7 right after M0 (using the fixtures) and then M8 once M6 passes; M9 is shared. Hour 0 for everyone: agree the API contract (B6), get keys (B7), pick the region, decide backend hosting. Feature freeze at hour 18; stretch goals (rolling re-plan replay, multi-user live bidding) only after M8 passes.
