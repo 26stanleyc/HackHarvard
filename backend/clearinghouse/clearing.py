@@ -39,6 +39,9 @@ H. **coordinator_trace.** From the coordinated greedy run: consecutive placement
 I. **Per strategy:** ``hourly_co2_t`` / ``total_co2_t`` = TOTAL fossil CO2 of the day on
    ``score_sim`` with that strategy's total added load (background + user schedules), and
    ``marginal_resource`` = ``score_sim.marginal_resource`` on the same load.
+   ``companies_co2_t`` = ``hourly_co2_t`` minus the background-only grid's, the CO2 the user
+   companies' load causes per hour; ``companies_fuel_mwh`` = the extra coal / gas / oil output
+   it causes per hour, the rest (``clean``) absorbed by curtailed wind and solar.
 J. **evaluate.** Each provided schedule is validated against its bid: known bid id, 24 finite
    values, non-negative, zero outside ``[earliest, deadline)``, never above ``max_mw`` (absolute
    tolerance ``EVAL_TOL_MW`` = 1e-6 MW), energy within 0.1% of ``energy_mwh`` (+1e-6 MWh); an
@@ -62,6 +65,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from clearinghouse.inputs import HOURS
+from clearinghouse.params import FUELS
 from clearinghouse.population import make_population
 from clearinghouse.schemas import STRATEGY_NAMES, Bid, bid_feasibility_error
 from clearinghouse.settlement import (
@@ -193,6 +197,17 @@ def _floats(a) -> list[float]:
     return [float(x) for x in np.asarray(a, dtype=float)]
 
 
+def _companies_fuel(score_sim: DaySimulator, base_fuel: dict, total: np.ndarray,
+                    user: np.ndarray) -> dict:
+    """What serves the user companies' load per hour (MWh): the extra coal / gas / oil output
+    of the grid with ``total`` added load over the background-only grid (``base_fuel``), and the
+    rest from curtailed wind and solar."""
+    fuel = score_sim.fuel_split(total)
+    extra = {f: np.clip(fuel[f] - base_fuel[f], 0.0, None) for f in FUELS}
+    clean = np.clip(user - sum(extra.values()), 0.0, None)
+    return {"clean": _floats(clean), **{f: _floats(v) for f, v in extra.items()}}
+
+
 @dataclass
 class ClearDetails:
     """Internals of a clear (for tests, scripts and M6 diagnostics; not part of the API)."""
@@ -255,6 +270,8 @@ def clear_with_details(day: str, bids: Sequence[Bid | Mapping], background_pct: 
     hourly = score_sim.hourly_emissions_batch(rows)
     e_score = hourly.sum(axis=-1)
     e_plan = plan_sim.emissions_batch(rows)
+    base = score_sim.hourly_emissions(bg)  # background only: the user companies' zero point
+    base_fuel = score_sim.fuel_split(bg)
 
     strategies = {}
     for k, name in enumerate(STRATEGY_NAMES):
@@ -263,6 +280,9 @@ def clear_with_details(day: str, bids: Sequence[Bid | Mapping], background_pct: 
             "hourly_co2_t": _floats(hourly[k]),
             "total_co2_t": float(e_score[k]),
             "marginal_resource": score_sim.marginal_resource(totals[name]),
+            "companies_co2_t": _floats(hourly[k] - base),
+            "companies_fuel_mwh": _companies_fuel(score_sim, base_fuel, totals[name],
+                                                  totals[name] - bg),
         }
 
     herding = {}

@@ -15,7 +15,7 @@ import {
 } from "react";
 import * as THREE from "three";
 import { loadTypeLabel } from "@/lib/bids";
-import { activeRuns, fmtInt, fmtUsd, hh, slotLabel } from "@/lib/format";
+import { activeRuns, fmtInt, fmtT, fmtUsd, hh, slotLabel } from "@/lib/format";
 import {
   SHAPLEY_MAX_BIDS_DEFAULT,
   type Bid,
@@ -44,7 +44,7 @@ import {
   type Vis,
 } from "./city";
 import { MarginalLine, type ChartCompany } from "./LoadChart";
-import { Button } from "./ui";
+import { Button, Segmented } from "./ui";
 
 /**
  * 3D replay of the coordinated schedule: one building per company around the power grid in the
@@ -63,6 +63,12 @@ const GRID_ID = "__grid";
 const LABEL_ALL_MAX = { wide: 10, narrow: 5 };
 const OFFSCREEN = { transform: "translate(-9999px, -9999px)" }; // until the first frame places it
 const EPS_MW = 1e-9;
+const CLEAN_T = 0.5; // t CO2 below which a difference counts as none (float noise)
+
+/** The replay shows either the coordinated schedule or each company acting alone on today's
+ * carbon-aware signal ("everyone chases the clean hour"), the herding baseline. */
+type View = "coordinated" | "independent_average";
+const VIEW_LABEL: Record<View, string> = { coordinated: "Coordinated", independent_average: "No coordination" };
 
 interface FleetRow {
   bid: Bid;
@@ -118,7 +124,8 @@ export function FleetView({
   /** ids from the last run that have since been removed in the sidebar */
   removed?: string[];
 }) {
-  const coordinated = response.strategies.coordinated;
+  const [view, setView] = useState<View>("coordinated");
+  const shown = response.strategies[view];
   const [hour, setHour] = useState(0);
   const [playing, setPlaying] = useState(
     () => !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -179,7 +186,7 @@ export function FleetView({
   const gone = new Set(removed);
   const cleared = bids.map<FleetRow>((bid, index) => {
     const out = gone.has(bid.id);
-    const mw = out ? [] : (coordinated.schedule[bid.id] ?? []);
+    const mw = out ? [] : (shown.schedule[bid.id] ?? []);
     return {
       bid,
       index,
@@ -242,6 +249,8 @@ export function FleetView({
   const pendingCount = liveRows.filter((r) => r.pending).length;
   const removedCount = cleared.filter((r) => r.removed).length;
 
+  const meter = useMemo(() => meterSeries(response), [response]);
+
   const play = () => {
     if (ended) seek(0);
     setEnded(false);
@@ -256,10 +265,21 @@ export function FleetView({
           <h3 className="text-lg font-semibold text-ink">Who runs when, and who gets paid</h3>
           <p className="mt-1 max-w-2xl text-xs text-muted">
             Each building is a company. When it&apos;s scheduled to run, the grid sends it power and it glows
-            green. Drag the timeline to scrub the day; hover a building for details.
+            green. The panel adds up where their power has come from so far: spare wind and solar, gas, or coal.
+            Switch to &ldquo;No coordination&rdquo; to see every company chase the same clean hours on its own.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Segmented
+            label="Schedule shown"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "coordinated", label: VIEW_LABEL.coordinated },
+              { value: "independent_average", label: VIEW_LABEL.independent_average },
+            ]}
+            testIdPrefix="fleet-view"
+          />
           <span className="num text-sm font-medium text-ink" data-testid="fleet-hour">
             {slotLabel(hour)}
           </span>
@@ -298,8 +318,6 @@ export function FleetView({
             </Canvas>
             <div className="pointer-events-none absolute inset-0">
               <GridTag
-                running={running.length}
-                mw={running.reduce((a, r) => a + r.now, 0)}
                 elRef={(el) => {
                   if (el) labelsRef.current.set(GRID_ID, el);
                   else labelsRef.current.delete(GRID_ID);
@@ -322,16 +340,28 @@ export function FleetView({
                 {hoveredRow && <BuildingCard row={hoveredRow} noPayoutNote={noPayoutNote} />}
               </div>
             </div>
+            {meter && (
+              <>
+                <div className="pointer-events-none absolute left-3 top-3 hidden sm:block">
+                  <Scoreboard meter={meter} view={view} hour={hour} />
+                </div>
+              </>
+            )}
             <Legend pendingCount={pendingCount} removedCount={removedCount} />
           </div>
           <ScheduleSlider hour={hour} counts={runningPerHour} total={cleared.length} sliderRef={sliderRef} onScrub={scrub} />
+          {meter && (
+            <div className="mt-3 sm:hidden">
+              <Scoreboard meter={meter} view={view} hour={hour} />
+            </div>
+          )}
         </div>
 
         <HourPanel
           hour={hour}
           running={running}
           total={cleared.length}
-          marginal={coordinated.marginal_resource[hour]}
+          marginal={shown.marginal_resource[hour]}
         />
       </div>
 
@@ -772,14 +802,11 @@ function Building({
 
 // --- labels over the scene ----------------------------------------------------
 
-function GridTag({ running, mw, elRef }: { running: number; mw: number; elRef: (el: HTMLDivElement | null) => void }) {
+function GridTag({ elRef }: { elRef: (el: HTMLDivElement | null) => void }) {
   return (
     <div ref={elRef} className="absolute left-0 top-0" style={OFFSCREEN}>
       <div className="-translate-x-1/2 -translate-y-full whitespace-nowrap text-center leading-tight" data-testid="fleet-grid-tag">
         <div className="text-[13px] font-semibold text-ink [text-shadow:0_1px_2px_#f1eee6]">Power grid</div>
-        <div className="num text-[10px] text-ink-2 [text-shadow:0_1px_2px_#f1eee6]">
-          {running ? `${running} drawing · ${fmtInt(mw)} MW` : "no flexible load this hour"}
-        </div>
       </div>
     </div>
   );
@@ -876,6 +903,105 @@ function BuildingCard({ row, noPayoutNote }: { row: FleetRow; noPayoutNote: stri
           {!settle && <p className="mt-1.5 text-[11px] text-muted">{noPayoutNote}</p>}
         </>
       )}
+    </div>
+  );
+}
+
+// --- scoreboard over the scene --------------------------------------------------------
+
+type Fuel = "clean" | "gas" | "coal" | "oil";
+const FUELS: Fuel[] = ["clean", "gas", "coal", "oil"];
+const FUEL_LABEL: Record<Fuel, string> = { clean: "Wind & solar", gas: "Gas", coal: "Coal", oil: "Oil" };
+const FUEL_COLOR: Record<Fuel, string> = { clean: "#2fb36f", gas: "#e0a43a", coal: "#d9573f", oil: "#8a4b6e" };
+
+/** Per-hour series behind the scoreboard, for both views. Null for older fixtures. */
+interface Meter {
+  co2: Record<View, number[]>; // t CO2 the user companies' load causes
+  fuel: Record<View, Record<Fuel, number[]>>; // MWh of their load served by each source
+}
+
+function meterSeries(response: ClearResponse): Meter | null {
+  const views: View[] = ["coordinated", "independent_average"];
+  if (views.some((v) => !response.strategies[v].companies_co2_t || !response.strategies[v].companies_fuel_mwh)) return null;
+  const series = <T,>(f: (v: View) => T) => ({ coordinated: f("coordinated"), independent_average: f("independent_average") });
+  return {
+    co2: series((v) => (response.strategies[v].companies_co2_t ?? []).map((t) => Math.max(0, t))), // float noise below zero
+    fuel: series((v) => response.strategies[v].companies_fuel_mwh as Record<Fuel, number[]>),
+  };
+}
+
+/** Where the companies' power has come from so far, both schedules, and the CO2 that saved. */
+function Scoreboard({ meter, view, hour }: { meter: Meter; view: View; hour: number }) {
+  const order: View[] = ["independent_average", "coordinated"];
+  const upTo = (v: View, h: number) =>
+    Object.fromEntries(FUELS.map((f) => [f, meter.fuel[v][f].slice(0, h + 1).reduce((a, x) => a + x, 0)])) as Record<Fuel, number>;
+  const co2Upto = (v: View, h: number) => meter.co2[v].slice(0, h + 1).reduce((a, x) => a + x, 0);
+  const so = co2Upto("independent_average", hour);
+  const co = co2Upto("coordinated", hour);
+  const saved = so - co;
+  const verdict =
+    saved > CLEAN_T
+      ? { big: `${fmtT(saved)} t CO₂ saved`, small: `${Math.round((saved / so) * 100)}% less than no coordination, so far`, cls: "text-accent" }
+      : saved < -CLEAN_T
+        ? { big: `${fmtT(-saved)} t behind`, small: "so far today; watch the rest of the day", cls: "text-ink-2" }
+        : { big: so > CLEAN_T ? "Even so far" : "No CO₂ yet", small: "", cls: "text-ink-2" };
+  const day = upTo("coordinated", 23);
+  const dayTotal = FUELS.reduce((a, f) => a + day[f], 0);
+  const footer =
+    dayTotal > 0 && day.clean >= 0.99 * dayTotal
+      ? "Enough spare wind & solar today: everyone runs clean."
+      : "Not enough spare wind & solar today for everyone, so some gas or coal is unavoidable.";
+  const used = new Set<Fuel>(FUELS.filter((f) => f !== "oil" || order.some((v) => upTo(v, 23).oil > 0)));
+
+  return (
+    <div className="w-full rounded-xl bg-white/90 p-3 shadow-md ring-1 ring-line backdrop-blur-sm sm:w-[250px]" data-testid="fleet-scoreboard">
+      <div className="text-[10px] font-medium uppercase tracking-wider text-muted sm:text-[11px]">Where their power came from</div>
+      <div className="mt-2 grid gap-2">
+        {order.map((v) => {
+          const mwh = upTo(v, hour);
+          const total = FUELS.reduce((a, f) => a + mwh[f], 0);
+          return (
+            <div key={v} className={v === view ? "" : "opacity-75"}>
+              <div className={`text-[11px] ${v === view ? "font-semibold text-ink" : "text-ink-2"}`}>{VIEW_LABEL[v]}</div>
+              <div className="mt-0.5 flex h-4 overflow-hidden rounded bg-surface-2">
+                {total > EPS_MW ? (
+                  FUELS.map((f) => {
+                    const share = mwh[f] / total;
+                    return (
+                      <div
+                        key={f}
+                        className="num flex items-center justify-center overflow-hidden text-[9.5px] font-semibold"
+                        style={{
+                          width: `${share * 100}%`,
+                          background: FUEL_COLOR[f],
+                          color: f === "gas" ? "#15191a" : "#fff", // dark on amber, white on the rest
+                          transition: "width 600ms ease-out",
+                        }}
+                      >
+                        {share >= 0.14 ? `${Math.round(share * 100)}%` : ""}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <span className="px-1.5 text-[9.5px] leading-4 text-muted">no load yet</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-1.5 flex flex-wrap gap-x-2.5 gap-y-0.5 text-[9.5px] text-ink-2">
+        {FUELS.filter((f) => used.has(f)).map((f) => (
+          <span key={f} className="flex items-center gap-1">
+            <span className="h-1.5 w-2.5 rounded-sm" style={{ background: FUEL_COLOR[f] }} /> {FUEL_LABEL[f]}
+          </span>
+        ))}
+      </div>
+      <div className={`mt-2.5 text-lg font-semibold leading-tight ${verdict.cls}`} data-testid="fleet-scoreboard-verdict">
+        {verdict.big}
+      </div>
+      {verdict.small && <div className="text-[11px] text-ink-2">{verdict.small}</div>}
+      <div className="mt-2 border-t border-dashed border-line-strong pt-1.5 text-[10.5px] leading-snug text-muted">{footer}</div>
     </div>
   );
 }

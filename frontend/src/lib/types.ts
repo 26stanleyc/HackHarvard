@@ -175,6 +175,18 @@ export interface StrategyResult {
   hourly_co2_t: Hourly24;
   total_co2_t: number;
   marginal_resource: MarginalResource[];
+  /** CO2 the user companies' load causes per hour, against the background-only grid. Absent in older recorded fixtures. */
+  companies_co2_t?: Hourly24 | null;
+  /** MWh of the user companies' load per hour by what serves it. Absent in older recorded fixtures. */
+  companies_fuel_mwh?: CompaniesFuel | null;
+}
+
+/** Spare (curtailed) wind and solar, or extra output of coal / gas / oil plants; the four sum to the load. */
+export interface CompaniesFuel {
+  clean: Hourly24;
+  coal: Hourly24;
+  gas: Hourly24;
+  oil: Hourly24;
 }
 
 export interface HerdingMetric {

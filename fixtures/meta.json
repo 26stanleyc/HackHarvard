@@ -26,7 +26,8 @@
   "carbon_price_default": 50.0,
   "pool_default_usd": 100000.0,
   "background_pct_default": 10.0,
-  "max_bids": 8,
+  "max_bids": 30,
+  "shapley_max_bids": 8,
   "calibration": {
     "coal_gas_split_error": 0.06907300677616386,
     "mef_simulated": 0.6273268731328905,

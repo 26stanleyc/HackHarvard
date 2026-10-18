@@ -202,6 +202,26 @@ def test_coordinated_is_full_coalition_and_totals_consistent(demo_clear):
         assert len(s[name]["marginal_resource"]) == 24
 
 
+def test_companies_co2_and_fuel(demo_clear, demo_sims):
+    r, det = demo_clear
+    _, score = demo_sims
+    base = score.hourly_emissions(det.background_24)
+    for name in STRATEGY_NAMES:
+        s = r["strategies"][name]
+        comp = np.asarray(s["companies_co2_t"])
+        assert np.allclose(comp, np.asarray(s["hourly_co2_t"]) - base, atol=1e-6)
+        assert comp.min() >= -1e-6  # adding load never lowers emissions
+        user = sum(np.asarray(v) for v in s["schedule"].values())
+        fuel = {k: np.asarray(v) for k, v in s["companies_fuel_mwh"].items()}
+        assert set(fuel) == {"clean", "coal", "gas", "oil"}
+        assert min(v.min() for v in fuel.values()) >= 0
+        # every MWh of their load is served by something (no unserved energy on demo days)
+        assert np.allclose(sum(fuel.values()), user, atol=1e-6)
+        # hours their load adds no CO2 are served entirely by spare wind and solar
+        quiet = comp < 1e-6
+        assert np.allclose(fuel["clean"][quiet], user[quiet], atol=1e-6)
+
+
 def test_herding_block_matches_definition(demo_clear, demo_sims):
     r, det = demo_clear
     plan, score = demo_sims

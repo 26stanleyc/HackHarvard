@@ -14,6 +14,7 @@ import {
   type BidDraft,
 } from "@/lib/bids";
 import { fmtInt, fmtPct, fmtUsd, hh, windowLabel } from "@/lib/format";
+import { SCALE as PRESET_SCALE } from "@/lib/defaultCompanies";
 import { companyColor } from "@/lib/theme";
 import {
   SHAPLEY_MAX_BIDS_DEFAULT,
@@ -129,6 +130,12 @@ export function CompanySidebar({
   }
   // null = closed, "add" = preset picker, otherwise the id of the company being edited
   const [modal, setModal] = useState<string | null>(null);
+  // presets are added at 3x size by default, matching the example companies' scale
+  const [scaleUp, setScaleUp] = useState(true);
+  const sized = (p: Preset): Preset =>
+    scaleUp
+      ? { ...p, energy_mwh: p.energy_mwh * PRESET_SCALE, max_mw: p.max_mw * PRESET_SCALE, size_reference: `${p.size_reference} Scaled ${PRESET_SCALE}× from this size.` }
+      : p;
 
   // never reuse an id from the last run: a new company would otherwise take over that one's results
   const takenIds = () => [...drafts, ...[...(results?.keys() ?? [])].map((id) => ({ id }))];
@@ -259,10 +266,19 @@ export function CompanySidebar({
       <ScenarioPanel meta={meta} scenario={scenario} setScenario={setScenario} />
 
       {modal === "add" && (
-        <Modal title="Add a company" onClose={() => setModal(null)}>
+        <Modal
+          title="Add a company"
+          onClose={() => setModal(null)}
+          action={
+            <label className="flex cursor-pointer items-center gap-1.5 text-sm text-ink-2" data-testid="preset-scale">
+              <input type="checkbox" checked={scaleUp} onChange={(e) => setScaleUp(e.currentTarget.checked)} className="h-4 w-4 accent-[var(--accent)]" />
+              Scale {PRESET_SCALE}×
+            </label>
+          }
+        >
           <p className="mb-3 text-sm text-ink-2">Start from a typical company, then adjust it.</p>
           <div className="grid gap-2 sm:grid-cols-2">
-            {presets.map((p) => (
+            {presets.map(sized).map((p) => (
               <button
                 key={p.name}
                 type="button"
@@ -326,7 +342,18 @@ export function CompanySidebar({
   );
 }
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+function Modal({
+  title,
+  onClose,
+  action,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  /** extra control in the header, left of the close button */
+  action?: ReactNode;
+  children: ReactNode;
+}) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -345,9 +372,12 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
       <div role="dialog" aria-modal="true" aria-label={title} className="w-full max-w-2xl rounded-2xl bg-paper p-5 shadow-2xl sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-serif text-2xl font-semibold text-ink">{title}</h3>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded px-2 text-xl text-muted hover:text-ink">
-            ×
-          </button>
+          <div className="flex items-center gap-3">
+            {action}
+            <button type="button" onClick={onClose} aria-label="Close" className="rounded px-2 text-xl text-muted hover:text-ink">
+              ×
+            </button>
+          </div>
         </div>
         {children}
       </div>
