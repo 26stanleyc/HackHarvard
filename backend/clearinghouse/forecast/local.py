@@ -63,11 +63,16 @@ class LocalForecastProvider(ForecastProvider):
             raise ValueError("EIA-930 and curtailment tables cover different CST days")
         self.grid.series.update(cgrid.series)
         F.add_forecast_inputs(self.grid, fin)
-        uses_inputs = any(f in F.EXOG_FEATURES for s in self.specs.values() for f in s.features)
+        used = {f for s in self.specs.values() for f in (*s.features, s.base)}
+        inputs = [text for prefix, text in (
+            ("ercot_st", "ERCOT wind/solar forecasts from the latest posting before as_of"),
+            ("om_", "Open-Meteo GFS forecasts (lead >= 48 h)"),
+            ("ercot_load", "ERCOT's load forecast from the latest posting before as_of"),
+            ("dam_", "ERCOT day-ahead market prices posted before as_of"),
+        ) if any(f.startswith(prefix) for f in used)]
         self._ml_method = ("HistGradientBoosting day-ahead model, features from slots before "
-                           "as_of" + (" plus ERCOT wind/solar forecasts from the latest posting "
-                                      "before as_of and Open-Meteo GFS forecasts (lead >= 48 h)"
-                                      if uses_inputs else " (no weather data)"))
+                           "as_of" + (" plus " + "; ".join(inputs) if inputs
+                                      else " (no weather data)"))
         self._cache: dict[str, ForecastResult] = {}
         self._lock = threading.Lock()
 

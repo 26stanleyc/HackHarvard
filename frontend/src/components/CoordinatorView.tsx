@@ -226,7 +226,7 @@ export function CoordinatorView({
 
   return (
     <div>
-      <SectionTitle kicker="Step 3 · Watch the coordinator" title="Three ways to run the same bids">
+      <SectionTitle kicker="Step 2 · Watch the coordinator" title="Three ways to run the same bids">
         Same companies, same day. Only the scheduling rule changes.
       </SectionTitle>
 

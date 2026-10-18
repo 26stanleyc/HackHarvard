@@ -229,8 +229,9 @@ export interface LeaveOneOut {
 
 export interface Settlement {
   baseline: "independent_marginal";
-  /** "skipped": more than meta.shapley_max_bids bids, so per_bid and leave_one_out are empty */
-  method: "exact" | "monte_carlo" | "skipped";
+  /** "marginal": more than meta.shapley_max_bids bids, shares from each company's marginal
+   * contribution; "skipped" (older backends): per_bid and leave_one_out are empty */
+  method: "exact" | "marginal" | "skipped";
   coalitions_evaluated: number;
   total_avoided_t: number;
   pool_usd: number;

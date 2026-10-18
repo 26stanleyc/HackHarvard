@@ -232,8 +232,8 @@ def clear_with_details(day: str, bids: Sequence[Bid | Mapping], background_pct: 
     """:func:`clear` plus its internals. ``background`` (optional) is a precomputed
     ``background_load(background_pct, plan_sim)`` (the API caches it per (day, pct)).
 
-    ``shapley=False`` skips the Shapley shares, payouts, receipts and leave-one-out games (the
-    API does this above ``EXACT_MAX_PLAYERS`` bids): ``settlement.method = "skipped"``, empty
+    ``shapley=False`` skips the shares, payouts, receipts and leave-one-out games (the API no
+    longer does; it settles every clear): ``settlement.method = "skipped"``, empty
     ``per_bid`` / ``leave_one_out``, ``total_avoided_t = v(N)`` still reported."""
     bids = _as_bids(bids)
     errors = bid_errors(bids)

@@ -18,11 +18,11 @@ direct leave-one-out recomputation, a removed bid's strategy-3 schedule). Planni
   ``v({i})`` may be positive: value from reacting to the others' known schedules, not
   coordination. The full coalition's plan IS the "coordinated" strategy (same planning, same
   fallback rule).
-* **Shapley.** Exact over all ``2^n`` coalitions for ``n <= EXACT_MAX_PLAYERS`` (8): method
-  ``"exact"``, ``coalitions_evaluated = 2^n``. Above that, Monte Carlo permutation sampling
-  (``MC_PERMUTATIONS`` permutations, ``numpy.random.default_rng(MC_SEED)``): method
-  ``"monte_carlo"``, ``coalitions_evaluated`` = distinct coalitions simulated (main game plus
-  leave-one-out games). Both methods are exactly efficient: shares sum to ``v(N)``.
+* **Shares.** Exact Shapley over all ``2^n`` coalitions for ``n <= EXACT_MAX_PLAYERS`` (8):
+  method ``"exact"``, ``coalitions_evaluated = 2^n``. Above that, marginal contribution
+  (:func:`marginal_shares`, ``n + 1`` coalitions): method ``"marginal"``,
+  ``coalitions_evaluated`` = distinct coalitions simulated (main game plus leave-one-out games).
+  Both are exactly efficient: shares sum to ``v(N)``.
 * **Receipt games (D).** ``u3(S) = E_score(all default) - E_score(S at s3, others default)`` and
   ``u2(S)`` likewise with strategy-2 schedules; both are membership-independent, so they are
   pure batched simulator calls (:func:`scoring_game_values`).
@@ -40,7 +40,7 @@ Added-load vectors are summed with :func:`canon_sum` (``math.fsum`` per slot: co
 so independent of summation order). Together with ``strategies.greedy_order_key`` this makes
 the coalition values of identical bids bit-identical (exact symmetry), makes a zero-energy bid's
 marginal contribution exactly zero, and makes a direct leave-one-out recomputation reproduce the
-same values. No randomness except the seeded Monte Carlo permutations.
+same values. No randomness.
 """
 
 from __future__ import annotations
@@ -57,8 +57,6 @@ from clearinghouse.simulator import DaySimulator
 from clearinghouse.strategies import greedy_place
 
 EXACT_MAX_PLAYERS = 8
-MC_PERMUTATIONS = 128
-MC_SEED = 20241017
 
 Mask = int
 
@@ -116,39 +114,31 @@ def shapley_exact(players: Sequence[int], value: Callable[[Mask], float]) -> lis
     return out
 
 
-def sample_permutations(players: Sequence[int], n_perm: int, seed: int) -> list[list[int]]:
-    rng = np.random.default_rng(seed)
-    return [[players[j] for j in rng.permutation(len(players))] for _ in range(n_perm)]
+def marginal_masks(players: Sequence[int]) -> list[Mask]:
+    """The coalitions :func:`marginal_shares` needs: all of ``players``, and all but each one."""
+    full = mask_of(players)
+    return [full, *(full ^ (1 << i) for i in players)]
 
 
-def permutation_masks(perms: Sequence[Sequence[int]]) -> list[Mask]:
-    """Distinct prefix coalitions needed by permutation sampling, in first-use order."""
-    seen: dict[Mask, None] = {0: None}
-    for p in perms:
-        m = 0
-        for i in p:
-            m |= 1 << i
-            seen.setdefault(m, None)
-    return list(seen)
+def marginal_shares(players: Sequence[int], value: Callable[[Mask], float]) -> list[float]:
+    """Shares from each player's marginal contribution to the whole group (``n + 1`` coalition
+    values instead of ``2^n``), used above ``EXACT_MAX_PLAYERS``.
 
-
-def shapley_permutations(players: Sequence[int], perms: Sequence[Sequence[int]],
-                         value: Callable[[Mask], float]) -> list[float]:
-    """Monte Carlo Shapley: mean marginal contribution over the given permutations of
-    ``players``. Efficient by construction (each permutation telescopes to ``v(all) - v(empty)``).
+    ``m_i = v(P) - v(P \\ {i})``. A player with ``m_i < 0`` (the group does better without it)
+    keeps ``m_i``; the helpers split the rest, ``v(P) - sum(negative m)``, in proportion to their
+    ``m_i``. Shares sum to ``v(P)`` exactly; for an additive game they equal the Shapley values.
+    If nobody has ``m_i > 0``, ``v(P)`` is split equally.
     """
     if not players:
         return []
-    pos = {p: k for k, p in enumerate(players)}
-    acc = [0.0] * len(players)
-    for p in perms:
-        m, prev = 0, value(0)
-        for i in p:
-            m |= 1 << i
-            cur = value(m)
-            acc[pos[i]] += cur - prev
-            prev = cur
-    return [a / len(perms) for a in acc]
+    full = mask_of(players)
+    vf = value(full)
+    m = [vf - value(full ^ (1 << i)) for i in players]
+    pos = math.fsum(x for x in m if x > 0)
+    if pos <= 0:
+        return [vf / len(players)] * len(players)
+    rest = vf - math.fsum(x for x in m if x < 0)
+    return [x if x < 0 else x / pos * rest for x in m]
 
 
 # --- payouts ---------------------------------------------------------------------------------
@@ -270,19 +260,17 @@ def scoring_game_values(score_sim: DaySimulator, fixed_components: list[np.ndarr
 # --- settlement ------------------------------------------------------------------------------
 
 
-def _shapley_any(players: list[int], value_batch: Callable[[list[Mask]], None],
-                 value: Callable[[Mask], float], n_total: int, seed: int
-                 ) -> tuple[list[float], str]:
-    """Exact Shapley if ``n_total <= EXACT_MAX_PLAYERS`` else Monte Carlo (seeded)."""
+def _shares(players: list[int], value_batch: Callable[[list[Mask]], None],
+            value: Callable[[Mask], float], n_total: int) -> tuple[list[float], str]:
+    """Exact Shapley if ``n_total <= EXACT_MAX_PLAYERS`` else marginal contribution."""
     if n_total <= EXACT_MAX_PLAYERS:
         k = len(players)
         masks = [mask_of(players[j] for j in range(k) if local >> j & 1)
                  for local in range(1 << k)]
         value_batch(masks)
         return shapley_exact(players, value), "exact"
-    perms = sample_permutations(players, MC_PERMUTATIONS, seed)
-    value_batch(permutation_masks(perms))
-    return shapley_permutations(players, perms, value), "monte_carlo"
+    value_batch(marginal_masks(players))
+    return marginal_shares(players, value), "marginal"
 
 
 @dataclass
@@ -309,14 +297,18 @@ def settle(bids: list[Bid], s3: dict[str, np.ndarray], fixed_components: list[np
         game = CoalitionGame(bids, s3, fixed_components, plan_sim, score_sim)
     n = game.n
     players = list(range(n))
-    shap, method = _shapley_any(players, game.evaluate, game.v, n, MC_SEED)
+    if n > EXACT_MAX_PLAYERS and leave_one_out:
+        # the main game's and every leave-one-out game's coalitions, in one batch
+        game.evaluate([*marginal_masks(players), *(
+            m for i in players for m in marginal_masks([j for j in players if j != i]))])
+    shap, method = _shares(players, game.evaluate, game.v, n)
     total = game.v(game.full)
     pay, prorated = payouts(shap, carbon_price, pool_usd)
     loo: dict[str, dict] = {}
     if leave_one_out:
         for i in players:
             rest = [j for j in players if j != i]
-            sh_i, _ = _shapley_any(rest, game.evaluate, game.v, n, MC_SEED + 1 + i)
+            sh_i, _ = _shares(rest, game.evaluate, game.v, n)
             pay_i, _ = payouts(sh_i, carbon_price, pool_usd)
             loo[game.ids[i]] = {
                 "total_avoided_t": game.v(game.full ^ (1 << i)),
@@ -332,8 +324,8 @@ def settle(bids: list[Bid], s3: dict[str, np.ndarray], fixed_components: list[np
 
 def receipt_shapley(score_sim: DaySimulator, fixed_components: list[np.ndarray],
                     base: Sequence[np.ndarray], alt: Sequence[np.ndarray]) -> list[float]:
-    """Shapley values of the membership-independent scoring game ``u`` (D), exact for
-    ``n <= 8`` else Monte Carlo with the settlement seed."""
+    """Shares of the membership-independent scoring game ``u`` (D): exact Shapley for
+    ``n <= 8``, else marginal contribution (same rule as the settlement)."""
     n = len(base)
     cache: dict[Mask, float] = {}
 
@@ -342,5 +334,5 @@ def receipt_shapley(score_sim: DaySimulator, fixed_components: list[np.ndarray],
         if new:
             cache.update(scoring_game_values(score_sim, fixed_components, base, alt, new))
 
-    shap, _ = _shapley_any(list(range(n)), batch, cache.__getitem__, n, MC_SEED)
+    shap, _ = _shares(list(range(n)), batch, cache.__getitem__, n)
     return shap

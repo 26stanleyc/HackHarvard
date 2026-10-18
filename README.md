@@ -78,15 +78,64 @@ uv run python scripts/regenerate_fixtures.py  # → fixtures/
 
 - **Calibration** (104 held-out days): hourly fossil CO2 MAPE **7.7%** (target ≤ 15%); hourly coal-share error **6.9 points**; marginal emission factor simulated **0.627** vs observed **0.549 t/MWh**. The simulator runs somewhat more coal than observed (27% vs 23% share). [`docs/results/calibration.json`](docs/results/calibration.json)
 - **Herding gate** (pre-registered, 7 days used for nothing else): **GO** — 7/7 days on the uncalibrated simulator, 6/7 on the calibrated one. Realized savings of independent-marginal shifting fall ≥ 10% short of the sum of solo savings at flexible-load shares of 2.5–12.5% of peak. [`docs/results/herding_gate_preregistration.md`](docs/results/herding_gate_preregistration.md), [`herding_gate_calibrated.json`](docs/results/herding_gate_calibrated.json)
-- **Forecast** (Oct–Dec 2024 test period, issued 00:00 CST on the day; M10 model with ERCOT's own forecasts and archived weather forecasts, all published before the issue time): wind MAE **1,205 MW** (M4 without weather: 4,089; yesterday-as-forecast: 6,123), solar **506 MW** (M4: 1,063), demand MAPE **2.88%** (M4: 3.09%; yesterday: 3.99%). ERCOT's own day-ahead demand forecast (1.82%) is still better than ours. [`docs/results/forecast_metrics.json`](docs/results/forecast_metrics.json)
+- **Forecast** (Oct–Dec 2024 test period, issued 00:00 CST on the day; M12 model with ERCOT's own load, wind and solar forecasts, day-ahead prices and archived weather forecasts, all published before the issue time): demand MAPE **1.92%** (M10: 2.88%; yesterday: 3.99%; ERCOT's load forecast used directly: 1.71%), wind MAE **1,205 MW** (M4 without weather: 4,089), solar **464 MW** (M4: 1,063). [`docs/results/forecast_metrics.json`](docs/results/forecast_metrics.json)
 - **Coordination vs acting alone:** mixed, and shown wherever it lands. On the default demo day (a windy spring night) curtailed wind absorbs all the example companies' load, so every strategy ties and payouts are $0. With the M10 forecast the example coalition avoids 243 t on the sunny mild day; on the summer heat peak the planning-time fallback fires (value of coordination 0 t, though every company's schedule is now 1.75 kt below default); on the cold winter morning coordination loses 40 t to acting alone. In the adoption chart (default day), independent-marginal shifting is the worst strategy above 20% adoption; at 30% coordination recovers 0.86 kt of that and ends 0.4 kt below the default schedule, while the plain average-signal strategy is lowest. Per-day comparison with the M4 forecast: [`docs/results/demo_days_M4.json`](docs/results/demo_days_M4.json) vs [`demo_days_M10.json`](docs/results/demo_days_M10.json).
+
+## Chalk integration
+
+Built for Chalk's "Best Data-Driven Agent Built on Chalk" challenge. Every number below is from a recorded run; the full logs are in `docs/progress.md` and `docs/eval_results*.md`.
+
+```
+frontend (Next.js)                    backend (FastAPI)                        Chalk (env hllr1480fa66)
+------------------                    -----------------                        ------------------------
+BidBuilder ── AssistantPanel ───────► /api/assistant/chat (SSE) ─────────────► Model Gateway: Claude Sonnet 5.5
+             (Coordinator Guide)      /api/assistant/suggest   ┐               Online queries: grid_day.* (forecast),
+                                      grounding payload ───────┴─────────────►   flex_bid.* (bid features)
+           ExtractDropzone ─────────► /api/assistant/extract ────────────────► Function extract-bid (sandbox)
+                                                                                  └─► Model Gateway (vision)
+ClearinghouseApp ───────────────────► /api/clear, /api/evaluate ─────────────► Online queries (forecast) per clear
+scripts/eval_assistant.py, eval_extract.py ──────────────────────────────────► Evaluations (datasets, scorers, LLM judge)
+```
+
+| Chalk product | Where | What it does here |
+|---|---|---|
+| Feature store, online queries | `backend/chalk/` (deployed with `chalk apply`), `forecast/chalk.py` | Serves the day-ahead forecast (`grid_day.*`) on every clear and the per-bid profiles (`flex_bid.*`). Identical to the local model on all demo days. |
+| Model Gateway | `assistant/gateway.py`, `assistant/extract.py` | Coordinator Guide answers with Claude Sonnet 5.5 (OpenAI-compatible route, `reasoning_effort="low"`); image extraction uses the gateway's native Messages route (the Chat route cannot carry images). |
+| Functions (sandbox) | `backend/chalk_compute/extract_bid.py` | `extract-bid` reads an uploaded bill / chart / schedule / emissions report and returns a validated bid; the API calls it by name. The gateway key reaches it only as the Chalk secret `CHALK_ROUTER_API_KEY`. |
+| Evaluations | `backend/scripts/eval_assistant.py`, `eval_extract.py` (`make eval`, `make eval-local`, `make eval-extract`) | The task is the app's own code (or the deployed function) running on Chalk; scorers are deployed functions plus a Chalk `llm_judge`. |
+
+**The agent (Coordinator Guide):** a side panel on the Bids step. It explains every bid field (three personas: EV fleet, data center, facilities), checks feasibility, names the cleanest hours from the simulator's marginal CO2 rates, and proposes edits as cards with **Apply**. Every answer is grounded in a payload built from live app state (the user's bids, the Chalk-served forecast and bid features, the simulator); suggestions are validated before they are shown (real bid, editable field, result feasible). It never quotes savings before a clearing run.
+
+**Evaluation results** (44-question assistant dataset across 3 days and 3 personas; 10 synthetic documents for extraction):
+
+| Run | What | Correct answers | Only grounded numbers | Valid / correct suggestions | LLM judge (explanation quality) |
+|---|---|---|---|---|---|
+| `c5124fb0` | rule-based fallback, baseline | 0.886 (5 misses: intent routing) | 1.000 | 1.000 / 1.000 | — |
+| `e0499809` | rule-based, after fixes | 1.000 | 1.000 | 1.000 / 1.000 | — |
+| `0a9478d4` → rescore `e29825cd` | LLM, first run; scorers v2 (meaning, not wording) | 1.000 (v1: 0.409) | 0.994 | 1.000 / 1.000 | 0.668 |
+| `5089df6b` | LLM, after the tied-hours grounding fix | 1.000 | 0.991 | 1.000 / 1.000 | **0.750** (cleanest hours 0.56 → 0.72) |
+| `6f376d14` | image extraction, 10 documents | window 10/10, energy ±5% 10/10, max MW ±5% 10/10 | — | — | — |
+
+How to read it: the deterministic scorers were rewritten after the first LLM run because they matched only the rule-based wording (tests keep the baseline's real misses failing); a score reached after fixing the rows that exposed a problem is optimistic; extraction documents are synthetic and cleanly stated, so 10/10 shows the pipeline works, not accuracy on messy real bills. Misses that remain: the assistant sometimes quotes a computed figure not in its data (1,800 MWh), and the judge rates feasibility answers lowest (0.68).
+
+**What falls back when credentials are missing** (each response says which path served it):
+
+| Missing | Effect |
+|---|---|
+| `CHALK_CLIENT_*` / `CHALK_ENVIRONMENT` | Forecast and bid features from the local model (UI: "local model"); extraction cannot reach the Chalk Function. |
+| `CHALK_ROUTER_API_KEY` | Coordinator Guide answers with the labeled rule-based assistant; extraction is unavailable (503 with the reason). |
+| Chalk Function unreachable | Extraction runs the same code in the API process, direct to the Model Gateway (`path: gateway`). |
+| Chalk call fails mid-session | Forecast falls back to local for 60 s (`fallback_reason`); the assistant falls back if the gateway fails before the first token. |
+
+Tokens: the app uses a Chalk service token limited to `query.online` + `deploy.read`; the Model Gateway key is restricted to the Anthropic provider. Deploying (`chalk apply`, `chalk_compute/extract_bid.py`, the evaluation scripts) uses the developer's `chalk login`.
 
 ## Key status and placeholders
 
 | Key | Status | Effect |
 |---|---|---|
 | `EIA_API_KEY`, `ERCOT_*` | set | Raw-data downloads |
-| `CHALK_CLIENT_ID`, `CHALK_CLIENT_SECRET`, `CHALK_ENVIRONMENT` | **pending** | The local forecast provider serves every clear and the UI says "local model (Chalk credentials pending)". `ChalkForecastProvider` (REST) and the Chalk project in `backend/chalk/` are written but not deployed. To switch: `chalk apply` from `backend/chalk/`, then fill the three variables; no code change. |
+| `CHALK_CLIENT_ID`, `CHALK_CLIENT_SECRET`, `CHALK_ENVIRONMENT` | set (in the developer's `.env`) | Forecast, bid features and extraction run on Chalk (see Chalk integration). Without them the local model serves and the UI says so. |
+| `CHALK_ROUTER_API_KEY` (+ `CHALK_MODEL`, `CHALK_API_HOST`) | set (in the developer's `.env`) | Coordinator Guide uses Claude Sonnet 5.5 via the Chalk Model Gateway; without it, the labeled rule-based assistant. |
 | `DATA_GOV_API_KEY` | **pending** | CAMPD validation is skipped; validation (b) uses EIA-930 fuel mix × eGRID emission factors instead. |
 
 Deviation: the forecast uses scikit-learn's `HistGradientBoostingRegressor` instead of LightGBM, because LightGBM's macOS wheel needs a system `libomp` (`brew install libomp`) that was not installed.
