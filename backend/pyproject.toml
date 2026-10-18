@@ -5,6 +5,7 @@ description = "Carbon Clearinghouse: coordinated load shifting with avoided-emis
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "chalkcompute==2.13.1",
     "fastapi>=0.143.3",
     "httpx>=0.28.1",
     "lightgbm>=4.7.0",

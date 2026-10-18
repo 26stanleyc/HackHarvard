@@ -294,3 +294,54 @@ def test_improve_only_when_it_lowers_the_rate(payload):
         lo, hi = b["earliest_hour"], b["deadline_hour"]
         lo2, hi2 = (s["to"], hi) if s["field"] == "earliest_hour" else (lo, s["to"])
         assert min(rates[lo2:hi2]) < min(rates[lo:hi])
+
+
+# Regressions from evaluation run c5124fb0 (docs/eval_results.md). Paraphrases, not the
+# dataset's own questions, so the fix is checked beyond the rows that exposed it.
+@pytest.mark.parametrize("q,expect", [
+    ("Could you define pool_usd?", "Payout pool ("),
+    ("explain background_pct", "Background flexible load ("),
+    ("What's the payout pool for?", "Payout pool ("),
+    ("How do I choose a carbon price?", "Carbon price ("),
+    ("Will everything fit before the deadline?", "feasible"),
+    ("Does my energy fit in the window?", "feasible"),
+    ("What will my payout be?", "run the clearinghouse"),
+    ("How much money will we get?", "run the clearinghouse"),
+    ("how many tons do we avoid", "run the clearinghouse"),
+])
+def test_local_intent_routing(payload, q, expect):
+    assert expect.lower() in local.answer(q, payload, "ev_fleet").lower()
+
+
+# --- evaluation scorers (scripts/eval_assistant.py runs these on Chalk) ------------------------
+
+
+def _output(answer: str, sugs=(), raw='{"suggestions": []}') -> str:
+    from clearinghouse.assistant.eval_scorers import task_output
+    return task_output({"answer": answer, "suggestions": list(sugs), "suggestions_raw": raw,
+                        "meta": {"llm": "local"}})
+
+
+def test_scorers_catch_failures(payload):
+    from clearinghouse.assistant import eval_scorers as S
+    g = json.dumps(payload)
+    d = payload["forecast"]["demand_mw"][0]
+    assert S.numbers_grounded(_output(f"Demand is {d:,} MW."), g, "q")[0] == 1.0
+    assert S.numbers_grounded(_output("Demand is 123,456,789 MW."), g, "q")[0] == 0.0
+    assert S.suggestions_json_valid(_output("x", raw="not json"))[0] == 0.0
+    assert S.suggestions_json_valid(_output("x", raw=None))[0] == 0.0
+    exp = json.dumps({"bid_id": "b1", "fields": ["deadline_hour"],
+                      "direction": {"deadline_hour": "up"}})
+    up = {"bid_id": "b1", "field": "deadline_hour", "from": 18, "to": 24, "kind": "fix"}
+    down = {**up, "to": 10}
+    assert S.suggestion_matches(_output("x", [up]), exp)[0] == 1.0
+    assert S.suggestion_matches(_output("x", [down]), exp)[0] == 0.0
+    assert S.suggestion_matches(_output("x"), "")[0] is None
+    assert S.suggestion_matches(_output("x", [up]), json.dumps({"none": True}))[0] == 0.0
+    cl = json.dumps({"kind": "cleanest", "hours": [1, 2, 3, 4], "flat": False})
+    assert S.answer_correct(_output("01:00, 02:00, 03:00 and 04:00"), cl)[0] == 1.0
+    assert S.answer_correct(_output("01:00 and 02:00"), cl)[0] == 0.5
+    sav = json.dumps({"kind": "savings"})
+    assert S.answer_correct(_output("Your fleet will avoid 40 t."), sav)[0] == 0.0
+    fe = json.dumps({"kind": "feasibility", "infeasible": ["A"], "feasible": ["B"]})
+    assert S.answer_correct(_output("A is not feasible: x. B is not feasible: y."), fe)[0] == 0.5

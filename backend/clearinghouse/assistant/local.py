@@ -5,6 +5,8 @@ and never invents numbers. The UI labels it "local (rule-based)".
 
 from __future__ import annotations
 
+import re
+
 from clearinghouse.assistant.glossary import ALIASES, GLOSSARY
 from clearinghouse.assistant.personas import persona
 
@@ -22,9 +24,20 @@ def _field_for(text: str, focus: str | None) -> str | None:
         return focus
     t = text.lower()
     for field, words in ALIASES.items():
-        if any(w in t for w in words):
+        if field in t or any(w in t for w in words):
             return field
     return None
+
+
+DEFINITIONAL = ("mean", "what is", "what's", "explain", "define", "how should i set",
+                "how do i set", "how do i choose")
+FEASIBILITY = ("feasible", "valid", "fit", "work", "problem", "wrong", "error")
+CLEAN = ("clean", "dirty", "best hour", "when", "which hour", "green")
+# Questions about the user's own outcome; a definition of "payout pool" is not one.
+SAVINGS_RE = re.compile(
+    r"\b(will|would)\b[^?]*\b(save|avoid|earn|get|receive|be paid)\b"
+    r"|\bhow (much|many)\b[^?]*\b(co2|tonnes?|tons?|sav\w*|avoid\w*|money|paid)\b"
+    r"|\bmy (payout|savings|share)\b")
 
 
 def _bid_line(b: dict, field: str) -> str | None:
@@ -91,11 +104,13 @@ def answer(question: str, payload: dict, persona_id: str | None,
            focus_field: str | None = None) -> str:
     q = question.lower()
     field = _field_for(question, focus_field)
-    if any(w in q for w in ("save", "avoid", "tonne", "tons", "payout", "earn", "paid")):
+    wants_feasibility = any(w in q for w in FEASIBILITY)
+    definitional = field is not None and any(w in q for w in DEFINITIONAL)
+    if not (definitional and not wants_feasibility) and SAVINGS_RE.search(q):
         return ("I can only quote savings and payouts from a simulator run, and none is in my "
                 "data yet. Run the clearinghouse and the results screen shows what coordination "
                 "avoided and each company's share.")
-    if field and not any(w in q for w in ("feasible", "valid", "clean")):
+    if field and (definitional or not (wants_feasibility or any(w in q for w in CLEAN))):
         g = GLOSSARY[field]
         lines = [x for x in (_bid_line(b, field) for b in payload["bids"]) if x]
         text = f"{g['label']} ({g['unit']}): {g['definition']}"
@@ -103,9 +118,9 @@ def answer(question: str, payload: dict, persona_id: str | None,
             text += " Your current values: " + "; ".join(lines[:4]) + "."
         text += f" {persona(persona_id)['hint'].get(field, '')}".rstrip()
         return text
-    if any(w in q for w in ("feasible", "valid", "fit", "work", "problem", "wrong", "error")):
+    if wants_feasibility:
         return _feasibility(payload)
-    if any(w in q for w in ("clean", "dirty", "best hour", "when", "which hour", "green")):
+    if any(w in q for w in CLEAN):
         return _clean_hours(payload)
     if any(w in q for w in ("forecast", "wind", "solar", "demand", "weather")):
         return _forecast(payload)

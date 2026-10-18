@@ -54,13 +54,21 @@ def _local_events(req: ChatRequest, payload: dict, reason: str | None) -> Iterat
     text = local.answer(req.messages[-1].content, payload, req.persona, req.focus_field)
     for piece in re.findall(r"\S+\s*", text):
         yield "token", {"t": piece}
-    yield "suggestions", {"suggestions": suggestions.rule_suggestions(payload),
-                          "source": "rules"}
+    sugs = suggestions.rule_suggestions(payload)
+    yield "suggestions", {"suggestions": sugs, "source": "rules",
+                          "raw": json.dumps({"suggestions": sugs})}
     yield "done", {}
 
 
 def chat_events(engine: Any, req: ChatRequest, gateway: Gateway | None = None) -> Iterator[Event]:
     payload = build_grounding(engine, req.day, req.bids, req.scenario)
+    yield from answer_events(payload, req, gateway)
+
+
+def answer_events(payload: dict, req: ChatRequest,
+                  gateway: Gateway | None = None) -> Iterator[Event]:
+    """Answer ``req`` over an already-built grounding ``payload`` (the evaluation's entry point;
+    ``chat_events`` is this plus ``build_grounding``)."""
     gw = gateway or Gateway()
     if not gw.configured:
         yield from _local_events(req, payload, "CHALK_ROUTER_API_KEY not set")
@@ -98,15 +106,26 @@ def chat_events(engine: Any, req: ChatRequest, gateway: Gateway | None = None) -
     fixes = [s for s in suggestions.rule_suggestions(payload) if s["kind"] == "fix"]
     yield "suggestions", {"suggestions": suggestions.merge(llm_sugs, fixes),
                           "source": "chalk" if llm_sugs else "rules",
+                          "raw": full[cut + keep:].strip() if cut >= 0 else None,
                           "dropped": max(0, len((raw or {}).get("suggestions", []) if
                                                 isinstance(raw, dict) else []) - len(llm_sugs))}
     yield "done", {}
 
 
 def chat(engine: Any, req: ChatRequest, gateway: Gateway | None = None) -> dict:
-    """Non-streaming form of ``chat_events`` (evaluations, tests)."""
-    out: dict[str, Any] = {"answer": "", "suggestions": [], "meta": {}, "errors": []}
-    for event, data in chat_events(engine, req, gateway):
+    """Non-streaming form of ``chat_events`` (tests)."""
+    return collect(chat_events(engine, req, gateway))
+
+
+def respond(payload: dict, req: ChatRequest, gateway: Gateway | None = None) -> dict:
+    """Non-streaming answer over a prebuilt payload (the evaluation task)."""
+    return collect(answer_events(payload, req, gateway))
+
+
+def collect(events: Iterator[Event]) -> dict:
+    out: dict[str, Any] = {"answer": "", "suggestions": [], "meta": {}, "errors": [],
+                           "suggestions_raw": None}
+    for event, data in events:
         if event == "meta":
             out["meta"] = data
         elif event == "token":
@@ -114,6 +133,7 @@ def chat(engine: Any, req: ChatRequest, gateway: Gateway | None = None) -> dict:
         elif event == "suggestions":
             out["suggestions"] = data["suggestions"]
             out["suggestions_source"] = data["source"]
+            out["suggestions_raw"] = data.get("raw")
         elif event == "error":
             out["errors"].append(data["message"])
     out["answer"] = out["answer"].strip()
