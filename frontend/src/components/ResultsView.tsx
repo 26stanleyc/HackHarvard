@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Fragment, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Tooltip, XAxis, YAxis } from "recharts";
 import { API_MODE } from "@/lib/api";
@@ -28,6 +29,14 @@ import type { ChartCompany } from "./LoadChart";
 import { forecastSourceText } from "./StoryScreen";
 import { LoadTypeTag, SectionTitle, Source, Stat } from "./ui";
 
+// three.js only runs in the browser, and loads in its own bundle
+const FleetView = dynamic(() => import("./FleetView").then((m) => m.FleetView), {
+  ssr: false,
+  loading: () => <div className="card h-[520px] animate-pulse" />,
+});
+// warm that bundle and the car model in the background, so Results opens without a wait
+if (typeof window !== "undefined") setTimeout(() => void import("./FleetView"), 2000);
+
 export function ResultsView({
   request,
   response,
@@ -53,6 +62,7 @@ export function ResultsView({
           : "an exact Shapley settlement."}
       </SectionTitle>
       <ResultNotes response={response} />
+      <FleetView request={request} response={response} bids={bids} companies={companies} />
       <ValueBreakdown response={response} />
       <div className="grid gap-4 lg:grid-cols-2">
         <StrategyComparison response={response} />
