@@ -17,8 +17,16 @@ from openai import OpenAI
 from clearinghouse.config import Settings, get_settings
 
 DEFAULT_API_HOST = "https://api.chalk.ai"
-DEFAULT_MODEL = "anthropic/claude-sonnet-4-6"
+DEFAULT_MODEL = "anthropic/claude-sonnet-5-5"
 TIMEOUT_S = 30.0
+# Thinking is always on for current Claude models and shares max_tokens with the answer: a
+# tight cap (700 was tried) is spent on thinking and returns no text. Measured through the
+# gateway on a typical assistant turn (2026-10-18): default effort 10.9 s / 1,262 output
+# tokens; reasoning_effort="low" 4.5 s / 441. The gateway's Chat route rejects the native
+# output_config / thinking fields ("cannot represent ... losslessly"), so effort goes in
+# reasoning_effort. Answer length is set by the prompt, not by truncation.
+EFFORT = "low"
+MAX_TOKENS = 4000
 
 
 class GatewayUnavailable(RuntimeError):
@@ -58,13 +66,15 @@ class Gateway:
                                   timeout=TIMEOUT_S, max_retries=1)
         return self._client
 
-    def chat_stream(self, messages: list[dict], max_tokens: int = 700,
-                    temperature: float = 0.2) -> Iterator[str]:
+    # No ``temperature``: current Claude models reject it ("`temperature` is deprecated for
+    # this model", HTTP 400 through the gateway).
+    def chat_stream(self, messages: list[dict], max_tokens: int = MAX_TOKENS,
+                    effort: str = EFFORT) -> Iterator[str]:
         """Yield text deltas. Raises ``GatewayUnavailable`` (also mid-stream)."""
         try:
             stream = self.client.chat.completions.create(
                 model=self.model, messages=messages, stream=True, max_tokens=max_tokens,
-                temperature=temperature)
+                reasoning_effort=effort)
             for chunk in stream:
                 if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
                     yield chunk.choices[0].delta.content
@@ -73,10 +83,12 @@ class Gateway:
         except openai.OpenAIError as exc:
             raise _wrap(exc) from None
 
-    def chat(self, messages: list[dict], max_tokens: int = 700, temperature: float = 0.2) -> str:
-        return "".join(self.chat_stream(messages, max_tokens, temperature))
+    def chat(self, messages: list[dict], max_tokens: int = MAX_TOKENS,
+             effort: str = EFFORT) -> str:
+        return "".join(self.chat_stream(messages, max_tokens, effort))
 
-    def vision(self, image_bytes: bytes, mime: str, prompt: str, max_tokens: int = 600) -> str:
+    def vision(self, image_bytes: bytes, mime: str, prompt: str, max_tokens: int = MAX_TOKENS,
+               effort: str = EFFORT) -> str:
         """One image + prompt -> text (image sent as a base64 data-URL ``image_url`` part)."""
         url = f"data:{mime};base64,{base64.b64encode(image_bytes).decode()}"
         messages = [{"role": "user", "content": [
@@ -85,7 +97,8 @@ class Gateway:
         ]}]
         try:
             resp = self.client.chat.completions.create(
-                model=self.vision_model, messages=messages, max_tokens=max_tokens, temperature=0)
+                model=self.vision_model, messages=messages, max_tokens=max_tokens,
+                reasoning_effort=effort)
             return resp.choices[0].message.content or ""
         except GatewayUnavailable:
             raise

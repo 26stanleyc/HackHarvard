@@ -1,6 +1,12 @@
 """Evaluate Coordinator Guide (the bid assistant) on Chalk Evaluations.
 
-    cd backend && uv run python scripts/eval_assistant.py      # or: make eval (repo root)
+    cd backend && uv run python scripts/eval_assistant.py [--path llm|local]   # make eval
+
+``--path llm`` (default; the path live on the site when the Model Gateway key is set): the task
+calls Claude through the Chalk Model Gateway. The key reaches the task only as the Chalk secret
+``CHALK_ROUTER_API_KEY`` (``chalk secret set``), injected by Chalk at run time. Results:
+``docs/eval_results.md``. ``--path local``: the labeled rule-based fallback, no LLM; results:
+``docs/eval_results_local.md``.
 
 What runs where:
 * Locally: the dataset ``clearinghouse-assistant-v1`` is built from real app state. For each
@@ -9,10 +15,9 @@ What runs where:
   marginal rates), and stored in the row (``grounding_json``) with the expected answer facts.
 * On Chalk: the task is a deployed ``@chalkcompute.function`` that runs the app's own
   ``assistant.service.respond`` (the chat code path after grounding) over ``grounding_json``;
-  the scorers are deployed functions wrapping ``assistant/eval_scorers.py``. With no Model
-  Gateway key inside the task, the assistant takes its labeled local path, so the run measures
-  the assistant as it is live today. An LLM-judge scorer is added only when the Model Gateway
-  serves the configured model.
+  the scorers are deployed functions wrapping ``assistant/eval_scorers.py``. An LLM-judge
+  scorer (Chalk ``llm_judge``, through the Model Gateway) is added when the gateway serves the
+  configured model.
 * Locally again: the result dataset is read back, means are computed (per scorer, over rows
   where it applies), every row is re-scored locally as a cross-check, and
   ``docs/eval_results.md`` is written with the run id and every miss.
@@ -34,7 +39,10 @@ sys.path.insert(0, str(BACKEND))
 
 from clearinghouse.assistant.eval_dataset import DATASET  # noqa: E402
 
-EVALUATION = "clearinghouse-assistant"
+EVALUATIONS = {"local": "clearinghouse-assistant", "llm": "clearinghouse-assistant-llm"}
+RESULTS = {"local": "eval_results_local.md", "llm": "eval_results.md"}
+ENV_ID = "hllr1480fa66"
+MODEL = "anthropic/claude-sonnet-5-5"
 
 IMAGE = (
     chalkcompute.Image.debian_slim("3.12")
@@ -43,10 +51,7 @@ IMAGE = (
 )
 
 
-@chalkcompute.function(image=IMAGE)
-def clearinghouse_assistant(question: str, grounding_json: str, persona: str,
-                            focus_field: str) -> str:
-    """Task: the assistant's answer over the row's grounding (same code as the chat route)."""
+def _answer(question: str, grounding_json: str, persona: str, focus_field: str) -> str:
     import json as _json
 
     from clearinghouse.assistant import service
@@ -57,6 +62,28 @@ def clearinghouse_assistant(question: str, grounding_json: str, persona: str,
     req = ChatRequest(day=payload["day"], persona=persona, focus_field=focus_field or None,
                       messages=[{"role": "user", "content": question}])
     return task_output(service.respond(payload, req))
+
+
+@chalkcompute.function(image=IMAGE)
+def clearinghouse_assistant(question: str, grounding_json: str, persona: str,
+                            focus_field: str) -> str:
+    """Task, local path: no gateway key in the container, so the rule-based answerer runs."""
+    return _answer(question, grounding_json, persona, focus_field)
+
+
+@chalkcompute.function(
+    image=IMAGE, call_timeout=120.0,
+    secrets=[chalkcompute.Secret.from_chalk_env("CHALK_ROUTER_API_KEY")],
+    env={"CHALK_ENVIRONMENT": ENV_ID, "CHALK_API_HOST": "https://api.chalk.ai",
+         "CHALK_MODEL": MODEL},
+)
+def clearinghouse_assistant_llm(question: str, grounding_json: str, persona: str,
+                                focus_field: str) -> str:
+    """Task, LLM path: Claude through the Chalk Model Gateway (key from the Chalk secret)."""
+    return _answer(question, grounding_json, persona, focus_field)
+
+
+TASKS = {"local": clearinghouse_assistant, "llm": clearinghouse_assistant_llm}
 
 
 Results = chalkcompute.EvaluationScorerResult
@@ -106,7 +133,7 @@ SCORER_FNS = {
 # --- run -----------------------------------------------------------------------------------------
 
 
-def main() -> None:
+def main(path: str = "llm") -> None:
     import datetime as dt
     import subprocess
     import tempfile
@@ -142,12 +169,15 @@ def main() -> None:
                           "whether the answer addresses the question.")))
         judge_note = f"llm_judge with {gw['model']} via the Chalk Model Gateway"
 
+    if path == "llm" and gw["gateway"] != "chalk":
+        raise SystemExit(f"--path llm needs the Model Gateway: {gw['reason']}")
+    EVALUATION = EVALUATIONS[path]
     dataset = chalkcompute.DatasetClient().upload(DATASET, rows)
     evaluation = chalkcompute.Evaluation.create(EVALUATION, dataset=dataset,
-                                                task=clearinghouse_assistant, scorers=scorers)
+                                                task=TASKS[path], scorers=scorers)
     sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True,
                          text=True, cwd=BACKEND).stdout.strip()
-    run = evaluation.run(metadata={"git_sha": sha}).wait()
+    run = evaluation.run(metadata={"git_sha": sha, "path": path}).wait()
     print("run", run.id, run.status)
     table: pa.Table = chalkcompute.DatasetClient().read(run.result_dataset)
     res = table.to_pylist()
@@ -201,7 +231,8 @@ def main() -> None:
     llm_paths = sorted({json.loads(r["output"]).get("llm") for r in res if r.get("output")})
 
     lines = [
-        "# Coordinator Guide evaluation", "",
+        "# Coordinator Guide evaluation ("
+        + ("LLM via Chalk Model Gateway" if path == "llm" else "local rule-based path") + ")", "",
         f"Run `{run.id}` on Chalk Evaluations ({run.status}), "
         f"{dt.datetime.now().strftime('%Y-%m-%d %H:%M')}, git `{sha}`. "
         f"Dataset `{DATASET}`, {len(rows)} rows; evaluation `{EVALUATION}`.", "",
@@ -238,7 +269,7 @@ def main() -> None:
     for n, q, day, persona, v, meta, ans in misses:
         lines.append(f"- `{n}` = {v:.2f} on \"{q}\" ({day}, {persona}): {json.dumps(meta)}  ")
         lines.append(f"  answer: {ans[:300]}")
-    out = BACKEND.parent / "docs" / "eval_results.md"
+    out = BACKEND.parent / "docs" / RESULTS[path]
     lines += ["", "## Earlier runs", ""] + _history(out)
     out.write_text("\n".join(lines) + "\n")
     print("\n".join(lines[:14 + len(S.SCORERS)]))
@@ -265,4 +296,8 @@ def _history(path: Path) -> list[str]:
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--path", choices=("llm", "local"), default="llm")
+    main(ap.parse_args().path)
