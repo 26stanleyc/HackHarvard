@@ -11,11 +11,19 @@ import {
   YAxis,
 } from "recharts";
 import { fmtInt, fmtSignedT } from "@/lib/format";
-import { STRATEGY_COLORS, STRATEGY_LABEL } from "@/lib/theme";
+import { STRATEGY_COLORS } from "@/lib/theme";
 import { STRATEGY_NAMES, type AdoptionChartResponse, type StrategyName } from "@/lib/types";
 import { Segmented } from "./ui";
 
 type View = "total" | "delta";
+
+/** Plain names for this chart, for readers who don't know the strategy jargon (STRATEGY_LABEL). */
+const PLAIN: Record<StrategyName, string> = {
+  default: "No shifting (usual hours)",
+  independent_average: "Each follows a standard green-hours signal",
+  independent_marginal: "Each picks its own lowest-CO2 hours",
+  coordinated: "Coordinated by sage.ai",
+};
 
 type Row = { x: number } & Record<string, number | [number, number]>;
 
@@ -47,7 +55,7 @@ export function AdoptionChart({ data }: { data: AdoptionChartResponse }) {
           onChange={setView}
           options={[
             { value: "total", label: "Total CO2" },
-            { value: "delta", label: "Change vs default" },
+            { value: "delta", label: "Compared with no shifting" },
           ]}
           testIdPrefix="adoption-view"
         />
@@ -69,7 +77,7 @@ export function AdoptionChart({ data }: { data: AdoptionChartResponse }) {
           tickLine={false}
           axisLine={{ stroke: "#c9c6ba" }}
           label={{
-            value: "Flexible load, % of regional peak",
+            value: "% of peak demand that can move", // the section intro explains it
             position: "insideBottom",
             offset: -14,
             fontSize: 11,
@@ -86,7 +94,7 @@ export function AdoptionChart({ data }: { data: AdoptionChartResponse }) {
           tickLine={false}
           axisLine={false}
           label={{
-            value: view === "delta" ? "t CO2 vs default" : "t CO2 / day",
+            value: view === "delta" ? "CO2 vs no shifting (t)" : "CO2 per day (tonnes)",
             angle: -90,
             position: "insideLeft",
             offset: 10,
@@ -112,7 +120,7 @@ export function AdoptionChart({ data }: { data: AdoptionChartResponse }) {
           <Line
             key={s}
             dataKey={s}
-            name={STRATEGY_LABEL[s]}
+            name={PLAIN[s]}
             stroke={STRATEGY_COLORS[s]}
             strokeWidth={2}
             strokeDasharray={s === "default" ? "5 4" : undefined}
@@ -129,7 +137,7 @@ export function AdoptionChart({ data }: { data: AdoptionChartResponse }) {
             if (!row) return null;
             return (
               <div className="rounded-md border border-line bg-surface px-3 py-2 text-xs shadow-md">
-                <div className="mb-1 font-medium text-ink">{label}% of peak flexible</div>
+                <div className="mb-1 font-medium text-ink">{label}% of peak demand can move</div>
                 {STRATEGY_NAMES.map((s) => {
                   const band = row[`${s}_band`] as [number, number];
                   const v = row[s] as number;
@@ -137,7 +145,7 @@ export function AdoptionChart({ data }: { data: AdoptionChartResponse }) {
                     <div key={s} className="flex items-center justify-between gap-4">
                       <span className="flex items-center gap-1.5 text-ink-2">
                         <Swatch s={s} />
-                        {STRATEGY_LABEL[s]}
+                        {PLAIN[s]}
                       </span>
                       <span className="num text-ink">
                         {view === "delta" ? fmtSignedT(v) : fmtInt(v)} t
@@ -180,7 +188,7 @@ function Legend() {
       {STRATEGY_NAMES.map((s) => (
         <li key={s} className="flex items-center gap-1.5">
           <Swatch s={s} />
-          {STRATEGY_LABEL[s]}
+          {PLAIN[s]}
         </li>
       ))}
     </ul>

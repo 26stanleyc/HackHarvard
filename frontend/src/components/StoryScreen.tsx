@@ -62,13 +62,21 @@ export function StoryBackground({
   return (
     <div className="space-y-8" data-testid="story-background">
       <section className="card p-4 sm:p-6">
-        <h3 className="mb-4 text-lg font-semibold text-ink">Daily CO2 as more load becomes flexible</h3>
+        <h3 className="text-lg font-semibold text-ink">What happens as more companies shift when they use power</h3>
+        <p className="mb-4 mt-1.5 max-w-3xl text-sm leading-relaxed text-ink-2" data-testid="chart-intro">
+          Some electricity use can move to other hours without hurting the business: charging electric
+          vehicles, batch computing, pre-cooling buildings, pumping water. From left to right, more of
+          the grid&apos;s demand can move like this. Each line shows the day&apos;s CO2 from power plants for one way
+          of choosing those hours; <span className="font-medium text-ink">lower is better</span>. Companies
+          choosing alone tend to pile into the same hours, and gas or coal fills the gap. Shaded bands show the
+          range across random sets of companies.
+        </p>
         <AdoptionChart data={adoption} />
         {r.coVsIm < -r.tol && (
           <p className="mt-3 text-sm text-ink-2" data-testid="chart-takeaway">
-            At {r.maxX}% flexible load, coordination saves{" "}
+            When {r.maxX}% of peak demand can move, coordinating saves{" "}
             <span className="num font-medium text-accent">{fmtT(-r.coVsIm)} t</span> of CO2 a day compared with
-            everyone following the same signal.
+            each company picking its own lowest-CO2 hours.
           </p>
         )}
       </section>
