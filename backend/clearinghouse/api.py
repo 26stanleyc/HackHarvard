@@ -147,8 +147,9 @@ def calibration() -> dict:
 
 
 def data_sources(forecast_source: str, model_set: str = "M4") -> list[str]:
-    """``model_set``: the local provider's forecast artifacts ("M4" or "M10", design M10)."""
-    m10 = forecast_source == "local" and model_set == "M10"
+    """``model_set``: the local provider's forecast artifacts ("M4", "M10" or "M12")."""
+    m10 = forecast_source == "local" and model_set in ("M10", "M12")
+    m12 = forecast_source == "local" and model_set == "M12"
     fc = ("Forecast and bid features: Chalk online queries (day-ahead demand, wind and solar "
           "from the gradient-boosted model served by Chalk; the local model answers if Chalk "
           "fails, and each response says which served it)"
@@ -157,6 +158,9 @@ def data_sources(forecast_source: str, model_set: str = "M4") -> list[str]:
           "day (day-ahead demand, wind, solar; Chalk credentials pending)"
           + ("; inputs also include ERCOT's own wind and solar forecasts (NP4-732/737, latest "
              "posting before the issue time) and archived GFS weather forecasts (lead >= 48 h)"
+             + ("; plus ERCOT's in-use load forecast (NP3-565-CD, latest posting before the "
+                "issue time) and day-ahead hub prices (NP4-190-CD, files posted before it)"
+                if m12 else "")
              if m10 else ""))
     weather = [
         "Weather data by Open-Meteo.com (https://open-meteo.com/, CC BY 4.0): archived GFS "

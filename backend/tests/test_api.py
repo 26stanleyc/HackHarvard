@@ -113,7 +113,9 @@ def test_meta(client):
         assert needle in text
     if get_provider().source == "local":
         assert "Chalk credentials pending" in text
-        if get_provider().spec.get("model_set") == "M10":  # Open-Meteo CC BY 4.0 attribution
+        if get_provider().spec.get("model_set") == "M12":
+            assert "NP3-565-CD" in text and "NP4-190-CD" in text
+        if get_provider().spec.get("model_set") in ("M10", "M12"):  # Open-Meteo CC BY 4.0
             assert "Weather data by Open-Meteo.com (https://open-meteo.com/" in text
             assert "ERCOT's own wind and solar forecasts" in text
 
