@@ -349,6 +349,21 @@ Why: the M4 model has no weather inputs. Its wind forecast is weak (test MAE 4,0
   - **No contract change:** the `ForecastProvider` interface and the B6 API contract stay the same.
   - **Existing suites:** `uv run pytest -q`, ruff, and frontend lint / typecheck / build pass.
 
+### M11. Robust planning against forecast error (Backend; added after M10)
+- **Why:** an exploratory diagnostic (M4 forecast, the 27 calibration-holdout days in 2024-10-01..12-31, the 5 presets, background 10%) found coordination beat each company self-optimizing on 7 days and lost on 14 when planned on the single forecast, 17 wins / 9 losses when planned on forecast-error scenarios, and 20 wins / 0 losses with a perfect forecast. Exploratory only (one run, chosen after looking); this milestone tests it properly.
+- **Method (fixed before any result):** the planning simulator is an equal-weight average over scenarios: the day's forecast inputs, plus, for each day d in D-2..D-11 (10 days; D-1 is excluded because its last hours are not published by the 00:00 CST issue time), forecast(D) + (actual(d) - forecast(d)) for every hourly input field, with demand, wind, solar and curtailment clipped at 0. Past-day forecasts come from the same forecast provider. Days with missing inputs are skipped; with fewer than 5 usable days the plan falls back to the single forecast. It is used for every planning step (strategies 2, 3 and 4, every coalition plan, the background population). Scoring is unchanged (actual inputs). `/api/clear`'s `forecast.hourly.avg_intensity` stays the single-forecast value (premise 3); the API contract (B6) does not change.
+- **Config:** `PLANNING_MODE` = `plain` | `robust`; the default is set by the rule below.
+- **Evaluation (fixed before any result):** the `scripts/scenario_savings.py` rule unchanged (all 92 days 2024-10-01..12-31, K = 10 draws, N = 30 companies, shares 5/10/20% of peak, same seeds), run in plain and robust mode with the adopted forecast (M10; repeated with M12 if M12 is adopted). Runs are paired by (day, seed, share).
+  - Primary days: the 65 of the 92 days that are not among the 27 days used in the exploratory diagnostic. Results on all 92 days are also reported.
+  - Primary metric, at 10% share: per run, ΔE = E_coordinated(plain) - E_coordinated(robust) (positive = robust emits less).
+  - **Adopt robust as the default if and only if** mean ΔE > 0 and its 95% day-clustered bootstrap interval (2,000 resamples of days, seed 11) excludes 0 on the primary days.
+  - Reported, not decisive: within each mode, saved vs self-optimizing, vs cleanest slot and vs business as usual (mean, median, % of runs positive); robust mode's effect on strategy 3 alone; shares 5 and 20%; the calibrated herding gate; the demo days.
+- **Checks:**
+  - With a single scenario, the robust planning simulator equals the plain simulator exactly for every method the coordinator uses.
+  - Scenario construction never reads actual inputs of D or D-1 (test with those days' actuals replaced by random values).
+  - In robust mode every schedule satisfies its bid; output is deterministic; an 8-bid `/api/clear` finishes under 5 s.
+  - API contract tests, backend tests, ruff, and frontend lint, typecheck and build pass.
+
 ### Mapping to a team
 
 With 2-3 people: Backend takes M1-M6 in order; Frontend takes M7 right after M0 (using the fixtures) and then M8 once M6 passes; M9 is shared. Hour 0 for everyone: agree the API contract (B6), get keys (B7), pick the region, decide backend hosting. Feature freeze at hour 18; stretch goals (rolling re-plan replay, multi-user live bidding) only after M8 passes.
