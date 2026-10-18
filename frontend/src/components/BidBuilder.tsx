@@ -23,6 +23,9 @@ import {
   type MetaResponse,
   type Preset,
 } from "@/lib/types";
+import { suggestionPatch, type ExtractedBid, type Suggestion } from "@/lib/assistant";
+import { AssistantPanel, type HelpRequest } from "./AssistantPanel";
+import { ExtractDropzone } from "./ExtractDropzone";
 import { Button, ErrorBanner, Source } from "./ui";
 
 export interface Scenario {
@@ -144,6 +147,39 @@ export function CompanySidebar({
   };
   const update = (id: string, patch: Partial<BidDraft>) =>
     setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
+
+  // Coordinator Guide: field help requests, and fields last set by an applied suggestion.
+  const [help, setHelp] = useState<HelpRequest | null>(null);
+  const [suggested, setSuggested] = useState<Record<string, string[]>>({});
+  const editByUser = (id: string, patch: Partial<BidDraft>) => {
+    update(id, patch);
+    const keys = Object.keys(patch);
+    setSuggested((prev) => (prev[id] ? { ...prev, [id]: prev[id].filter((f) => !keys.includes(f)) } : prev));
+  };
+  const applySuggestion = (sg: Suggestion) => {
+    update(sg.bid_id, suggestionPatch(sg));
+    setSuggested((prev) => ({ ...prev, [sg.bid_id]: [...(prev[sg.bid_id] ?? []).filter((f) => f !== sg.field), sg.field] }));
+  };
+  useEffect(() => {
+    if (!help) return;
+    const t = setTimeout(() => setHelp((h) => (h && h.nonce === help.nonce ? { ...h, field: "", bidId: "" } : h)), 2500);
+    return () => clearTimeout(t);
+  }, [help]);
+  const addExtracted = (b: ExtractedBid, source: string) => {
+    const id = nextBidId(takenIds());
+    const name = `From ${source.replace(/\.[a-z]+$/i, "")}`.slice(0, 60);
+    setDrafts((prev) => [
+      ...prev,
+      { ...customDraft(id), name, energy_mwh: String(b.energy_mwh), max_mw: String(b.max_mw), earliest_hour: b.earliest_hour, deadline_hour: b.deadline_hour },
+    ]);
+    setSuggested((prev) => ({ ...prev, [id]: ["energy_mwh", "max_mw", "earliest_hour", "deadline_hour"] }));
+    setModal(id);
+  };
+  const assistantScenario = {
+    carbon_price: Number.isFinite(Number(scenario.carbon_price)) && scenario.carbon_price.trim() !== "" ? Number(scenario.carbon_price) : null,
+    pool_usd: Number.isFinite(Number(scenario.pool_usd)) && scenario.pool_usd.trim() !== "" ? Number(scenario.pool_usd) : null,
+    background_pct: scenario.background_pct,
+  };
   const remove = (id: string) => {
     setDrafts((prev) => prev.filter((d) => d.id !== id));
     setModal(null);
@@ -287,6 +323,9 @@ export function CompanySidebar({
               Custom company
             </button>
           </div>
+          <div className="mt-3">
+            <ExtractDropzone disabled={full} onAdd={addExtracted} />
+          </div>
         </Modal>
       )}
 
@@ -299,7 +338,10 @@ export function CompanySidebar({
             serverErrors={serverErrByBid.get(drafts[editIdx].id) ?? []}
             loadTypes={loadTypes}
             profile={errors[editIdx] === null ? (profiles.block?.per_bid[drafts[editIdx].id] ?? null) : null}
-            onChange={(patch) => update(drafts[editIdx].id, patch)}
+            onChange={(patch) => editByUser(drafts[editIdx].id, patch)}
+            suggested={suggested[drafts[editIdx].id] ?? []}
+            highlight={help && help.bidId === drafts[editIdx].id ? help.field : null}
+            onHelp={(field) => setHelp({ field, bidId: drafts[editIdx].id, nonce: Date.now() })}
             onRemove={() => remove(drafts[editIdx].id)}
           />
           {editResult && (
@@ -321,6 +363,19 @@ export function CompanySidebar({
             </Button>
           </div>
         </Modal>
+      )}
+
+      {/* portal: the sticky sidebar would trap the fixed panel under the header (see Modal) */}
+      {createPortal(
+        <AssistantPanel
+          day={scenario.day}
+          dayLabel={day?.label ?? scenario.day}
+          drafts={drafts}
+          scenario={assistantScenario}
+          onApply={applySuggestion}
+          help={help && help.field ? help : null}
+        />,
+        document.body,
       )}
     </div>
   );
@@ -459,6 +514,9 @@ function NumberField({
   onChange,
   testId,
   invalid,
+  onHelp,
+  highlight,
+  suggested,
 }: {
   label: string;
   suffix?: string;
@@ -466,13 +524,14 @@ function NumberField({
   onChange: (v: string) => void;
   testId?: string;
   invalid?: boolean;
+  onHelp?: () => void;
+  highlight?: boolean;
+  suggested?: boolean;
 }) {
   const id = useId();
   return (
-    <div className="min-w-0">
-      <label htmlFor={id} className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-muted">
-        {label}
-      </label>
+    <div className={`min-w-0 rounded-md ${highlight ? "ring-2 ring-accent ring-offset-2 ring-offset-surface" : ""}`}>
+      <FieldLabel htmlFor={id} label={label} onHelp={onHelp} />
       <div
         className={`flex items-center rounded-md border bg-surface ${invalid ? "border-danger" : "border-line-strong"} focus-within:border-accent`}
       >
@@ -486,7 +545,37 @@ function NumberField({
         />
         {suffix && <span className="pr-2.5 text-xs text-muted">{suffix}</span>}
       </div>
+      {suggested && <SuggestedTag />}
     </div>
+  );
+}
+
+function FieldLabel({ htmlFor, label, onHelp }: { htmlFor: string; label: string; onHelp?: () => void }) {
+  return (
+    <div className="mb-1 flex items-center gap-1">
+      <label htmlFor={htmlFor} className="block text-[11px] font-medium uppercase tracking-wider text-muted">
+        {label}
+      </label>
+      {onHelp && (
+        <button
+          type="button"
+          onClick={onHelp}
+          aria-label={`Ask Coordinator Guide about ${label}`}
+          title="Ask Coordinator Guide"
+          className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-line-strong text-[9px] font-semibold leading-none text-muted hover:border-accent hover:text-accent"
+        >
+          ?
+        </button>
+      )}
+    </div>
+  );
+}
+
+function SuggestedTag() {
+  return (
+    <p className="mt-0.5 text-[10px] font-medium text-accent" data-testid="suggested-tag">
+      suggested by Coordinator Guide
+    </p>
   );
 }
 
@@ -496,19 +585,23 @@ function HourSelect({
   options,
   onChange,
   testId,
+  onHelp,
+  highlight,
+  suggested,
 }: {
   label: string;
   value: number;
   options: number[];
   onChange: (v: number) => void;
   testId?: string;
+  onHelp?: () => void;
+  highlight?: boolean;
+  suggested?: boolean;
 }) {
   const id = useId();
   return (
-    <div className="min-w-0">
-      <label htmlFor={id} className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-muted">
-        {label}
-      </label>
+    <div className={`min-w-0 rounded-md ${highlight ? "ring-2 ring-accent ring-offset-2 ring-offset-surface" : ""}`}>
+      <FieldLabel htmlFor={id} label={label} onHelp={onHelp} />
       <select
         id={id}
         data-testid={testId}
@@ -522,6 +615,7 @@ function HourSelect({
           </option>
         ))}
       </select>
+      {suggested && <SuggestedTag />}
     </div>
   );
 }
@@ -537,6 +631,9 @@ function BidCard({
   loadTypes,
   profile,
   onChange,
+  suggested,
+  highlight,
+  onHelp,
   onRemove,
 }: {
   index: number;
@@ -546,6 +643,9 @@ function BidCard({
   loadTypes: { value: string; label: string }[];
   profile: BidFeatures | null;
   onChange: (patch: Partial<BidDraft>) => void;
+  suggested: string[];
+  highlight: string | null;
+  onHelp: (field: string) => void;
   onRemove: () => void;
 }) {
   const bid = draftToBid(draft);
@@ -575,9 +675,7 @@ function BidCard({
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <div className="col-span-2 min-w-0 sm:col-span-1">
-          <label className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-muted" htmlFor={`${draft.id}-type`}>
-            Load type
-          </label>
+          <FieldLabel htmlFor={`${draft.id}-type`} label="Load type" onHelp={() => onHelp("load_type")} />
           <select
             id={`${draft.id}-type`}
             value={draft.load_type}
@@ -594,10 +692,10 @@ function BidCard({
             ))}
           </select>
         </div>
-        <NumberField label="Energy" suffix="MWh" value={draft.energy_mwh} onChange={(v) => onChange({ energy_mwh: v })} testId={`energy-${draft.id}`} invalid={!!error} />
-        <NumberField label="Max power" suffix="MW" value={draft.max_mw} onChange={(v) => onChange({ max_mw: v })} testId={`maxmw-${draft.id}`} invalid={!!error} />
-        <HourSelect label="Earliest (incl.)" value={draft.earliest_hour} options={EARLIEST} onChange={(v) => onChange({ earliest_hour: v })} testId={`earliest-${draft.id}`} />
-        <HourSelect label="Deadline (excl.)" value={draft.deadline_hour} options={DEADLINE} onChange={(v) => onChange({ deadline_hour: v })} testId={`deadline-${draft.id}`} />
+        <NumberField label="Energy" suffix="MWh" value={draft.energy_mwh} onChange={(v) => onChange({ energy_mwh: v })} testId={`energy-${draft.id}`} invalid={!!error} onHelp={() => onHelp("energy_mwh")} highlight={highlight === "energy_mwh"} suggested={suggested.includes("energy_mwh")} />
+        <NumberField label="Max power" suffix="MW" value={draft.max_mw} onChange={(v) => onChange({ max_mw: v })} testId={`maxmw-${draft.id}`} invalid={!!error} onHelp={() => onHelp("max_mw")} highlight={highlight === "max_mw"} suggested={suggested.includes("max_mw")} />
+        <HourSelect label="Earliest (incl.)" value={draft.earliest_hour} options={EARLIEST} onChange={(v) => onChange({ earliest_hour: v })} testId={`earliest-${draft.id}`} onHelp={() => onHelp("earliest_hour")} highlight={highlight === "earliest_hour"} suggested={suggested.includes("earliest_hour")} />
+        <HourSelect label="Deadline (excl.)" value={draft.deadline_hour} options={DEADLINE} onChange={(v) => onChange({ deadline_hour: v })} testId={`deadline-${draft.id}`} onHelp={() => onHelp("deadline_hour")} highlight={highlight === "deadline_hour"} suggested={suggested.includes("deadline_hour")} />
       </div>
 
       <WindowStrip

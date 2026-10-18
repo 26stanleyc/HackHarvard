@@ -338,3 +338,177 @@ Reading:
 - Coordination's average gain over the self-optimizing baselines is positive at 10 % and 20 % but not reliable run to run: at 10 % it is close to a coin flip against the cleanest-slot baseline. It grows with the amount of flexible load (more herding to avoid).
 - Coordination never loses to self-optimizing on the forecast it plans on (fallback); every loss on actuals comes from forecast error.
 - Shifting at all (vs business as usual) is the larger and steadier effect.
+
+## M12. Grid-operator forecasts and day-ahead prices — PASS, adopted (2026-10-17)
+
+Milestone and checks were pre-registered in `docs/design.md` (M12) and pushed (`23a11b8`) before any download or result. Built in a separate worktree of `chalk-integration`, because the shared checkout had another session's uncommitted fleet work on `feat/3d-fleet`.
+
+- **Code:**
+  - `download_data.py`: datasets `ercot_load_pit` (NP3-565-CD, in-use model, one request per target day) and `ercot_dam_pit` (all 419 archived NP4-190-CD original files, hub rows only).
+  - `forecast_inputs.py`: `ercot_load_point_in_time`, `dam_point_in_time`; new columns `ercot_load_fc`, `dam_price` and their posting times.
+  - `features.py`: `ercot_load_fc`, `demand_base_ercot`, `dam_price`, `dam_price_rank`. The rank uses only slots published by `as_of`.
+  - `model.py`: `m12_candidates`, `M10_CHOSEN`.
+  - `train_forecast.py`: the M10 and M12 blocks now share one `select()`, and M10 is reproduced exactly.
+  - `scripts/price_signal.py` (new).
+  - `/api/meta` source text names the M12 inputs.
+- **Point in time:**
+  - Load forecast: every day from 2023-12-12 uses the 23:30 CST posting, 30 min before `I` (417/417 days).
+  - DAM: each slot uses the original file posted 9.9–12.5 h before its day's issue time. 238 daylight-time days have 23 priced slots: slot 23 is local hour 1 of D+1, whose DAM run posts after `I`. 180 standard-time days have 24.
+  - Data quirk: the in-use load model changes between postings (E, E1, E2, E3, M, A3, A6 all appear). Each posting has exactly one in-use row per hour, and the code enforces this.
+- **Selection** (training-period blocked CV only; M10 hyperparameters):
+
+| Target | CV MAE MW per candidate | Chosen |
+|---|---|---|
+| demand | M10 1,921 / +load 1,170 / load as base 1,087 / +load+price 1,170 / load base+price 1,090 | load as base (`m12_lb`) |
+| wind | M10 1,223 / +price 1,226 | M10 (unchanged) |
+| solar | M10 613 / +price 574 | +price (`m12_p`) |
+
+- **Test period 2024-10-01..12-31** (MAE MW / normalized MAE / MAPE %; M10 reproduced exactly):
+
+| Target | M12 (chosen) | M10 | Yesterday | ERCOT forecast used directly (reference) |
+|---|---|---|---|---|
+| demand | **934 / 0.019 / 1.92** | 1,425 / 0.029 / 2.88 | 1,942 / 0.040 / 3.99 | load forecast 841 / 0.017 / **1.71** |
+| wind | 1,205 / 0.093 / 12.96 (= M10) | 1,205 | 6,123 | STWPF 1,455 |
+| solar | **464 / 0.090 / 11.60** | 506 / 0.099 / 12.46 | 1,101 | STPPF 525 |
+
+- **Adoption rule** (demand below M10, wind and solar no higher): **met. M12 is the default local model** (`model_set: "M12"`).
+- **Honest note:** ERCOT's load forecast used directly (1.71%) still beats our model built on it (1.92%). "Use ERCOT's forecast as is" was not a pre-registered candidate, so it stays a reference. It is the obvious next candidate for a future milestone.
+- **Demo-day caveat:** demo days remain in-sample, as in M10. 2024-01-16 still has no temperature input; its demand MAE improved from 3,939 to 3,617 MW but remains the weak day.
+
+**Price as a signal** (`docs/results/price_signal.json`; Spearman ρ across a day's slots against the simulator's actual marginal CO2 rate; days with a constant rate excluded and counted; 2024-03-28 skipped, no actuals):
+
+| Signal | Test period: median ρ / share of days ρ > 0 | All 2024: median ρ / share ρ > 0 |
+|---|---|---|
+| DAM price (HB_HUBAVG) | +0.32 / 81% (78 days) | +0.10 / 57% (313 days) |
+| Forecast average intensity (planners' current signal) | +0.46 / 90% | +0.34 / 80% |
+| Forecast marginal rate | +0.28 / 78% (69 days) | +0.30 / 75% (281 days) |
+
+The price ranks the cleanest and dirtiest hours worse than the signal the planners already use, especially over the whole year. That is evidence against switching to price as the carbon signal. About 14 of 24 slots per day have a zero actual marginal rate (curtailed renewables), so ties are common. Planning is unchanged.
+
+**Effect on the demo days** (example scenario; `demo_days_M10.json` → `demo_days_M12.json`):
+
+| Day | Forecast MAE demand / solar MW, M10 → M12 | Value of coordination M10 → M12 | Coordinated − default M10 → M12 | Fallback M10 → M12 | Paid M10 → M12 |
+|---|---|---|---|---|---|
+| 03-29 windy night | 866 / 1,771 → 280 / 827 | 0 → 0 t | 0 → 0 t | no / no | $0 → $0 |
+| 04-11 sunny mild | 501 / 462 → 321 / 410 | +242.5 → +242.8 t | +249 → +249 t | no / no | $14,370 → $14,805 |
+| 08-20 summer peak | 586 / 152 → 621 / 162 | 0 → **+34.6 t** | −1,752 → −938 t | yes → no | $4,062 → $11,412 |
+| 01-16 cold morning | 3,939 / 790 → 3,617 / 777 | −39.7 → −21.6 t | −61 → −83 t | no / no | $0 → $0 |
+
+**Adoption chart** (default day, at 30% of peak, M10 → M12): independent-average 98,228 → 98,516 t; independent-marginal 101,736 → 101,536; coordinated 100,872 → 100,894; default unchanged at 101,276. Coordination still ends below default at 30% (−382 t) and recovers 642 t over acting alone. **Calibrated herding gate:** unchanged (GO 6/7; timestamps only).
+
+Checks:
+- No leakage, every new feature — PASS:
+  - Unit tests on synthetic postings: the latest in-use load posting before `I`; postings at or after `I` change nothing; two in-use models in one posting are rejected.
+  - DAM: original file only; a later correction is ignored; daylight-time slot 23 is masked and never filled from D+1's run.
+  - Processed table: every load posting within `[I − 6 h, I)`, one per day; every DAM file before its slot's day issue time.
+  - Feature level: every new feature's source time is before `as_of` on every train and test day under both issue times. At 10:00 D−1 the load forecast and DAM are masked. Values published at `as_of` are masked; randomizing later days changes nothing.
+  - M4 and M10 leakage tests pass.
+- Same split, selection by training CV only, adoption rule applied (asserted from the metrics file) — PASS.
+- If adopted: demand 1.92% < yesterday 3.99%; one-day forecast < 500 ms (test); fixtures, adoption chart, demo days and herding gate regenerated with the local provider (`CHALK_*` blanked) — PASS.
+- `ForecastProvider` interface and B6 contract unchanged; `clearing.py`, `strategies.py` and `settlement.py` untouched — PASS.
+- `uv run pytest -q` → 218 passed (with and without `CHALK_*` set); ruff clean; frontend lint, typecheck, build pass — PASS.
+
+**Open: Chalk serves M10.**
+- `.env` now has `CHALK_*` set, so the app's primary forecast is the live Chalk deployment, which serves M10. The local M12 model answers only when Chalk fails.
+- Serving M12 needs:
+  - `ercot_load_fc`, `dam_price` and their posting times added to the Chalk `ForecastInput` feature class and resolvers (`sync_from_app.py` already vendors every `EXOG_SERIES` column);
+  - a re-vendor;
+  - `chalk apply`, with the user's approval.
+- Not done here.
+
+## Chalk assistant, Phase 0 — pre-flight (2026-10-18)
+
+Spec: `CHALK_INTEGRATION.md` (sponsor challenge "Best Data-Driven Agent Built on Chalk"). Branch `chalk-assistant`, based on `chalk-integration` at 36d2dd9.
+
+```
+$ chalk user
+Name: Allison Shen   Team: Hello   Default/production (hllr1480fa66)
+$ chalk router status
+Gateway https://api.chalk.ai/v1/router   Environment hllr1480fa66   Health Available
+$ chalk router model list
+No router models are available for environment hllr1480fa66.
+$ chalk apply --help | head -5
+  Use the apply command to deploy your feature pipelines.
+$ cd backend/chalk && chalk apply --dry-run      # flag does not exist in CLI v1.55.1; --plan is the dry run
+$ cd backend/chalk && chalk apply --plan
+No differences found                              # live deployment == this branch (M10 forecast project)
+```
+
+Findings and decisions:
+- **Model Gateway reachable, no provider connection** (no models). Phases 1–2 are built against a labeled local fallback; the Chalk path switches on with `CHALK_ROUTER_API_KEY` once a connection exists. Never faked.
+- **Functions / Evaluations:** the docs say both need Chalk support to enable the async Function queue and Evaluations for the environment. A probe deploy of a trivial `@chalkcompute.function` was not run: it needs the user's admin CLI login and was held for the user's approval. Phases 3–4 are blocked on that.
+- **Bid state** is already lifted: `ClearinghouseApp.tsx` owns `drafts` and passes `setDrafts` to `BidBuilder`. No refactor needed.
+- **Pinned versions** (newest ≥ 2 weeks old): `chalkcompute==2.13.1`, `openai==3.24.0`, `python-multipart==0.0.32`. `chalkpy` stays out of the app's environment (the forecast already uses Chalk online queries over REST, `forecast/chalk.py`).
+- **Spec vs repo:** the spec's `/api/schedule` and `/api/settle` are `/api/clear` and `/api/evaluate` here; bid fields are `earliest_hour`, `deadline_hour` (exclusive), `energy_mwh`, `max_mw`, `load_type`, plus scenario-level `carbon_price`, `pool_usd`, `background_pct`. There is no per-bid "strategy" or separate "window end": the deadline is the window end.
+
+## Chalk assistant, Phase 1 — assistant backend (2026-10-18)
+
+`backend/clearinghouse/assistant/`: `gateway.py` (Chalk Model Gateway via the `openai` SDK, `base_url={CHALK_API_HOST}/v1/router`, `X-Chalk-Env-Id`), `context.py` (grounding payload), `prompts.py`, `glossary.py`, `personas.py`, `suggestions.py`, `local.py` (rule-based fallback), `checks.py` (`numbers_grounded`), `service.py` (the one code path for the API and the evaluation). Routes: `POST /api/assistant/chat` (SSE: `meta`, `token`, `suggestions`, `done`), `POST /api/assistant/suggest`, `GET /api/assistant/status`.
+
+- **Grounding** (every call): the user's bids as sent (feasibility with the backend's rules, malformed bids described, not rejected); bid features from the forecast provider, i.e. a **Chalk `flex_bid` online query** when Chalk is configured; the day's forecast from the same provider (**Chalk `grid_day` online query**), with its source; the planning simulator's marginal CO2 rate per hour and the 4 cleanest / 4 dirtiest hours by it (ties by average intensity). `results` is always null: the assistant never quotes savings.
+- **LLM path:** the system prompt carries the rules, persona and grounding JSON; the model ends with `SUGGESTIONS: {json}`. The marker and JSON are stripped from the streamed text; each suggestion is validated (real bid, editable field, `from` = current value, result well-formed and feasible) and invalid ones are dropped and counted. Rule fixes for infeasible bids are merged in.
+- **Fallback:** no router key, or a gateway failure before the first token → the local rule-based answerer on the same payload; `meta.llm = "local"` with the reason. A failure mid-answer sends an `error` event.
+- **Deviation from the spec:** `/api/assistant/suggest` is rule-based, not LLM. It must answer within about 1 s of a 600 ms-debounced edit and must not invent numbers; the rules use the Chalk-served bid features. LLM suggestions come through the chat.
+- Fields: the spec's 7 fields are `earliest_hour`, `deadline_hour`, `energy_mwh`, `max_mw`, `load_type`, `carbon_price`, `pool_usd`; `background_pct` is also in the glossary.
+- **Live now:** forecast and bid features via Chalk; LLM **not live** (`chalk router model list` is empty: no provider connection, no `CHALK_ROUTER_API_KEY`). The status route reports `gateway: unavailable` with the reason.
+- Checks: `tests/test_assistant.py` (58): grounding equals provider + simulator; window and capacity fixes; rule reasons and every local answer (all personas, all glossary fields) pass `numbers_grounded`; LLM output validation; marker stripping, fallback before the first token, mid-stream error (fake gateway, no network); SSE route; suggest under 1 s. `uv run pytest -q` → 276 passed with and without `CHALK_*`; ruff clean.
+
+## Chalk assistant, Phase 2 — assistant UI (2026-10-18)
+
+`frontend/src/components/AssistantPanel.tsx` + `src/lib/assistant.ts`, mounted inside `BidBuilder` (so only on the Bids step).
+- Floating "Coordinator Guide" button (badge = open live suggestions); 360 px side panel, full width on phones. Header: avatar, name, persona switcher (EV fleet / data center / facilities; default EV fleet, sent with every request).
+- Credibility strip from `GET /api/assistant/status`: `LLM: Chalk Model Gateway (model) | local rule-based · Forecast: chalk | local · Extract: …`. Each answer also says which path answered it and why.
+- Greeting names the day and the forecast source; three starter chips. Chat streams via `fetch` + `ReadableStream` (SSE over POST).
+- `?` icon on every bid field: opens the panel, asks a canned question with `focus_field`, and rings the field for 2.5 s.
+- Live suggestions: 600 ms debounce on any bid / day / scenario / persona change → `POST /api/assistant/suggest` → cards with **Apply**, which patches the draft through `setDrafts`; the applied field is tagged "suggested by Coordinator Guide" until the user edits it. Never auto-applied.
+- **Fixed after the first screenshot:** on 2024-03-29 every hour's marginal rate is 0, so "cleanest/dirtiest" rankings were arbitrary and an "improve" suggestion gained nothing. The payload now carries `marginal_rates_all_equal`; the answer says timing does not change emissions that day (ranking by average intensity instead, labeled), the prompt forbids window moves, and "improve" suggestions require a lower marginal rate (2 new tests).
+- Checked in a real browser (gstack headless Chromium) on the live API: panel and chips render; making b1's window invalid (start 20:00, deadline 07:00) showed a fix card 1.1 s after the edit (incl. the 600 ms debounce); Apply set the deadline to 24:00, cleared the error and tagged the field; the `?` on Max power answered with the bids' current values; layout at 400 px; no console errors.
+- Fixture mode: the assistant is hidden (it needs the live backend).
+- Checks: `uv run pytest -q` → 278 passed; ruff, frontend lint / typecheck / build clean.
+
+## Chalk assistant, Phase 4 — evaluation on Chalk (2026-10-18; done before Phase 3)
+
+Order changed: Phase 4 needs no Model Gateway model, Phase 3 (vision) does. With the user's permission (2026-10-18) a probe `@chalkcompute.function` deployed and returned from Chalk, and a 3-row probe Evaluation ran (`json_valid` mean 0.667, correct). **Functions and Evaluations work in `hllr1480fa66` without asking Chalk support.**
+
+- `backend/scripts/eval_assistant.py` (`make eval`): dataset `clearinghouse-assistant-v1` (44 rows, `clearinghouse/assistant/eval_dataset.py`): 24 definitions (8 fields × 3 personas), 9 cleanest-hours (3 days × 3 personas; truth = the simulator's 4 lowest marginal-rate hours, or "timing does not matter" on flat days), 8 feasibility edge cases (reversed window, energy over capacity, over capacity at midnight, overlapping-but-valid; × 2 days), 3 savings questions that must be refused. Each row stores the grounding payload built exactly as the chat route builds it (Chalk online queries for forecast and bid features).
+- Task: a deployed Chalk function running the app's own `assistant.service.respond` (chat path after grounding), shipped with `Image.debian_slim("3.12").pip_install([...]).add_local_python_source("clearinghouse")`. Scorers: deployed functions wrapping `assistant/eval_scorers.py`: `suggestions_json_valid`, `numbers_grounded` (hallucination check), `suggestion_matches`, `answer_correct` (added beyond the spec: checks facts, not only form). `llm_judge` is added automatically when the gateway serves a model; skipped now.
+- Means are read from Chalk's result dataset; every row is also re-scored locally from Chalk's task outputs and the agreement is reported (44/44 for every scorer).
+- **Differences from the docs/spec, noted:** importing a file with `@chalkcompute.function` deploys immediately (so the dataset builder lives in its own module); custom-scorer result columns are named `scorer_<id>`, not `<name>_value` (matched by per-row agreement); chalkcompute picks up `CHALK_CLIENT_*` from the environment, and the repo `.env` holds the app's query-only token, so rows are built in a subprocess and the evaluation itself uses the developer's `chalk login`; the spec's `json_valid` on the suggestions block is a custom scorer because the block is nested in the task output.
+- **Runs:** `76e94924…` and `f2bca780…` succeeded on Chalk but the script could not find the scorer columns (fixed). **Baseline `c5124fb0`**: suggestions_json_valid 1.000, numbers_grounded 1.000, suggestion_matches 1.000 (8 rows), **answer_correct 0.886 (5 misses)**: "Explain carbon_price to me" (field key not an alias), "What does payout pool mean?" and "How should I set payout pool?" (the word "payout" triggered the savings refusal), "Can the coordinator fit all my energy?" ×2 (answered as a definition of energy, not a feasibility check). Fixed in `local.py` (field keys as aliases; definitional wording wins; savings refusal only for the user's own outcome; "fit" is a feasibility question), with 9 new paraphrase tests not in the dataset. **After the fix, `aa05d812` and `e0499809` (`make eval`): 1.000 on all four**; optimistic by construction (fixed after seeing those rows), stated in `docs/eval_results.md`.
+- Not done: the image-extraction evaluation (needs Phase 3) and the LLM judge (needs a gateway model).
+- Checks: `tests/test_assistant.py` 70 (scorer unit tests included); `uv run pytest -q` → 288 passed with and without `CHALK_*`; ruff clean.
+
+## Chalk assistant — LLM live through the Chalk Model Gateway (2026-10-18)
+
+- Provider connection (Anthropic, Claude Console key) added in the dashboard by the user; a Router API key restricted to `--provider anthropic` was created with `chalk router api-key create` and written to `.env` (`CHALK_ROUTER_API_KEY`) without being printed. Model: `anthropic/claude-sonnet-5-5` (chat and vision).
+- Getting there: `chalk router model list` was empty with the CLI login (lists are filtered by key scope); the first key in the connection (`sk-ant-usr-…`) was rejected upstream (`401 invalid x-api-key`); after a Console API key, the org needed credits (`400 credit balance too low`).
+- Two request fixes for current Claude models through the gateway's OpenAI-compatible Chat route: no `temperature` (400 "deprecated for this model"); thinking is always on and shares `max_tokens`, so a 700-token cap returned no text (`finish_reason=length`). Now `reasoning_effort="low"` + `max_tokens=4000`. Measured on a typical turn: default effort 10.9 s / 1,262 output tokens, low 4.5 s / 441. The native `output_config` / `thinking` fields are rejected by the translated Chat route.
+- Checked: `/api/assistant/status` → `gateway: chalk`; a live chat streams a grounded answer (cleanest hours = simulator's; savings refused; flat-day rule applied) with LLM suggestions validated (`source: chalk`, 0 dropped); in the browser the strip reads "LLM: Chalk Model Gateway (anthropic/claude-sonnet-5-5)". Answers can run slightly over the 120-word target (139 words seen).
+- Evaluation: `scripts/eval_assistant.py --path llm` (default, `make eval`) adds a task that reads the key from the Chalk secret `CHALK_ROUTER_API_KEY`; `--path local` (`make eval-local`) keeps the rule-based run. Local results moved to `docs/eval_results_local.md`. LLM run pending the user's approval (Chalk secret + model spend).
+- `uv run pytest -q` → 288 passed; ruff clean.
+
+## Chalk assistant — first LLM evaluation on Chalk, and what it found (2026-10-18)
+
+Chalk secret `CHALK_ROUTER_API_KEY` set (encrypted; injected into the LLM task with `chalkcompute.Secret.from_chalk_env`). The user approved about $0.50–1 of model usage for one LLM run.
+
+- **Run `0a9478d4` (LLM task, Sonnet 5.5 via the Chalk Model Gateway; scorers v1):** suggestions_json_valid 1.000, numbers_grounded 0.975, suggestion_matches 1.000, **answer_correct 0.409**; the LLM judge errored on every row (Claude structured outputs reject `minimum`/`maximum` on numbers: our `Field(ge=0, le=1)`), so it was never billed. Reading the 26 misses: almost all were correct answers in words v1 did not accept ("9, 10, 14 and 15" vs "09:00"; "is infeasible" / "can't fit" vs "not feasible"; "pool_usd" vs "Payout pool"; "I can't say how many tonnes your fleet will avoid" flagged by the "will avoid" claim pattern).
+- **Scorers v2** (meaning, not one wording), with tests built from verbatim answers of both runs: the rule-based baseline's real misses still fail, the LLM's correct paraphrases pass, and the one weak LLM answer ("one bid can't fit", naming none) still fails. numbers_grounded now also accepts the "to" values of the assistant's own validated edits (e.g. "raise max_mw to 25", 100 MWh / 4 h). **Rescore `10426eba` (no task re-run, no model usage):** answer_correct 0.977, numbers_grounded 0.994. One more literal miss ("Yes, all three bids are valid") → v2.1 accepts valid / fits.
+- **Rescore `e29825cd` with the fixed judge:** suggestions_json_valid 1.000, numbers_grounded 0.994 (the one remaining miss is real: "1,800 MWh", a computed capacity not in the grounding), suggestion_matches 1.000, answer_correct 1.000, **LLM judge (explanation quality) 0.668** — definitions 0.71, feasibility 0.61, cleanest hours 0.56, savings 0.80; 0 answers judged incorrect.
+- **What the judge caught, fixed in the app, not the scorer:**
+  1. On days where many hours tie at the lowest marginal rate (2024-01-16: 18 hours at 0 t/MWh), the grounding named an arbitrary "4 cleanest", so LLM answers read as contradictory. `rank_hours` now lists every tied hour (`cleanest_hours_tied`), the local answer says they tie ("N hours tie for cleanest … equally clean"), the prompt forbids singling out a subset, and the scorer expands hour ranges ("0-9").
+  2. The judge's instructions summarised the glossary without `load_type`, so it marked a correct load-type answer unsupported; the judge now gets the full `GLOSSARY` (same source as the assistant). A line telling the judge that ties are "not a contradiction" was drafted and removed: the old answers were contradictory, and the judge should grade the new ones unprompted.
+- Free local-path run after these changes: `9fe5aedd`, 1.000 on all four (`docs/eval_results_local.md`).
+- **Pending:** a fresh LLM run (task + judge) to measure the fixed grounding — needs the user's OK for another ~$0.50–1.
+- `uv run pytest -q` → 308 passed with and without `CHALK_*`; ruff clean.
+
+## Chalk assistant, Phase 3 — bid extraction from images on Chalk (2026-10-18)
+
+- **Second LLM evaluation** (`5089df6b`, approved spend): answer_correct 1.000, numbers_grounded 0.991, suggestions 1.000 / 1.000, **LLM judge 0.750** (was 0.668): cleanest hours 0.56 → 0.72 after listing every tied hour; definitions 0.78; savings 0.77; feasibility 0.68 (lowest; one answer judged inconsistent and quoting invented numbers).
+- **Fixtures** (`fixtures/extract/`, `scripts/make_extract_fixtures.py`): 10 fictional documents with a SAMPLE footer, in formats taken from public descriptions of Texas commercial bills (retail energy charge, TDSP customer / per-kWh / per-kW demand charges, separate 4CP line), GHG Protocol Scope 2 inventories (location- and market-based tCO2e), depot charging plans and hourly load charts. Rendered from HTML/SVG with the gstack headless browser (no new dependency). The spec's "cropped ERCOT dashboard screenshot" was not made: copying a real organization's dashboard is out of bounds, and a grid dashboard holds no company bid.
+- **Model Gateway, images:** the OpenAI-compatible Chat route rejects image parts ("cannot represent messages[0].content[1] losslessly"); the gateway's native Messages route (`/v1/router/v1/messages`, Bearer router key, `X-Chalk-Env-Id`) works (2.3 s on bill_01). `assistant/extract.py` calls it with `urllib` (an `httpx` pin was not picked up by the Chalk image build; stdlib needs nothing installed).
+- **Chalk Function `extract-bid`** (`backend/chalk_compute/extract_bid.py`; names must be DNS labels, so not `extract_bid`): ships the app's extraction code, reads the gateway key from the Chalk secret, returns validated JSON. Calling it from the API needs `deploy.read` as well as `query.online`: a new service token `carbon-clearinghouse-app-v2` with exactly those two replaced the app token in `.env` (written without being printed). The old `carbon-clearinghouse-app` token can be revoked.
+- **API:** `POST /api/assistant/extract` (multipart; `python-multipart==0.0.32`): Chalk Function → direct gateway → 503, with `path` and `fallback_reason` in the response; 422 for unusable images. `/api/assistant/status` now reports `extract: chalk_function | gateway | unavailable`.
+- **UI:** "Upload a bill or chart" drop zone on the Bids step: thumbnail, extracted values, confidence, the model's notes, the serving path and latency; **Add as company** (never automatic) creates a bid tagged "suggested by Coordinator Guide". Checked in the browser: `charging_schedule_01.png` → 9.6 MWh, 2.4 MW, 18:00–24:00, 95% confidence via the Chalk Function in 3.4 s; Add created the company with all four fields tagged; no console errors.
+- **Extraction evaluation** (`scripts/eval_extract.py`, `make eval-extract`): dataset `clearinghouse-extract-v1` (10 images), task = the deployed `extract-bid`, four deployed scorers. **Run `6f376d14`: window exact 10/10, energy ±5% 10/10, max MW ±5% 10/10, all three 10/10**; Chalk = local re-check on 10/10 rows. The model also caught an error in the answer key (`bill_01` ignored a stated 94% share), corrected before this run. Caveat: synthetic, cleanly stated documents.
+- **Phase 5:** README "Chalk integration" section (diagram, products, evaluation table, fallbacks, tokens); `.env.example`; Makefile targets `eval`, `eval-local`, `eval-extract`.
+- Checks: `uv run pytest -q` → 323 passed with and without `CHALK_*` / `CHALK_ROUTER_API_KEY`; ruff clean; frontend lint, typecheck, build clean.

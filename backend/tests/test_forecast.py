@@ -187,7 +187,26 @@ def test_m10_chosen_by_training_cv_and_adoption_rule_applied():
     wind = m10["results"]["wind"]
     adopted = wind["test"][wind["chosen"]]["mae_mw"] < m["results"]["wind"]["model"]["mae_mw"]
     assert m10["adopted"] is adopted
-    assert m["default_model"] == ("M10" if adopted else "M4")
+    assert M.M10_CHOSEN == {t: m10["results"][t]["chosen"] for t in F.TARGETS}
+    assert m["default_model"] in (("M10", "M12") if adopted else ("M4",))
+
+
+def test_m12_chosen_by_training_cv_and_adoption_rule_applied():
+    m = json.loads(METRICS.read_text())
+    m10, m12 = m["m10"], m["m12"]
+    for t in F.TARGETS:
+        r = m12["results"][t]
+        cv = r["cv_selection"]
+        assert r["chosen"] == min(cv, key=lambda n: cv[n]["mae_mw"])
+        r10 = m10["results"][t]
+        assert r["test"]["m10"] == r10["test"][r10["chosen"]]  # M10 reproduced exactly
+    mae = {k: {t: b["results"][t]["test"][b["results"][t]["chosen"]]["mae_mw"]
+               for t in F.TARGETS} for k, b in (("m10", m10), ("m12", m12))}
+    adopted = (m10["adopted"] and mae["m12"]["demand"] < mae["m10"]["demand"]
+               and mae["m12"]["wind"] <= mae["m10"]["wind"]
+               and mae["m12"]["solar"] <= mae["m10"]["solar"])
+    assert m12["adopted"] is adopted
+    assert (m["default_model"] == "M12") is adopted
 
 
 def test_default_artifacts_match_default_model_and_demand_beats_yesterday():
@@ -198,10 +217,11 @@ def test_default_artifacts_match_default_model_and_demand_beats_yesterday():
     if m["default_model"] == "M4":
         assert specs == M.SPECS
         return
+    block, cands = {"M10": ("m10", lambda t: {"m4": M.SPECS[t], **M.m10_candidates(t)}),
+                    "M12": ("m12", M.m12_candidates)}[m["default_model"]]
     for t in F.TARGETS:
-        chosen = m["m10"]["results"][t]["chosen"]
-        assert specs[t] == {"m4": M.SPECS[t], **M.m10_candidates(t)}[chosen]
-    d = m["m10"]["results"]["demand"]
+        assert specs[t] == cands(t)[m[block]["results"][t]["chosen"]]
+    d = m[block]["results"]["demand"]
     assert d["test"][d["chosen"]]["mape_pct"] < d["test"]["yesterday"]["mape_pct"]
 
 

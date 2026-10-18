@@ -22,6 +22,10 @@ Datasets (see backend/data/raw/SOURCES.md for exact URLs, columns and quirks):
                    posting in ``[I - 6 h, I)`` where I = 00:00 CST on D (the forecast issue time),
                    rows for D's delivery hours only. ``clearinghouse.data.forecast_inputs`` keeps
                    the latest posting before I (needs ERCOT_* keys).
+* ``ercot_load_pit`` (M12) NP3-565-CD seven-day load forecast by model and weather zone, in-use
+                   model only, every posting in ``[I - 6 h, I)`` for each target CST day D.
+* ``ercot_dam_pit`` (M12) NP4-190-CD DAM settlement point prices from the ARCHIVED ORIGINAL files
+                   (one per DAM run, with its posting time); hub rows (``HB_*``) only.
 * ``open_meteo``   (M10) Open-Meteo Previous Runs API, model ``gfs_global``, ``*_previous_day2``
                    only (archived forecasts, lead >= 48 h) at the points in
                    ``data/processed/weather_points.json`` (built from the eGRID workbook). Free
@@ -90,6 +94,9 @@ NP4_CORRUPT_POSTINGS = ("2024-08-22T15:00", "2024-08-23T16:00")
 PIT_FIRST_DAY, PIT_LAST_DAY = "2023-12-12", "2025-01-31"
 PIT_WINDOW_H = 6
 
+LOAD_REPORT = ("np3-565-cd", "lf_by_model_weather_zone", "load")
+DAM_POST_FROM, DAM_POST_TO = "2023-12-10", "2025-01-31"  # covers operating days to 2025-01-31
+
 OPEN_METEO_URL = "https://previous-runs-api.open-meteo.com/v1/forecast"
 OPEN_METEO_MODEL = "gfs_global"
 OPEN_METEO_VARS = ("wind_speed_100m_previous_day2", "shortwave_radiation_previous_day2",
@@ -109,6 +116,9 @@ NP4_FILES = {name: ERCOT_DIR / name / f"ercot_{name}_hourly_actual_median_2023-1
 PIT_DIR = ERCOT_DIR / "np4_pit"
 PIT_FILES = {name: PIT_DIR / f"ercot_{name}_postings_before_issue_{PIT_FIRST_DAY}_{PIT_LAST_DAY}"
                    ".csv" for _, _, name in NP4_REPORTS}
+LOAD_PIT_FILE = PIT_DIR / f"ercot_load_postings_before_issue_{PIT_FIRST_DAY}_{PIT_LAST_DAY}.csv"
+DAM_DIR = ERCOT_DIR / "dam_spp"
+DAM_FILE = DAM_DIR / f"ercot_dam_hub_prices_original_postings_{DAM_POST_FROM}_{DAM_POST_TO}.csv"
 OPEN_METEO_FILE = DATA_RAW / "open_meteo" / f"{OPEN_METEO_MODEL}_previous_day2_hourly.csv"
 
 
@@ -389,8 +399,8 @@ def get_ercot_np4(force: bool) -> None:
             f"{int(bad.sum())} corrupt-window rows dropped)")
 
 
-def _pit_rows(api: Ercot, report: str, endpoint: str,
-              day: str) -> tuple[list[list], list[str]]:
+def _pit_rows(api: Ercot, report: str, endpoint: str, day: str,
+              extra: dict | None = None) -> tuple[list[list], list[str]]:
     """Postings in [I - 6 h, I) for CST day ``day``, delivery rows on its local dates."""
     issue_utc = pd.Timestamp(day, tz="UTC") + pd.Timedelta(hours=6)  # 00:00 CST on day
     local = [(issue_utc - pd.Timedelta(hours=h)).tz_convert("America/Chicago")
@@ -401,44 +411,92 @@ def _pit_rows(api: Ercot, report: str, endpoint: str,
         "postedDatetimeTo": local[1].strftime("%Y-%m-%dT%H:%M:%S"),
         "deliveryDateFrom": d.strftime("%Y-%m-%d"),
         "deliveryDateTo": (d + pd.Timedelta(days=1)).strftime("%Y-%m-%d"),
-        "size": "5000"})
+        "size": "5000", **(extra or {})})
     if j["_meta"]["totalPages"] > 1:
         raise RuntimeError(f"{report} {day}: more than one page")
     fields = [f["name"] for f in j["fields"]]
     return [[day, *r] for r in j["data"]], fields
 
 
+def _with_retries(fn, what: str):
+    for attempt in range(5):
+        try:
+            return fn()
+        except RuntimeError:
+            log(f"  {what}: rate limited, waiting 60 s (attempt {attempt})")
+            time.sleep(60)
+    raise SystemExit(f"{what}: ERCOT request kept failing")
+
+
+def _pit_report(api: Ercot, report: str, endpoint: str, name: str, out_file: Path, force: bool,
+                extra: dict | None = None) -> None:
+    days = [str(x.date()) for x in pd.date_range(PIT_FIRST_DAY, PIT_LAST_DAY, freq="D")]
+    part_dir = PIT_DIR / f"{name}_by_month"
+    part_dir.mkdir(parents=True, exist_ok=True)
+    for month in sorted({d[:7] for d in days}):
+        fn = part_dir / f"{name}_{month}.csv"
+        if fn.exists() and not force:
+            continue
+        mdays = [d for d in days if d.startswith(month)]
+        results = []
+        for d in mdays:  # sequential, ~28 requests/min (ERCOT allows 30/min)
+            results.append(_with_retries(
+                lambda d=d: _pit_rows(api, report, endpoint, d, extra), f"{report} {d}"))
+            time.sleep(2.1)
+        fields = results[0][1]
+        rows = [r for rows_, _ in results for r in rows_]
+        pd.DataFrame(rows, columns=["target_day_cst", *fields]).to_csv(fn, index=False)
+        log(f"  wrote {fn.relative_to(DATA_RAW)} ({len(rows)} rows, {len(mdays)} days)")
+    df = pd.concat([pd.read_csv(f) for f in sorted(part_dir.glob(f"{name}_*.csv"))],
+                   ignore_index=True)
+    df.to_csv(out_file, index=False)
+    log(f"  wrote {out_file.relative_to(DATA_RAW)} ({len(df)} rows)")
+
+
 def get_ercot_np4_pit(force: bool) -> None:
     api = Ercot()
-    days = [str(x.date()) for x in pd.date_range(PIT_FIRST_DAY, PIT_LAST_DAY, freq="D")]
     for report, endpoint, name in NP4_REPORTS:
-        part_dir = PIT_DIR / f"{name}_by_month"
-        part_dir.mkdir(parents=True, exist_ok=True)
-        for month in sorted({d[:7] for d in days}):
-            fn = part_dir / f"{name}_{month}.csv"
-            if fn.exists() and not force:
-                continue
-            mdays = [d for d in days if d.startswith(month)]
-            results = []
-            for d in mdays:  # sequential, ~28 requests/min (ERCOT allows 30/min)
-                for attempt in range(5):
-                    try:
-                        results.append(_pit_rows(api, report, endpoint, d))
-                        break
-                    except RuntimeError:
-                        log(f"  {report} {d}: rate limited, waiting 60 s (attempt {attempt})")
-                        time.sleep(60)
-                else:
-                    raise SystemExit(f"{report} {d}: ERCOT request kept failing")
-                time.sleep(2.1)
-            fields = results[0][1]
-            rows = [r for rows_, _ in results for r in rows_]
-            pd.DataFrame(rows, columns=["target_day_cst", *fields]).to_csv(fn, index=False)
-            log(f"  wrote {fn.relative_to(DATA_RAW)} ({len(rows)} rows, {len(mdays)} days)")
-        df = pd.concat([pd.read_csv(f) for f in sorted(part_dir.glob(f"{name}_*.csv"))],
-                       ignore_index=True)
-        df.to_csv(PIT_FILES[name], index=False)
-        log(f"  wrote {PIT_FILES[name].relative_to(DATA_RAW)} ({len(df)} rows)")
+        _pit_report(api, report, endpoint, name, PIT_FILES[name], force)
+
+
+def get_ercot_load_pit(force: bool) -> None:
+    report, endpoint, name = LOAD_REPORT
+    _pit_report(Ercot(), report, endpoint, name, LOAD_PIT_FILE, force, {"inUseFlag": "true"})
+
+
+def get_ercot_dam_pit(force: bool) -> None:
+    """Archived original DAM SPP files (one per DAM run) with their posting times; hubs only."""
+    api = Ercot()
+    doc_dir = DAM_DIR / "by_doc"
+    doc_dir.mkdir(parents=True, exist_ok=True)
+    archives, page = [], 1
+    while True:
+        j = _with_retries(lambda page=page: api.get("/archive/np4-190-cd", {
+            "postDatetimeFrom": f"{DAM_POST_FROM}T00:00:00",
+            "postDatetimeTo": f"{DAM_POST_TO}T23:59:59", "size": "1000", "page": str(page)}),
+            "np4-190-cd archive list")
+        archives += j["archives"]
+        if page >= j["_meta"]["totalPages"]:
+            break
+        page += 1
+    log(f"  DAM SPP archive: {len(archives)} files posted {DAM_POST_FROM}..{DAM_POST_TO}")
+    for a in archives:
+        fn = doc_dir / f"{a['docId']}.csv"
+        if fn.exists() and not force:
+            continue
+        raw = _with_retries(lambda a=a: api.get("/archive/np4-190-cd",
+                                                {"download": str(a["docId"])}, raw=True),
+                            f"np4-190-cd doc {a['docId']}")
+        z = zipfile.ZipFile(io.BytesIO(raw))
+        df = pd.read_csv(z.open(z.namelist()[0]), skipinitialspace=True)
+        df = df[df["SettlementPoint"].str.startswith("HB_")].copy()
+        df["postDatetime"], df["docId"] = a["postDatetime"], a["docId"]
+        df.to_csv(fn, index=False)
+        time.sleep(2.1)
+    df = pd.concat([pd.read_csv(f) for f in sorted(doc_dir.glob("*.csv"))], ignore_index=True)
+    df.to_csv(DAM_FILE, index=False)
+    log(f"  wrote {DAM_FILE.relative_to(DATA_RAW)} ({len(df)} rows, "
+        f"{df['docId'].nunique()} files)")
 
 
 def get_open_meteo(force: bool) -> None:
@@ -476,6 +534,8 @@ DATASETS: dict[str, tuple[Callable[[bool], None], Callable[[], list[Path]]]] = {
     "ercot_sced": (get_ercot_sced, lambda: [SCED_FILE]),
     "ercot_np4": (get_ercot_np4, lambda: list(NP4_FILES.values())),
     "ercot_np4_pit": (get_ercot_np4_pit, lambda: list(PIT_FILES.values())),
+    "ercot_load_pit": (get_ercot_load_pit, lambda: [LOAD_PIT_FILE]),
+    "ercot_dam_pit": (get_ercot_dam_pit, lambda: [DAM_FILE]),
     "open_meteo": (get_open_meteo, lambda: [OPEN_METEO_FILE]),
 }
 

@@ -45,7 +45,11 @@
     "ercot_pvgrpp",
     "ercot_solar_cophsl",
     "om_ghi",
-    "solar_base_ercot"
+    "solar_base_ercot",
+    "ercot_load_fc",
+    "demand_base_ercot",
+    "dam_price",
+    "dam_price_rank"
   ],
   "calendar_features": [
     "hour",
@@ -106,7 +110,7 @@
   "specs": {
     "demand": {
       "target": "demand",
-      "base": "same_hour_latest",
+      "base": "demand_base_ercot",
       "mode": "ratio",
       "loss": "absolute_error",
       "max_iter": 300,
@@ -143,7 +147,8 @@
         "om_temp",
         "om_temp_prev",
         "om_temp_max",
-        "om_temp_min"
+        "om_temp_min",
+        "ercot_load_fc"
       ],
       "design_columns": [
         "hour",
@@ -174,7 +179,8 @@
         "om_temp_prev",
         "om_temp_max",
         "om_temp_min",
-        "base=same_hour_latest"
+        "ercot_load_fc/base",
+        "base=demand_base_ercot"
       ]
     },
     "wind": {
@@ -294,7 +300,9 @@
         "ercot_pvgrpp",
         "ercot_solar_cophsl",
         "om_ghi",
-        "solar_base_ercot"
+        "solar_base_ercot",
+        "dam_price",
+        "dam_price_rank"
       ],
       "design_columns": [
         "hour",
@@ -326,6 +334,8 @@
         "ercot_solar_cophsl-base",
         "om_ghi",
         "solar_base_ercot-base",
+        "dam_price",
+        "dam_price_rank",
         "base=solar_base_ercot"
       ]
     }
@@ -340,5 +350,5 @@
     "last": "2024-12-31",
     "n_days": 92
   },
-  "model_set": "M10"
+  "model_set": "M12"
 }

@@ -12,6 +12,8 @@ Endpoints (the contract in ``schemas.py`` is frozen; every response validates ag
   ``scripts/build_adoption_chart.py``)
 * ``POST /api/clear``          -> ``ClearResponse``
 * ``POST /api/evaluate``       -> ``EvaluateResponse``
+* ``POST /api/assistant/{chat,suggest,extract}``, ``GET /api/assistant/status`` -> the
+  Coordinator Guide assistant (``clearinghouse/assistant/``)
 * ``POST /api/bid-features``   -> ``BidFeaturesBlock`` (bid profiles from the forecast provider;
   ``/api/clear`` also returns them as ``bid_features``)
 * ``GET  /api/health``         -> ``{status, params_source, forecast_source}`` (extra, not in B6)
@@ -39,23 +41,28 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import math
 import os
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from contextlib import asynccontextmanager
 from functools import lru_cache
 from typing import Any
 
 import numpy as np
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from clearinghouse import config
+from clearinghouse.assistant import extract_service
+from clearinghouse.assistant import service as assistant_service
+from clearinghouse.assistant.extract import MAX_IMAGE_BYTES, ExtractError
+from clearinghouse.assistant.models import ChatRequest, SuggestRequest
 from clearinghouse.clearing import (
     Background,
     BidValidationError,
@@ -85,6 +92,8 @@ from clearinghouse.schemas import (
 )
 from clearinghouse.settlement import EXACT_MAX_PLAYERS
 from clearinghouse.simulator import DaySimulator
+
+log = logging.getLogger(__name__)
 
 REGION = "ERCOT"
 REGION_CODE = "ERCO"  # EIA-930 balancing-authority code used by the forecast providers
@@ -147,8 +156,9 @@ def calibration() -> dict:
 
 
 def data_sources(forecast_source: str, model_set: str = "M4") -> list[str]:
-    """``model_set``: the local provider's forecast artifacts ("M4" or "M10", design M10)."""
-    m10 = forecast_source == "local" and model_set == "M10"
+    """``model_set``: the local provider's forecast artifacts ("M4", "M10" or "M12")."""
+    m10 = forecast_source == "local" and model_set in ("M10", "M12")
+    m12 = forecast_source == "local" and model_set == "M12"
     fc = ("Forecast and bid features: Chalk online queries (day-ahead demand, wind and solar "
           "from the gradient-boosted model served by Chalk; the local model answers if Chalk "
           "fails, and each response says which served it)"
@@ -157,6 +167,9 @@ def data_sources(forecast_source: str, model_set: str = "M4") -> list[str]:
           "day (day-ahead demand, wind, solar; Chalk credentials pending)"
           + ("; inputs also include ERCOT's own wind and solar forecasts (NP4-732/737, latest "
              "posting before the issue time) and archived GFS weather forecasts (lead >= 48 h)"
+             + ("; plus ERCOT's in-use load forecast (NP3-565-CD, latest posting before the "
+                "issue time) and day-ahead hub prices (NP4-190-CD, files posted before it)"
+                if m12 else "")
              if m10 else ""))
     weather = [
         "Weather data by Open-Meteo.com (https://open-meteo.com/, CC BY 4.0): archived GFS "
@@ -459,3 +472,57 @@ def post_evaluate(req: EvaluateRequest) -> dict:
     _fc, _lat, plan, _int, score, bg = engine.prepare(req.day, req.background_pct, fresh=False)
     return evaluate(req.day, req.bids, req.schedule, req.background_pct, plan, score,
                     background=bg)
+
+
+# --- assistant (Coordinator Guide; clearinghouse/assistant/) ---------------------------------
+
+
+def _sse(events) -> Iterator[str]:
+    try:
+        for event, data in events:
+            yield f"event: {event}\ndata: {json.dumps(data)}\n\n"
+    except Exception as exc:  # the 200 is already sent: report in-band, never a traceback
+        log.exception("assistant stream failed")
+        msg = {"message": f"assistant failed: {type(exc).__name__}"}
+        yield f"event: error\ndata: {json.dumps(msg)}\n\n"
+        yield "event: done\ndata: {}\n\n"
+
+
+@app.post("/api/assistant/chat")
+def post_assistant_chat(req: ChatRequest) -> StreamingResponse:
+    """Server-sent events: ``meta`` (which path serves: chalk / local), ``token`` x n,
+    ``suggestions`` (validated JSON block), ``done``."""
+    check_day(req.day)
+    events = assistant_service.chat_events(get_engine(), req)
+    return StreamingResponse(_sse(events), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.post("/api/assistant/suggest")
+def post_assistant_suggest(req: SuggestRequest) -> dict:
+    check_day(req.day)
+    return assistant_service.suggest(get_engine(), req)
+
+
+@app.get("/api/assistant/status")
+def get_assistant_status() -> dict:
+    gw = assistant_service.gateway_status()
+    return {"gateway": gw["gateway"], "gateway_reason": gw["reason"], "model": gw["model"],
+            "forecast": get_engine().provider.source, **extract_service.status()}
+
+
+@app.post("/api/assistant/extract")
+def post_assistant_extract(file: UploadFile = File(...)) -> Any:  # noqa: B008 (FastAPI idiom)
+    """A bill / chart / schedule image -> a prefilled bid (never auto-applied by the UI).
+
+    ``path`` says what ran: ``chalk_function`` (the Chalk Function ``extract-bid``) or
+    ``gateway`` (same code in this process, direct to the Chalk Model Gateway). 422: the image
+    is unusable; 503: no extraction path is available.
+    """
+    data = file.file.read(MAX_IMAGE_BYTES + 1)
+    try:
+        return extract_service.extract(data, (file.content_type or "").lower())
+    except ExtractError as exc:
+        raise ApiRequestError([{"bid_id": None, "message": str(exc)}]) from None
+    except extract_service.ExtractUnavailable as exc:
+        return JSONResponse(status_code=503, content={"detail": f"Extraction unavailable: {exc}"})
