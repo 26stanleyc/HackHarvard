@@ -22,6 +22,8 @@ export const CITY = {
   lineIdle: "#d3c29c",
   clean: "#9fe8c1", // pulse colors: soft, so they read as light on the paper ground
   fossil: "#f3a483",
+  red: "#e5483a", // glow when gas, coal or oil serve most of the load (demo replay)
+  redPulse: "#f07a6a", // pulse color for those hours: soft, like `clean`
   pay: "#f1cf74",
 } as const;
 
@@ -757,7 +759,8 @@ function RoofDetail({ look }: { look: Look }) {
 
 // --- power lines and pulses -----------------------------------------------------------------
 
-/** Dashed line on the ground; `level` (0..1, read every frame) blends it from idle to `live`. */
+/** Dashed line on the ground; `level` (0..1, read every frame) blends it from idle to `live`.
+ * A `THREE.Color` passed as `live` is read every frame, so the caller can change it in place. */
 export function PowerLine({
   from,
   to,
@@ -775,7 +778,7 @@ export function PowerLine({
 }) {
   const ref = useRef<import("react").ComponentRef<typeof Line>>(null);
   const idleC = useMemo(() => new THREE.Color(idle), [idle]);
-  const liveC = useMemo(() => new THREE.Color(live), [live]);
+  const liveC = useMemo(() => (live instanceof THREE.Color ? live : new THREE.Color(live)), [live]);
   const points = useMemo(() => [from.clone().setY(0.03), to.clone().setY(0.03)], [from, to]);
   useFrame(() => {
     const m = ref.current?.material;

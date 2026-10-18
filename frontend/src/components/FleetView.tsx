@@ -20,6 +20,7 @@ import {
   SHAPLEY_MAX_BIDS_DEFAULT,
   type Bid,
   type ClearRequest,
+  type CompaniesFuel,
   type ClearResponse,
   type MarginalResource,
   type SettlementBid,
@@ -63,6 +64,16 @@ const GRID_ID = "__grid";
 const LABEL_ALL_MAX = { wide: 10, narrow: 5 };
 const OFFSCREEN = { transform: "translate(-9999px, -9999px)" }; // until the first frame places it
 const EPS_MW = 1e-9;
+const NO_DIRTY: boolean[] = new Array(24).fill(false);
+
+/** Hours in which gas, coal or oil serve more than half of the companies' load (red in the replay). */
+function dirtyHours(fuel: CompaniesFuel | null | undefined): boolean[] {
+  if (!fuel) return NO_DIRTY;
+  return Array.from({ length: 24 }, (_, h) => {
+    const fossil = (fuel.gas[h] ?? 0) + (fuel.coal[h] ?? 0) + (fuel.oil[h] ?? 0);
+    return fossil > 0.5 * (fossil + (fuel.clean[h] ?? 0)) && fossil > EPS_MW;
+  });
+}
 const CLEAN_T = 0.5; // t CO2 below which a difference counts as none (float noise)
 
 /** The replay shows either the coordinated schedule or each company acting alone on today's
@@ -126,6 +137,7 @@ export function FleetView({
 }) {
   const [view, setView] = useState<View>("coordinated");
   const shown = response.strategies[view];
+  const dirty = useMemo(() => dirtyHours(shown.companies_fuel_mwh), [shown]);
   const [hour, setHour] = useState(0);
   const [playing, setPlaying] = useState(
     () => !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -265,7 +277,7 @@ export function FleetView({
           <h3 className="text-lg font-semibold text-ink">Who runs when, and who gets paid</h3>
           <p className="mt-1 max-w-2xl text-xs text-muted">
             Each building is a company. When it&apos;s scheduled to run, the grid sends it power and it glows
-            green. The panel adds up where their power has come from so far: spare wind and solar, gas, or coal.
+            green, or red in hours when gas, coal or oil serve most of the companies&apos; load. The panel adds up where their power has come from so far: spare wind and solar, gas, or coal.
             Switch to &ldquo;No coordination&rdquo; to see every company chase the same clean hours on its own.
           </p>
         </div>
@@ -307,6 +319,7 @@ export function FleetView({
               <Suspense fallback={null}>
                 <CityScene
                   rows={rows}
+                  dirty={dirty}
                   timeRef={timeRef}
                   fxRef={fxRef}
                   hovered={hovered}
@@ -329,6 +342,7 @@ export function FleetView({
                   row={r}
                   share={r.settle && totalPaid > 0 ? r.settle.payout_usd / totalPaid : null}
                   compact={!labelAll}
+                  dirty={dirty[hour]}
                   show={!r.removed && hovered !== r.bid.id && (labelAll || r.pending || (labelLit && r.now > EPS_MW))}
                   elRef={(el) => {
                     if (el) labelsRef.current.set(r.bid.id, el);
@@ -347,7 +361,7 @@ export function FleetView({
                 </div>
               </>
             )}
-            <Legend pendingCount={pendingCount} removedCount={removedCount} />
+            <Legend pendingCount={pendingCount} removedCount={removedCount} anyDirty={dirty.some(Boolean)} />
           </div>
           <ScheduleSlider hour={hour} counts={runningPerHour} total={cleared.length} sliderRef={sliderRef} onScrub={scrub} />
           {meter && (
@@ -379,7 +393,7 @@ export function FleetView({
   );
 }
 
-function Legend({ pendingCount, removedCount }: { pendingCount: number; removedCount: number }) {
+function Legend({ pendingCount, removedCount, anyDirty }: { pendingCount: number; removedCount: number; anyDirty: boolean }) {
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-3 pb-2.5 text-[10px] text-ink-2">
       <span className="flex items-center gap-1.5">
@@ -391,6 +405,11 @@ function Legend({ pendingCount, removedCount }: { pendingCount: number; removedC
       <span className="flex items-center gap-1.5">
         <span className="h-1.5 w-1.5 rounded-full" style={{ background: CITY.green }} /> Drawing power this hour
       </span>
+      {anyDirty && (
+        <span className="flex items-center gap-1.5" data-testid="fleet-dirty-legend">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: CITY.red }} /> Mostly gas, coal or oil
+        </span>
+      )}
       {pendingCount > 0 && (
         <span className="flex items-center gap-1.5" data-testid="fleet-pending-note">
           <span className="h-1.5 w-1.5 rounded-full border border-dashed border-muted" /> {pendingCount} new, run to
@@ -432,6 +451,7 @@ function layout(n: number): { spots: [number, number, number][]; radius: number 
 
 function CityScene({
   rows,
+  dirty,
   timeRef,
   fxRef,
   hovered,
@@ -440,6 +460,8 @@ function CityScene({
   tipRef,
 }: {
   rows: FleetRow[];
+  /** per hour: gas, coal or oil serve most of the companies' load (glow and pulses go red) */
+  dirty: boolean[];
   timeRef: RefObject<number>;
   fxRef: RefObject<FxMap>;
   hovered: string | null;
@@ -472,7 +494,7 @@ function CityScene({
     <>
       <Frame radius={road + 1.2} />
       <CityGround road={road} shadowR={road + 2} />
-      <GridHub fxRef={fxRef} count={rows.length} levelRef={level} streamsRef={streams} />
+      <GridHub fxRef={fxRef} count={rows.length} levelRef={level} streamsRef={streams} dirty={dirty} timeRef={timeRef} />
       <GridTower levelRef={level} />
 
       {rows.map((r, i) => (
@@ -488,6 +510,7 @@ function CityScene({
           pending={r.pending}
           removed={r.removed}
           delay={reduced ? -1 : i * 0.05}
+          dirty={dirty}
           timeRef={timeRef}
           fxRef={fxRef}
           glowMap={glowMap}
@@ -582,14 +605,19 @@ function GridHub({
   count,
   levelRef,
   streamsRef,
+  dirty,
+  timeRef,
 }: {
   fxRef: RefObject<FxMap>;
   count: number;
   levelRef: RefObject<number>;
   streamsRef: RefObject<Stream[]>;
+  dirty: boolean[];
+  timeRef: RefObject<number>;
 }) {
   const waves = useRef<THREE.Group>(null);
   const clean = useMemo(() => new THREE.Color(CITY.clean), []);
+  const red = useMemo(() => new THREE.Color(CITY.redPulse), []);
 
   useEffect(() => {
     const fx = fxRef.current;
@@ -607,6 +635,7 @@ function GridHub({
 
   useFrame((state, dt) => {
     const out: Stream[] = [];
+    const color = dirty[Math.min(23, Math.floor(timeRef.current))] ? red : clean;
     let on = 0;
     fxRef.current.forEach((f, id) => {
       if (id === GRID_ID || !f.active) return;
@@ -617,7 +646,7 @@ function GridHub({
         from: dir.clone().multiplyScalar(TOWER_R).setY(0.35),
         to: f.pos.clone().addScaledVector(dir, -(f.half + 0.1)).setY(0.3),
         every: PULSE_EVERY_S * (1.15 - 0.3 * f.load),
-        color: clean,
+        color,
       });
     });
     streamsRef.current = out;
@@ -664,6 +693,7 @@ function Building({
   pending,
   removed,
   delay,
+  dirty,
   timeRef,
   fxRef,
   glowMap,
@@ -684,6 +714,8 @@ function Building({
   removed: boolean;
   /** seconds before it starts rising; negative = already built (reduced motion) */
   delay: number;
+  /** per hour: glow red instead of green */
+  dirty: boolean[];
   timeRef: RefObject<number>;
   fxRef: RefObject<FxMap>;
   glowMap: THREE.Texture;
@@ -695,6 +727,9 @@ function Building({
   useEffect(() => () => disposeLook(look), [look]);
   const root = useRef<THREE.Group>(null);
   const vis = useRef<Vis>(newVis());
+  const tints = useMemo(() => ({ green: new THREE.Color(CITY.green), red: new THREE.Color(CITY.red) }), []);
+  // the current glow color, eased each frame; the power line reads the same object
+  const [glowColor] = useState(() => new THREE.Color(CITY.green));
   const born = useRef<number | null>(null);
   const razed = useRef<number | null>(null);
   const half = Math.max(look.w, look.d) / 2;
@@ -758,7 +793,8 @@ function Building({
     fx.top = look.h * grown * (1 - d);
 
     // read the clock here rather than through props: no React render per frame
-    const now = mw[Math.min(23, Math.floor(timeRef.current))] ?? 0;
+    const h = Math.min(23, Math.floor(timeRef.current));
+    const now = mw[h] ?? 0;
     const on = !pending && !removed && now > EPS_MW;
     fx.active = on && p >= 1;
     fx.load = on ? Math.min(1, maxMw > 0 ? now / maxMw : 1) : 0;
@@ -770,6 +806,8 @@ function Building({
     v.d = d;
     v.glow = fx.glow;
     v.flash = fx.flash;
+    glowColor.lerp(dirty[h] && on ? tints.red : tints.green, k); // eases between clean and dirty hours
+    v.color.copy(glowColor);
     v.hovered = hovered;
   });
 
@@ -780,6 +818,7 @@ function Building({
         to={line.to}
         faint={pending}
         idle={pending ? "#d8d1c2" : CITY.lineIdle}
+        live={glowColor}
         level={() => {
           const f = fxRef.current.get(id);
           return f ? f.glow + f.flash * 0.5 : 0;
@@ -816,27 +855,32 @@ function NameTag({
   row,
   share,
   compact,
+  dirty,
   show,
   elRef,
 }: {
   row: FleetRow;
   share: number | null;
   compact: boolean;
+  /** this hour gas, coal or oil serve most of the companies' load */
+  dirty: boolean;
   show: boolean;
   elRef: (el: HTMLDivElement | null) => void;
 }) {
   const on = row.now > EPS_MW;
+  const ring = dirty ? "ring-[#e5483a]/60" : "ring-[#2fd27f]/60";
+  const text = dirty ? "text-[#c2382b]" : "text-[#0f8a55]";
   if (compact)
     return (
       <div ref={elRef} className="absolute left-0 top-0" style={OFFSCREEN}>
         <div
           className={`${show ? "flex" : "hidden"} -translate-x-1/2 -translate-y-full items-center gap-1 whitespace-nowrap rounded-full px-1.5 py-px text-[9.5px] font-medium shadow-sm ${
-            on ? "bg-white/90 text-ink ring-1 ring-[#2fd27f]/60" : "bg-white/75 text-ink-2"
+            on ? `bg-white/90 text-ink ring-1 ${ring}` : "bg-white/75 text-ink-2"
           }`}
         >
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: row.color }} />
           {shortName(row.bid.name)}
-          {row.pending ? <span className="text-muted">· new</span> : on && <span className="num text-[#0f8a55]">· {fmtInt(row.now)} MW</span>}
+          {row.pending ? <span className="text-muted">· new</span> : on && <span className={`num ${text}`}>· {fmtInt(row.now)} MW</span>}
         </div>
       </div>
     );
@@ -844,7 +888,7 @@ function NameTag({
     <div ref={elRef} className="absolute left-0 top-0" style={OFFSCREEN}>
       <div
         className={`${show ? "block" : "hidden"} -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md px-1.5 py-0.5 text-center leading-tight transition-colors ${
-          on ? "bg-white/85 shadow-sm ring-1 ring-[#2fd27f]/60" : "bg-[#f1eee6]/70"
+          on ? `bg-white/85 shadow-sm ring-1 ${ring}` : "bg-[#f1eee6]/70"
         }`}
       >
         <div className="flex items-center justify-center gap-1 text-[11px] font-semibold text-ink">
@@ -858,7 +902,9 @@ function NameTag({
         {row.pending ? (
           <div className="text-[9.5px] font-medium text-ink-2">new · run to schedule</div>
         ) : on ? (
-          <div className="num text-[9.5px] font-medium text-[#0f8a55]">charging · {fmtInt(row.now)} MW</div>
+          <div className={`num text-[9.5px] font-medium ${text}`} data-testid={`fleet-draw-${row.bid.id}`}>
+            {dirty ? "fossil power" : "charging"} · {fmtInt(row.now)} MW
+          </div>
         ) : (
           share != null && <div className="num text-[9.5px] font-medium text-ink-2">{(share * 100).toFixed(1)}% of payouts</div>
         )}
