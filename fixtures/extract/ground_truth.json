@@ -1,0 +1,82 @@
+{
+  "bill_01.png": {
+    "kind": "utility bill (EV depot)",
+    "earliest_hour": 0,
+    "deadline_hour": 6,
+    "energy_mwh": 7.332,
+    "max_mw": 1.6,
+    "how": "94% of 234,000 kWh is charging: 219,960 kWh / 30 days = 7.332 MWh per day; 1,600 kW peak = 1.6 MW. (The first answer key said 7.8, ignoring the 94%; the model's first extraction caught it, 2026-10-18.)"
+  },
+  "load_chart_01.png": {
+    "kind": "hourly load chart (data center)",
+    "earliest_hour": 0,
+    "deadline_hour": 24,
+    "energy_mwh": 120,
+    "max_mw": 20,
+    "how": "stated: 120 MWh at up to 20 MW, any hour, done by 24:00"
+  },
+  "charging_schedule_01.png": {
+    "kind": "fleet charging schedule",
+    "earliest_hour": 18,
+    "deadline_hour": 24,
+    "energy_mwh": 9.6,
+    "max_mw": 2.4,
+    "how": "9,600 kWh = 9.6 MWh; 32 x 75 kW = 2.4 MW; 18:00 to 24:00"
+  },
+  "bill_02.png": {
+    "kind": "chiller sub-meter statement (offices)",
+    "earliest_hour": 4,
+    "deadline_hour": 9,
+    "energy_mwh": 18,
+    "max_mw": 6,
+    "how": "360,000 kWh / 20 workdays = 18 MWh per day; 6,000 kW = 6 MW; 04:00 to 09:00"
+  },
+  "scope2_report_01.png": {
+    "kind": "Scope 2 emissions report (cold storage)",
+    "earliest_hour": 0,
+    "deadline_hour": 16,
+    "energy_mwh": 160,
+    "max_mw": 20,
+    "how": "stated in the flexibility register"
+  },
+  "bill_03.png": {
+    "kind": "utility bill (water pumping)",
+    "earliest_hour": 0,
+    "deadline_hour": 16,
+    "energy_mwh": 96,
+    "max_mw": 12,
+    "how": "2,880,000 kWh / 30 days = 96 MWh per day; 12,000 kW = 12 MW"
+  },
+  "load_chart_02.png": {
+    "kind": "charging load chart (school buses)",
+    "earliest_hour": 9,
+    "deadline_hour": 15,
+    "energy_mwh": 6.0,
+    "max_mw": 1.2,
+    "how": "40 x 150 kWh = 6.0 MWh; 20 x 60 kW = 1.2 MW; 09:00 to 15:00"
+  },
+  "job_queue_01.png": {
+    "kind": "job scheduler screen (training run)",
+    "earliest_hour": 6,
+    "deadline_hour": 24,
+    "energy_mwh": 120,
+    "max_mw": 8,
+    "how": "8.0 MW x 15 h = 120 MWh; 06:00 to 24:00"
+  },
+  "bill_04.png": {
+    "kind": "cold storage invoice (MWh units)",
+    "earliest_hour": 20,
+    "deadline_hour": 24,
+    "energy_mwh": 24,
+    "max_mw": 8,
+    "how": "720 MWh / 30 days = 24 MWh per day; 8.0 MW; 20:00 to 24:00"
+  },
+  "load_chart_03.png": {
+    "kind": "charging load chart (delivery vans)",
+    "earliest_hour": 1,
+    "deadline_hour": 6,
+    "energy_mwh": 5.4,
+    "max_mw": 1.5,
+    "how": "stated 5.4 MWh and 1.5 MW; 01:00 to 06:00"
+  }
+}
