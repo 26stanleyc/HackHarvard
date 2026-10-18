@@ -415,3 +415,40 @@ Checks:
   - a re-vendor;
   - `chalk apply`, with the user's approval.
 - Not done here.
+
+## Chalk assistant, Phase 0 — pre-flight (2026-10-18)
+
+Spec: `CHALK_INTEGRATION.md` (sponsor challenge "Best Data-Driven Agent Built on Chalk"). Branch `chalk-assistant`, based on `chalk-integration` at 36d2dd9.
+
+```
+$ chalk user
+Name: Allison Shen   Team: Hello   Default/production (hllr1480fa66)
+$ chalk router status
+Gateway https://api.chalk.ai/v1/router   Environment hllr1480fa66   Health Available
+$ chalk router model list
+No router models are available for environment hllr1480fa66.
+$ chalk apply --help | head -5
+  Use the apply command to deploy your feature pipelines.
+$ cd backend/chalk && chalk apply --dry-run      # flag does not exist in CLI v1.55.1; --plan is the dry run
+$ cd backend/chalk && chalk apply --plan
+No differences found                              # live deployment == this branch (M10 forecast project)
+```
+
+Findings and decisions:
+- **Model Gateway reachable, no provider connection** (no models). Phases 1–2 are built against a labeled local fallback; the Chalk path switches on with `CHALK_ROUTER_API_KEY` once a connection exists. Never faked.
+- **Functions / Evaluations:** the docs say both need Chalk support to enable the async Function queue and Evaluations for the environment. A probe deploy of a trivial `@chalkcompute.function` was not run: it needs the user's admin CLI login and was held for the user's approval. Phases 3–4 are blocked on that.
+- **Bid state** is already lifted: `ClearinghouseApp.tsx` owns `drafts` and passes `setDrafts` to `BidBuilder`. No refactor needed.
+- **Pinned versions** (newest ≥ 2 weeks old): `chalkcompute==2.13.1`, `openai==3.24.0`, `python-multipart==0.0.32`. `chalkpy` stays out of the app's environment (the forecast already uses Chalk online queries over REST, `forecast/chalk.py`).
+- **Spec vs repo:** the spec's `/api/schedule` and `/api/settle` are `/api/clear` and `/api/evaluate` here; bid fields are `earliest_hour`, `deadline_hour` (exclusive), `energy_mwh`, `max_mw`, `load_type`, plus scenario-level `carbon_price`, `pool_usd`, `background_pct`. There is no per-bid "strategy" or separate "window end": the deadline is the window end.
+
+## Chalk assistant, Phase 1 — assistant backend (2026-10-18)
+
+`backend/clearinghouse/assistant/`: `gateway.py` (Chalk Model Gateway via the `openai` SDK, `base_url={CHALK_API_HOST}/v1/router`, `X-Chalk-Env-Id`), `context.py` (grounding payload), `prompts.py`, `glossary.py`, `personas.py`, `suggestions.py`, `local.py` (rule-based fallback), `checks.py` (`numbers_grounded`), `service.py` (the one code path for the API and the evaluation). Routes: `POST /api/assistant/chat` (SSE: `meta`, `token`, `suggestions`, `done`), `POST /api/assistant/suggest`, `GET /api/assistant/status`.
+
+- **Grounding** (every call): the user's bids as sent (feasibility with the backend's rules, malformed bids described, not rejected); bid features from the forecast provider, i.e. a **Chalk `flex_bid` online query** when Chalk is configured; the day's forecast from the same provider (**Chalk `grid_day` online query**), with its source; the planning simulator's marginal CO2 rate per hour and the 4 cleanest / 4 dirtiest hours by it (ties by average intensity). `results` is always null: the assistant never quotes savings.
+- **LLM path:** the system prompt carries the rules, persona and grounding JSON; the model ends with `SUGGESTIONS: {json}`. The marker and JSON are stripped from the streamed text; each suggestion is validated (real bid, editable field, `from` = current value, result well-formed and feasible) and invalid ones are dropped and counted. Rule fixes for infeasible bids are merged in.
+- **Fallback:** no router key, or a gateway failure before the first token → the local rule-based answerer on the same payload; `meta.llm = "local"` with the reason. A failure mid-answer sends an `error` event.
+- **Deviation from the spec:** `/api/assistant/suggest` is rule-based, not LLM. It must answer within about 1 s of a 600 ms-debounced edit and must not invent numbers; the rules use the Chalk-served bid features. LLM suggestions come through the chat.
+- Fields: the spec's 7 fields are `earliest_hour`, `deadline_hour`, `energy_mwh`, `max_mw`, `load_type`, `carbon_price`, `pool_usd`; `background_pct` is also in the glossary.
+- **Live now:** forecast and bid features via Chalk; LLM **not live** (`chalk router model list` is empty: no provider connection, no `CHALK_ROUTER_API_KEY`). The status route reports `gateway: unavailable` with the reason.
+- Checks: `tests/test_assistant.py` (58): grounding equals provider + simulator; window and capacity fixes; rule reasons and every local answer (all personas, all glossary fields) pass `numbers_grounded`; LLM output validation; marker stripping, fallback before the first token, mid-stream error (fake gateway, no network); SSE route; suggest under 1 s. `uv run pytest -q` → 276 passed with and without `CHALK_*`; ruff clean.

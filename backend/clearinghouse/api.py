@@ -39,11 +39,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import math
 import os
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from contextlib import asynccontextmanager
 from functools import lru_cache
 from typing import Any
@@ -53,9 +54,11 @@ from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from clearinghouse import config
+from clearinghouse.assistant import service as assistant_service
+from clearinghouse.assistant.models import ChatRequest, SuggestRequest
 from clearinghouse.clearing import (
     Background,
     BidValidationError,
@@ -85,6 +88,8 @@ from clearinghouse.schemas import (
 )
 from clearinghouse.settlement import EXACT_MAX_PLAYERS
 from clearinghouse.simulator import DaySimulator
+
+log = logging.getLogger(__name__)
 
 REGION = "ERCOT"
 REGION_CODE = "ERCO"  # EIA-930 balancing-authority code used by the forecast providers
@@ -463,3 +468,41 @@ def post_evaluate(req: EvaluateRequest) -> dict:
     _fc, _lat, plan, _int, score, bg = engine.prepare(req.day, req.background_pct, fresh=False)
     return evaluate(req.day, req.bids, req.schedule, req.background_pct, plan, score,
                     background=bg)
+
+
+# --- assistant (Coordinator Guide; clearinghouse/assistant/) ---------------------------------
+
+
+def _sse(events) -> Iterator[str]:
+    try:
+        for event, data in events:
+            yield f"event: {event}\ndata: {json.dumps(data)}\n\n"
+    except Exception as exc:  # the 200 is already sent: report in-band, never a traceback
+        log.exception("assistant stream failed")
+        msg = {"message": f"assistant failed: {type(exc).__name__}"}
+        yield f"event: error\ndata: {json.dumps(msg)}\n\n"
+        yield "event: done\ndata: {}\n\n"
+
+
+@app.post("/api/assistant/chat")
+def post_assistant_chat(req: ChatRequest) -> StreamingResponse:
+    """Server-sent events: ``meta`` (which path serves: chalk / local), ``token`` x n,
+    ``suggestions`` (validated JSON block), ``done``."""
+    check_day(req.day)
+    events = assistant_service.chat_events(get_engine(), req)
+    return StreamingResponse(_sse(events), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.post("/api/assistant/suggest")
+def post_assistant_suggest(req: SuggestRequest) -> dict:
+    check_day(req.day)
+    return assistant_service.suggest(get_engine(), req)
+
+
+@app.get("/api/assistant/status")
+def get_assistant_status() -> dict:
+    gw = assistant_service.gateway_status()
+    return {"gateway": gw["gateway"], "gateway_reason": gw["reason"], "model": gw["model"],
+            "forecast": get_engine().provider.source, "extract": "unavailable",
+            "extract_reason": "Phase 3 not built yet"}

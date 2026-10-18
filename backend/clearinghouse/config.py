@@ -37,6 +37,7 @@ KEY_NAMES: tuple[str, ...] = (
     "ERCOT_USERNAME",
     "ERCOT_PASSWORD",
     "ERCOT_SUBSCRIPTION_KEY",
+    "CHALK_ROUTER_API_KEY",
 )
 CHALK_KEYS: tuple[str, ...] = ("CHALK_CLIENT_ID", "CHALK_CLIENT_SECRET", "CHALK_ENVIRONMENT")
 
@@ -60,6 +61,11 @@ class Settings:
     ERCOT_USERNAME: str = _secret()
     ERCOT_PASSWORD: str = _secret()
     ERCOT_SUBSCRIPTION_KEY: str = _secret()
+    # Chalk Model Gateway (assistant). The key is secret; host and model names are not.
+    CHALK_ROUTER_API_KEY: str = _secret()
+    CHALK_API_HOST: str = ""
+    CHALK_MODEL: str = ""
+    CHALK_VISION_MODEL: str = ""
 
     @classmethod
     def from_env(cls) -> Settings:
