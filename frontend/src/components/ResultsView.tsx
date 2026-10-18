@@ -6,6 +6,7 @@ import { Bar, BarChart, CartesianGrid, Cell, LabelList, Tooltip, XAxis, YAxis } 
 import { API_MODE } from "@/lib/api";
 import {
   comparisons,
+  fallbackPayoutSentence,
   fallbackSentence,
   herdingGapPct,
   herdingNote,
@@ -129,6 +130,7 @@ function Headline({ response }: { response: ClearResponse }) {
   const paid = response.settlement.per_bid.reduce((a, p) => a + p.payout_usd, 0);
   const paidTo = response.settlement.per_bid.filter((p) => p.payout_usd > 0).length;
   const estimated = response.settlement.method === "marginal";
+  const fallback = fallbackPayoutSentence(response);
   return (
     <section className="card p-4 sm:p-5" data-testid="headline">
       <div className="grid gap-4 sm:grid-cols-3">
@@ -152,6 +154,11 @@ function Headline({ response }: { response: ClearResponse }) {
         testId="headline-paid"
       />
       </div>
+      {fallback && (
+        <p className="mt-3 rounded-md bg-warn-soft px-3 py-2 text-sm leading-relaxed text-warn" role="note" data-testid="fallback-note">
+          {fallback}
+        </p>
+      )}
       {estimated && (
         <p className="mt-3 border-t border-line pt-2.5 text-xs text-muted" data-testid="payout-disclaimer">
           Exact Shapley payouts are only practical up to {SHAPLEY_MAX_BIDS_DEFAULT} companies. With{" "}
