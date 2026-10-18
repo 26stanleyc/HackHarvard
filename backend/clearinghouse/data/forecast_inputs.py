@@ -18,6 +18,15 @@ Issue time ``I`` = 00:00 CST on target day D (= D 06:00 UTC; ``forecast.features
   used was initialized by D-1 06:00 UTC, 24 h before ``I``. Never used: ``_previous_day0`` /
   ``_previous_day1``, observed or reanalysis weather.
 
+M12 additions (same point-in-time rule):
+
+* **ERCOT load forecast** (``ercot_load_fc``): NP3-565-CD, in-use model's ``systemTotal``, from the
+  latest complete posting in ``[I - 6 h, I)`` (posted hourly at :30).
+* **DAM price** (``dam_price``): NP4-190-CD ``HB_HUBAVG`` from the ARCHIVED ORIGINAL file of each
+  DAM run (posted ~12:30-13:00 Central on the day before the operating day). Each slot uses the
+  latest file posted before its CST day's issue time. In daylight saving time, CST slot 23 of D is
+  local hour 1 of D+1, whose DAM run is published on D after ``I``: that slot stays NaN.
+
 Points (``weather_points.json``): 6 capacity-weighted k-means centroids of eGRID2023 ERCOT wind
 plants and 6 of solar plants (weights = cluster nameplate share), and 4 load centers weighted by
 2020 Census metro population.
@@ -41,6 +50,9 @@ EGRID_FILE = DATA_RAW / "egrid" / "egrid2023_data_rev2.xlsx"
 PIT_DIR = DATA_RAW / "ercot" / "np4_pit"
 PIT_FILES = {r: PIT_DIR / f"ercot_{r}_postings_before_issue_2023-12-12_2025-01-31.csv"
              for r in ("wind", "solar")}
+LOAD_PIT_FILE = PIT_DIR / "ercot_load_postings_before_issue_2023-12-12_2025-01-31.csv"
+DAM_FILE = (DATA_RAW / "ercot" / "dam_spp"
+            / "ercot_dam_hub_prices_original_postings_2023-12-10_2025-01-31.csv")
 OPEN_METEO_FILE = DATA_RAW / "open_meteo" / "gfs_global_previous_day2_hourly.csv"
 
 ISSUE_OFFSET = pd.Timedelta(hours=6)  # 00:00 CST on D = D 06:00 UTC
@@ -56,6 +68,8 @@ ERCOT_COLS = {  # report -> {processed column: raw NP4 column}
               "ercot_solar_cophsl": "COPHSLSystemWide"},
 }
 OM_COLS = ("om_wind100", "om_wind_power", "om_ghi", "om_temp")
+LOAD_COLS = {"ercot_load_fc": "systemTotal"}  # in-use model, system total (MW)
+DAM_POINT = "HB_HUBAVG"  # ERCOT hub average, the standard system-wide DAM price index
 
 N_CLUSTERS = 6
 # 2020 Census metropolitan statistical area populations (U.S. Census Bureau, Aug 2021 release).
@@ -156,6 +170,40 @@ def ercot_point_in_time(postings: pd.DataFrame, cols: dict[str, str],
     return out.sort_values("ts_utc").reset_index(drop=True)
 
 
+def ercot_load_point_in_time(postings: pd.DataFrame) -> pd.DataFrame:
+    """NP3-565-CD in-use rows (``hourEnding`` like "1:00") -> ``ercot_point_in_time``."""
+    p = postings.copy()
+    p["hourEnding"] = p["hourEnding"].astype(str).str.split(":").str[0].astype(int)
+    if p.duplicated(["target_day_cst", "postedDatetime", "deliveryDate", "hourEnding",
+                     "DSTFlag"]).any():
+        raise ValueError("more than one in-use load-forecast model per posting and hour")
+    return ercot_point_in_time(p, LOAD_COLS, "ercot_load_posted_utc")
+
+
+def dam_point_in_time(files: pd.DataFrame, point: str = DAM_POINT) -> pd.DataFrame:
+    """Per CST slot, the price from the latest DAM file posted before its day's issue time.
+
+    ``files``: archived NP4-190-CD rows (``DeliveryDate`` MM/DD/YYYY, ``HourEnding`` "01:00",
+    ``SettlementPoint``, ``SettlementPointPrice``, ``DSTFlag`` Y/N) with each file's
+    ``postDatetime`` (Central prevailing). Returns ``ts_utc``, ``dam_price``, ``dam_posted_utc``.
+    """
+    df = files[files["SettlementPoint"] == point].copy()
+    df["posted_utc"] = _local_to_utc(df["postDatetime"])
+    he = df["HourEnding"].astype(str).str.split(":").str[0].astype(int)
+    local = (pd.to_datetime(df["DeliveryDate"], format="%m/%d/%Y")
+             + pd.to_timedelta(he - 1, unit="h"))
+    flag = df["DSTFlag"].astype(str).str.upper().isin(["Y", "TRUE"])
+    hour = pd.Timedelta(hours=1)
+    ts = _local_to_utc(local, flag).fillna(_local_to_utc(local + hour, flag) - hour)
+    df = df.assign(ts_utc=ts).dropna(subset=["ts_utc", "posted_utc", "SettlementPointPrice"])
+    issue = (df["ts_utc"] - ISSUE_OFFSET).dt.floor("D") + ISSUE_OFFSET
+    df = df[df["posted_utc"] < issue]
+    df = df.sort_values(["ts_utc", "posted_utc"]).drop_duplicates("ts_utc", keep="last")
+    out = df[["ts_utc", "SettlementPointPrice", "posted_utc"]].rename(
+        columns={"SettlementPointPrice": "dam_price", "posted_utc": "dam_posted_utc"})
+    return out.reset_index(drop=True)
+
+
 # --- Open-Meteo ------------------------------------------------------------------------------
 
 
@@ -227,6 +275,21 @@ def build_forecast_inputs(out_file=OUT_FILE, coverage_file=COVERAGE_FILE) -> tup
             "posting_minutes_before_issue": {"min": round(float(lag_min.min()), 1),
                                              "median": round(float(lag_min.median()), 1),
                                              "max": round(float(lag_min.max()), 1)}}
+    load = ercot_load_point_in_time(pd.read_csv(LOAD_PIT_FILE)).set_index("ts_utc")
+    dam = dam_point_in_time(pd.read_csv(DAM_FILE)).set_index("ts_utc")
+    df = df.join(load).join(dam)
+    days = (df.index - ISSUE_OFFSET).strftime("%Y-%m-%d")
+    for name, col, posted in (("ercot_load", "ercot_load_fc", "ercot_load_posted_utc"),
+                              ("dam", "dam_price", "dam_posted_utc")):
+        n = df[col].notna().groupby(days).sum()
+        issue = (df.index - ISSUE_OFFSET).floor("D") + ISSUE_OFFSET
+        lag_h = ((issue - df[posted]).dt.total_seconds() / 3600).dropna()
+        coverage[name] = {
+            "slots_per_day": {str(k): int(v) for k, v in n.value_counts().sort_index().items()},
+            "days_without_any": sorted(n.index[n == 0]),
+            "hours_before_issue": {"min": round(float(lag_h.min()), 2),
+                                   "median": round(float(lag_h.median()), 2),
+                                   "max": round(float(lag_h.max()), 2)}}
     points = json.loads(POINTS_FILE.read_text())
     om = open_meteo_slots(pd.read_csv(OPEN_METEO_FILE), points, slots)
     df = df.join(om)

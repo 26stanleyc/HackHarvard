@@ -370,6 +370,49 @@ Why: the M4 model has no weather inputs. Its wind forecast is weak (test MAE 4,0
 - **Overfitting guard (fixed before iterating):** the 92 days 2024-10-01..12-31 are split by date index: **dev** = even indices (46 days), **test** = odd indices (46 days). Every iteration is judged on dev only. A candidate that reaches 75% on dev is run once on test; at most 3 test runs in total, all reported. Success = at least 75% on test.
 - **Synthetic grid-day check (added at the user's request, before it was run):** every candidate is also scored on synthetic days, to test that the pattern holds beyond the 46 real dev days. For each dev day D: plan on the real forecast(D) exactly as in the real run; the synthetic "actual" day = forecast(D) + the full 24-hour forecast error (actual - forecast, all input fields) of another 2024-10-01..12-31 day d drawn at random with |d - D| > 21 days (so it is never one of the planning scenarios), demand/wind/solar/curtailment clipped at 0. M = 5 synthetic actuals per day, K = 4 company draws (N = 30, 20% share), fixed seeds. Metric: wins of coordinated vs independent marginal, as above. Reported next to the real-day result for every candidate; a candidate whose synthetic win rate is more than 5 points below its dev win rate is flagged as not holding up.
 - **Allowed changes:** the planning method and the coordinator's optimizer. Not allowed: changing scoring, populations, seeds, days, shares, the strategy-3 definition (beyond using the same planning simulator) or the metric. Mean CO2 saved, % of losses and saved vs business as usual are reported for every candidate so the win rate is not bought by giving up savings.
+### M12. Grid-operator forecasts and day-ahead prices (Backend; added after M10)
+Why: after M10, our demand forecast (test MAPE 2.88%) is still worse than ERCOT's own day-ahead forecast as reported in EIA-930 (1.82%, issue time undocumented, so far a reference only). M12 adds ERCOT's load forecast and day-ahead market (DAM) prices, both point in time. Issue time stays `I` = 00:00 CST on target day D. The planning objective does not change (robust planning is M11, separate).
+
+- **Deliverables:**
+  - **ERCOT load forecast, point in time.** NP3-565-CD "Seven-Day Load Forecast by Model and Weather Zone" (`/np3-565-cd/lf_by_model_weather_zone`; posted hourly at :30; 7 models, one flagged `inUseFlag`).
+    - For each target CST day D, keep `systemTotal` of the in-use model for D's 24 CST slots.
+    - Source: the latest posting whose `postedDatetime` (Central prevailing → UTC) is in `[I − 6 h, I)` and that covers all 24 slots. The posting time is stored per row; days without such a posting stay NaN.
+  - **DAM prices, point in time.** NP4-190-CD "DAM Settlement Point Prices", settlement point `HB_HUBAVG` (ERCOT hub average), chosen before results as the standard system-wide index.
+    - The data endpoint carries no posting time, and later corrections would overwrite it. So prices come from the **archived original files** (`/archive/np4-190-cd`), each with its `postDatetime`.
+    - For operating day D, use the latest file containing D that was posted before `I` (DAM files post around 12:30–13:00 Central on D−1). The posting time is stored per row.
+  - **New features** (candidates; same mechanism as M10: each value carries its source time and is masked unless published before `as_of`):
+    - `ercot_load_fc` (MW; for demand, expressed relative to the base like other MW features).
+    - `dam_price` ($/MWh) and `dam_price_rank` (rank of the slot's price within D, 0..1); both raw, never relative.
+  - **Candidates (M10 hyperparameters, no re-tuning):**
+    - demand:
+      - M10's chosen spec;
+      - L = M10 + `ercot_load_fc`;
+      - LB = L with base = `ercot_load_fc` (ratio mode; falls back to the M10 base when that day's posting is missing);
+      - L+P and LB+P = L and LB plus the two price features.
+    - wind and solar: M10's chosen spec, and M10 + the two price features.
+  - **Selection (training period only).** Per target, choose the lowest training-period blocked-CV MAE (same folds as M4/M10). The test period is never used for any choice.
+  - **Price as a signal (evidence only; nothing in planning changes).** On every test-period day:
+    - Spearman ρ across the 24 slots between the point-in-time `HB_HUBAVG` DAM price and the simulator's hourly marginal CO2 rate on actual inputs (calibrated params, zero added load; `DaySimulator.marginal_rate`, the 100 MW probe).
+    - Reported as the median and mean over days and the share of days with ρ > 0. Days with a constant marginal rate are excluded and counted.
+    - The same ρ is reported for the signals the planners already use: average intensity and marginal rate from the simulator on the served forecast inputs.
+    - Secondary: the same over every forecastable 2024 day.
+  - **Code:** download datasets `ercot_load_pit` and `ercot_dam_pit`; new columns in `forecast_inputs.parquet`; `scripts/train_forecast.py` M12 block; `scripts/price_signal.py` → `docs/results/price_signal.json`.
+- **Checks (pre-registered):**
+  - **No leakage, every new feature:**
+    - Every load-forecast posting and DAM file used for day D was posted before `I`; tested over every train and test day.
+    - Unit tests on synthetic postings: postings or files at/after `I` change nothing.
+    - Feature-level source times are before `as_of` on every train/test day under both issue times; values published at/after `as_of` are masked.
+    - The M4 and M10 leakage tests still pass.
+  - **Same split as M4/M10;** selection by training CV only (asserted from the metrics file).
+  - **Report:** test MAE / normalized MAE / MAPE for demand, wind and solar, for M12 (chosen), M10 and yesterday. Reference: ERCOT's forecasts used directly (load forecast in-use `systemTotal`, STWPF, STPPF) and EIA-930's ERCOT day-ahead demand.
+  - **Adoption rule:** the M12 set becomes the default local model iff, on the test period, its demand MAE is below M10's (1,425 MW) **and** its wind and solar MAE are each no higher than M10's (1,205 / 506 MW). The set is adopted whole or not at all; no per-target choice on the test period.
+  - **If adopted:**
+    - The demand model still beats yesterday.
+    - One-day forecast under 500 ms.
+    - Regenerate fixtures and the adoption chart, rerun `scripts/demo_day_results.py` and the calibrated herding gate, and record the results next to M10. Runs use the local provider (`CHALK_*` blanked for the run).
+    - The Chalk deployment keeps serving M10 until its feature class is extended, re-vendored and `chalk apply` runs (needs the user's approval); recorded as open.
+  - **No contract change:** the `ForecastProvider` interface and the B6 API contract stay the same. `clearing.py`, `strategies.py` and `settlement.py` are not touched.
+  - **Existing suites:** backend pytest, ruff, and frontend lint / typecheck / build pass.
 
 ### Mapping to a team
 

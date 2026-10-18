@@ -25,6 +25,11 @@ chosen. Test metrics are then reported for every candidate (the chosen one is fl
 period chooses nothing). Adoption rule: the M10 set becomes the default artifacts iff its test
 wind MAE is below M4's; otherwise the M4 models are saved as the default.
 
+M12 (design M12; pre-registered there): per target, M10's chosen spec vs its M12 variants (ERCOT's
+load forecast for demand; DAM prices for every target), chosen by training-period CV only.
+Adoption rule: the M12 set becomes the default iff its test demand MAE is below M10's and its
+test wind and solar MAE are no higher than M10's (whole set or nothing).
+
 Outputs: ``backend/data/processed/forecast/{demand,wind,solar}.joblib`` + ``feature_spec.json``
 (the default model set); ``docs/results/forecast_metrics.json``. Deterministic (fixed seeds;
 sklearn HGB is deterministic for fixed data and random_state).
@@ -144,9 +149,10 @@ def run(as_of_hour: int, grid: F.Grid, train_days: np.ndarray, test_days: np.nda
     return models, results
 
 
-def m10(grid: F.Grid, train_days: np.ndarray, test_days: np.ndarray, m4: dict,
-        demo: dict[str, int]) -> tuple[dict, dict, dict]:
-    """M10 candidate selection (training CV only), test metrics, demo-day errors."""
+def select(grid: F.Grid, train_days: np.ndarray, test_days: np.ndarray, candidates,
+           demo: dict[str, int], previous: str) -> tuple[dict, dict, dict]:
+    """Candidate selection by training-period CV only, then test metrics for every candidate and
+    demo-day errors (chosen vs ``previous``). ``candidates(target)`` -> {name: ModelSpec}."""
     models, specs, out = {}, {}, {}
     for target in F.TARGETS:
         col = F.SERIES_COL[target]
@@ -160,7 +166,7 @@ def m10(grid: F.Grid, train_days: np.ndarray, test_days: np.ndarray, m4: dict,
         yte = F.target_values(grid, target, test_days)
         dl_tr = DAYLIGHT_FRACTION * float(ytr.max()) if target == "solar" else None
         dl_te = DAYLIGHT_FRACTION * float(yte.max()) if target == "solar" else None
-        cands = {"m4": M.SPECS[target], **M.m10_candidates(target)}
+        cands = candidates(target)
         cv, oof, test, fitted = {}, {}, {}, {}
         for name, spec in cands.items():
             cv[name], oof[name] = blocked_monthly_cv_mae(grid, spec, train_days, F.AS_OF_HOUR,
@@ -172,27 +178,32 @@ def m10(grid: F.Grid, train_days: np.ndarray, test_days: np.ndarray, m4: dict,
         r = {"cv_selection": {n: cv[n] for n in cands}, "chosen": chosen,
              "test": {**{n: test[n] for n in cands},
                       "yesterday": metrics(yte, shifted(grid, col, test_days, 1), target, dl_te)}}
-        ref = {"wind": "ercot_stwpf", "solar": "ercot_stppf"}.get(target)
-        if ref is not None:
-            v = Xte[ref].to_numpy()
-            ok = np.isfinite(v)
-            r["test"][f"{ref}_direct_reference"] = {
-                **metrics(yte[ok], v[ok], target, dl_te), "hours": int(ok.sum()),
-                "note": "ERCOT forecast of uncurtailed potential, used directly as a forecast of "
-                        "EIA-930 output; reference only"}
+        ref = {"wind": "ercot_stwpf", "solar": "ercot_stppf", "demand": "ercot_load_fc"}[target]
+        v = Xte[ref].to_numpy()
+        ok = np.isfinite(v)
+        r["test"][f"{ref}_direct_reference"] = {
+            **metrics(yte[ok], v[ok], target, dl_te), "hours": int(ok.sum()),
+            "note": ("ERCOT's in-use load forecast (NP3-565-CD) used directly as a forecast of "
+                     "EIA-930 demand; reference only" if target == "demand" else
+                     "ERCOT forecast of uncurtailed potential, used directly as a forecast of "
+                     "EIA-930 output; reference only")}
         # Demo days are inside the training period: in-sample (fit on all training days) vs
-        # out-of-fold (blocked CV) MAE on those days, chosen spec and M4.
+        # out-of-fold (blocked CV) MAE on those days, chosen spec and the previous model.
         rows = {k: np.flatnonzero(np.repeat(train_days, F.HOURS) == d) for k, d in demo.items()}
         r["demo_days_mae_mw"] = {}
-        for n in dict.fromkeys(("m4", chosen)):
+        for n in dict.fromkeys((previous, chosen)):
             ins = M.predict(fitted[n], cands[n], Xtr)
             r["demo_days_mae_mw"][n] = {
                 k: {"in_sample": round(float(np.mean(np.abs(ins[i] - ytr[i]))), 1),
                     "out_of_fold": round(float(np.mean(np.abs(oof[n][i] - ytr[i]))), 1)}
                 for k, i in rows.items()}
         out[target] = r
-    adopted = out["wind"]["test"][out["wind"]["chosen"]]["mae_mw"] < m4["wind"]["model"]["mae_mw"]
-    return models, specs, {"results": out, "adopted": bool(adopted)}
+    return models, specs, {"results": out}
+
+
+def chosen_test_mae(block: dict, target: str) -> float:
+    r = block["results"][target]
+    return r["test"][r["chosen"]]["mae_mw"]
 
 
 def headline(r: dict, target: str) -> str:
@@ -224,7 +235,8 @@ def main() -> None:
     payload = {
         "milestone": "M4",
         "as_of_rule": F.AS_OF_RULE,
-        "weather_data": "M4: none (wind/solar rely on lags and calendar only); M10: see m10.inputs",
+        "weather_data": "M4: none (wind/solar rely on lags and calendar only); M10: see "
+                        "m10.inputs; M12: see m12.inputs",
         "model": "sklearn HistGradientBoostingRegressor, one per target (deviation from "
                  "LightGBM: its macOS wheel needs a system libomp that is not installed; "
                  "see model.py)",
@@ -262,8 +274,11 @@ def main() -> None:
         },
     }
     demo = {x["date"]: grid.day_index(x["date"]) for x in load_days()["demo_days"]}
-    m10_models, m10_specs, m10_payload = m10(grid, train_days, test_days, results, demo)
-    adopted = m10_payload["adopted"]
+    m10_models, m10_specs, m10_payload = select(
+        grid, train_days, test_days, lambda t: {"m4": M.SPECS[t], **M.m10_candidates(t)}, demo,
+        "m4")
+    adopted = chosen_test_mae(m10_payload, "wind") < results["wind"]["model"]["mae_mw"]
+    m10_payload["adopted"] = bool(adopted)
     payload["m10"] = {
         "rule": "per target, lowest training-period blocked-CV MAE among {m4, m10_a_inputs, "
                 "m10_b_ercot_base}; M4 hyperparameters unchanged; test period chooses nothing",
@@ -272,9 +287,31 @@ def main() -> None:
                   "*_previous_day2 (lead >= 48 h); see clearinghouse/data/forecast_inputs.py",
         **m10_payload,
     }
-    payload["default_model"] = "M10" if adopted else "M4"
-    default_specs = m10_specs if adopted else M.SPECS
-    default_models = m10_models if adopted else models
+    m12_models, m12_specs, m12_payload = select(grid, train_days, test_days, M.m12_candidates,
+                                                demo, "m10")
+    m10_mae = {t: chosen_test_mae(m10_payload, t) for t in F.TARGETS}
+    m12_mae = {t: chosen_test_mae(m12_payload, t) for t in F.TARGETS}
+    m12_adopted = bool(adopted and m12_mae["demand"] < m10_mae["demand"]
+                       and m12_mae["wind"] <= m10_mae["wind"]
+                       and m12_mae["solar"] <= m10_mae["solar"])
+    m12_payload["adopted"] = m12_adopted
+    payload["m12"] = {
+        "rule": "per target, lowest training-period blocked-CV MAE among M10's chosen spec and "
+                "its M12 variants (ERCOT load forecast for demand, DAM prices for every target); "
+                "M10 hyperparameters unchanged; test period chooses nothing",
+        "adoption_rule": "M12 set becomes the default iff test demand MAE < M10's and test wind "
+                         "and solar MAE <= M10's (whole set or nothing)",
+        "inputs": "ERCOT NP3-565-CD in-use load forecast, latest posting before as_of; NP4-190-CD "
+                  "HB_HUBAVG DAM prices from archived original files posted before as_of",
+        "test_mae_mw": {"m10": m10_mae, "m12": m12_mae},
+        **m12_payload,
+    }
+    if m12_adopted:
+        payload["default_model"], default_specs, default_models = "M12", m12_specs, m12_models
+    elif adopted:
+        payload["default_model"], default_specs, default_models = "M10", m10_specs, m10_models
+    else:
+        payload["default_model"], default_specs, default_models = "M4", M.SPECS, models
     payload["default_specs"] = {t: s.base + " | " + ("+inputs" if any(
         f in F.EXOG_FEATURES for f in s.features) else "M4 features")
         for t, s in default_specs.items()}
@@ -302,18 +339,25 @@ def main() -> None:
         print(f"{t:<7}| {headline(rejected[t], t)}")
     print(f"M4 demand criterion (model MAPE < yesterday MAPE): {'PASS' if passed else 'FAIL'} "
           f"({d['model']['mape_pct']:.3f}% vs {d['yesterday']['mape_pct']:.3f}%)")
-    print("\nM10 (CV MAE on training period -> chosen; test MAE MW / nMAE / MAPE%):")
+    for label, block in (("M10", m10_payload), ("M12", m12_payload)):
+        print_block(label, block)
+    print(f"M10 adoption (wind test MAE < M4): {'ADOPTED' if adopted else 'NOT ADOPTED'}")
+    print(f"M12 adoption (demand MAE < M10, wind and solar <= M10): "
+          f"{'ADOPTED' if m12_adopted else 'NOT ADOPTED'}; test MAE M10 {m10_mae} M12 {m12_mae}")
+    print(f"default model set = {payload['default_model']}")
+    print(f"wrote {METRICS_FILE} and artifacts in {M.ARTIFACT_DIR}")
+
+
+def print_block(label: str, block: dict) -> None:
+    print(f"\n{label} (CV MAE on training period -> chosen; test MAE MW / nMAE / MAPE%):")
     for t in F.TARGETS:
-        r = m10_payload["results"][t]
+        r = block["results"][t]
         cvs = ", ".join(f"{n} {v['mae_mw']:.0f}" for n, v in r["cv_selection"].items())
         print(f"{t:<7} CV: {cvs} -> {r['chosen']}")
         for n, m in r["test"].items():
             key = "mape_pct" if t != "solar" else "mape_daylight_pct"
             print(f"         test {n:<32} {m['mae_mw']:>7.0f} {m['nmae']:>6.3f} {m[key]:>7.2f}")
         print(f"         demo days MAE (in-sample / out-of-fold): {r['demo_days_mae_mw']}")
-    print(f"M10 adoption (wind test MAE < M4): {'ADOPTED' if adopted else 'NOT ADOPTED'}; "
-          f"default model set = {payload['default_model']}")
-    print(f"wrote {METRICS_FILE} and artifacts in {M.ARTIFACT_DIR}")
 
 
 if __name__ == "__main__":

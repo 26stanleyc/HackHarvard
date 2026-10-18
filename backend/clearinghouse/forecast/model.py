@@ -44,7 +44,7 @@ SEED = 0
 # relative to the base.
 _NO_RELATIVE = {*F.CALENDAR_FEATURES, "recent10h_ratio", "recent10h_diff", "last_obs_delta24",
                 "om_wind100", "om_wind_power", "om_ghi", "om_temp", "om_temp_prev", "om_temp_max",
-                "om_temp_min"}
+                "om_temp_min", "dam_price", "dam_price_rank"}
 
 
 @dataclass(frozen=True)
@@ -92,6 +92,31 @@ def m10_candidates(target: str) -> dict[str, ModelSpec]:
     out = {"m10_a_inputs": a}
     if target in ("wind", "solar"):
         out["m10_b_ercot_base"] = replace(a, base=f"{target}_base_ercot")
+    return out
+
+
+# M10's CV-chosen candidates (docs/results/forecast_metrics.json, m10.results.*.chosen).
+M10_CHOSEN = {"demand": "m10_a_inputs", "wind": "m10_b_ercot_base", "solar": "m10_b_ercot_base"}
+
+
+def m10_spec(target: str) -> ModelSpec:
+    return m10_candidates(target)[M10_CHOSEN[target]]
+
+
+def m12_candidates(target: str) -> dict[str, ModelSpec]:
+    """M12 candidates (design M12): M10's chosen spec plus ERCOT's load forecast (demand) and/or
+    DAM prices; hyperparameters unchanged."""
+    m10 = m10_spec(target)
+    out = {"m10": m10}
+    if target == "demand":
+        load = replace(m10, features=(*m10.features, "ercot_load_fc"))
+        load_base = replace(load, base="demand_base_ercot")
+        out |= {"m12_l": load, "m12_lb": load_base}
+        bases = {"m12_l_p": load, "m12_lb_p": load_base}
+    else:
+        bases = {"m12_p": m10}
+    for name, spec in bases.items():
+        out[name] = replace(spec, features=(*spec.features, *F.M12_PRICE_FEATURES))
     return out
 
 

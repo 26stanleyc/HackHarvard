@@ -338,3 +338,80 @@ Reading:
 - Coordination's average gain over the self-optimizing baselines is positive at 10 % and 20 % but not reliable run to run: at 10 % it is close to a coin flip against the cleanest-slot baseline. It grows with the amount of flexible load (more herding to avoid).
 - Coordination never loses to self-optimizing on the forecast it plans on (fallback); every loss on actuals comes from forecast error.
 - Shifting at all (vs business as usual) is the larger and steadier effect.
+
+## M12. Grid-operator forecasts and day-ahead prices — PASS, adopted (2026-10-17)
+
+Milestone and checks were pre-registered in `docs/design.md` (M12) and pushed (`23a11b8`) before any download or result. Built in a separate worktree of `chalk-integration`, because the shared checkout had another session's uncommitted fleet work on `feat/3d-fleet`.
+
+- **Code:**
+  - `download_data.py`: datasets `ercot_load_pit` (NP3-565-CD, in-use model, one request per target day) and `ercot_dam_pit` (all 419 archived NP4-190-CD original files, hub rows only).
+  - `forecast_inputs.py`: `ercot_load_point_in_time`, `dam_point_in_time`; new columns `ercot_load_fc`, `dam_price` and their posting times.
+  - `features.py`: `ercot_load_fc`, `demand_base_ercot`, `dam_price`, `dam_price_rank`. The rank uses only slots published by `as_of`.
+  - `model.py`: `m12_candidates`, `M10_CHOSEN`.
+  - `train_forecast.py`: the M10 and M12 blocks now share one `select()`, and M10 is reproduced exactly.
+  - `scripts/price_signal.py` (new).
+  - `/api/meta` source text names the M12 inputs.
+- **Point in time:**
+  - Load forecast: every day from 2023-12-12 uses the 23:30 CST posting, 30 min before `I` (417/417 days).
+  - DAM: each slot uses the original file posted 9.9–12.5 h before its day's issue time. 238 daylight-time days have 23 priced slots: slot 23 is local hour 1 of D+1, whose DAM run posts after `I`. 180 standard-time days have 24.
+  - Data quirk: the in-use load model changes between postings (E, E1, E2, E3, M, A3, A6 all appear). Each posting has exactly one in-use row per hour, and the code enforces this.
+- **Selection** (training-period blocked CV only; M10 hyperparameters):
+
+| Target | CV MAE MW per candidate | Chosen |
+|---|---|---|
+| demand | M10 1,921 / +load 1,170 / load as base 1,087 / +load+price 1,170 / load base+price 1,090 | load as base (`m12_lb`) |
+| wind | M10 1,223 / +price 1,226 | M10 (unchanged) |
+| solar | M10 613 / +price 574 | +price (`m12_p`) |
+
+- **Test period 2024-10-01..12-31** (MAE MW / normalized MAE / MAPE %; M10 reproduced exactly):
+
+| Target | M12 (chosen) | M10 | Yesterday | ERCOT forecast used directly (reference) |
+|---|---|---|---|---|
+| demand | **934 / 0.019 / 1.92** | 1,425 / 0.029 / 2.88 | 1,942 / 0.040 / 3.99 | load forecast 841 / 0.017 / **1.71** |
+| wind | 1,205 / 0.093 / 12.96 (= M10) | 1,205 | 6,123 | STWPF 1,455 |
+| solar | **464 / 0.090 / 11.60** | 506 / 0.099 / 12.46 | 1,101 | STPPF 525 |
+
+- **Adoption rule** (demand below M10, wind and solar no higher): **met. M12 is the default local model** (`model_set: "M12"`).
+- **Honest note:** ERCOT's load forecast used directly (1.71%) still beats our model built on it (1.92%). "Use ERCOT's forecast as is" was not a pre-registered candidate, so it stays a reference. It is the obvious next candidate for a future milestone.
+- **Demo-day caveat:** demo days remain in-sample, as in M10. 2024-01-16 still has no temperature input; its demand MAE improved from 3,939 to 3,617 MW but remains the weak day.
+
+**Price as a signal** (`docs/results/price_signal.json`; Spearman ρ across a day's slots against the simulator's actual marginal CO2 rate; days with a constant rate excluded and counted; 2024-03-28 skipped, no actuals):
+
+| Signal | Test period: median ρ / share of days ρ > 0 | All 2024: median ρ / share ρ > 0 |
+|---|---|---|
+| DAM price (HB_HUBAVG) | +0.32 / 81% (78 days) | +0.10 / 57% (313 days) |
+| Forecast average intensity (planners' current signal) | +0.46 / 90% | +0.34 / 80% |
+| Forecast marginal rate | +0.28 / 78% (69 days) | +0.30 / 75% (281 days) |
+
+The price ranks the cleanest and dirtiest hours worse than the signal the planners already use, especially over the whole year. That is evidence against switching to price as the carbon signal. About 14 of 24 slots per day have a zero actual marginal rate (curtailed renewables), so ties are common. Planning is unchanged.
+
+**Effect on the demo days** (example scenario; `demo_days_M10.json` → `demo_days_M12.json`):
+
+| Day | Forecast MAE demand / solar MW, M10 → M12 | Value of coordination M10 → M12 | Coordinated − default M10 → M12 | Fallback M10 → M12 | Paid M10 → M12 |
+|---|---|---|---|---|---|
+| 03-29 windy night | 866 / 1,771 → 280 / 827 | 0 → 0 t | 0 → 0 t | no / no | $0 → $0 |
+| 04-11 sunny mild | 501 / 462 → 321 / 410 | +242.5 → +242.8 t | +249 → +249 t | no / no | $14,370 → $14,805 |
+| 08-20 summer peak | 586 / 152 → 621 / 162 | 0 → **+34.6 t** | −1,752 → −938 t | yes → no | $4,062 → $11,412 |
+| 01-16 cold morning | 3,939 / 790 → 3,617 / 777 | −39.7 → −21.6 t | −61 → −83 t | no / no | $0 → $0 |
+
+**Adoption chart** (default day, at 30% of peak, M10 → M12): independent-average 98,228 → 98,516 t; independent-marginal 101,736 → 101,536; coordinated 100,872 → 100,894; default unchanged at 101,276. Coordination still ends below default at 30% (−382 t) and recovers 642 t over acting alone. **Calibrated herding gate:** unchanged (GO 6/7; timestamps only).
+
+Checks:
+- No leakage, every new feature — PASS:
+  - Unit tests on synthetic postings: the latest in-use load posting before `I`; postings at or after `I` change nothing; two in-use models in one posting are rejected.
+  - DAM: original file only; a later correction is ignored; daylight-time slot 23 is masked and never filled from D+1's run.
+  - Processed table: every load posting within `[I − 6 h, I)`, one per day; every DAM file before its slot's day issue time.
+  - Feature level: every new feature's source time is before `as_of` on every train and test day under both issue times. At 10:00 D−1 the load forecast and DAM are masked. Values published at `as_of` are masked; randomizing later days changes nothing.
+  - M4 and M10 leakage tests pass.
+- Same split, selection by training CV only, adoption rule applied (asserted from the metrics file) — PASS.
+- If adopted: demand 1.92% < yesterday 3.99%; one-day forecast < 500 ms (test); fixtures, adoption chart, demo days and herding gate regenerated with the local provider (`CHALK_*` blanked) — PASS.
+- `ForecastProvider` interface and B6 contract unchanged; `clearing.py`, `strategies.py` and `settlement.py` untouched — PASS.
+- `uv run pytest -q` → 218 passed (with and without `CHALK_*` set); ruff clean; frontend lint, typecheck, build pass — PASS.
+
+**Open: Chalk serves M10.**
+- `.env` now has `CHALK_*` set, so the app's primary forecast is the live Chalk deployment, which serves M10. The local M12 model answers only when Chalk fails.
+- Serving M12 needs:
+  - `ercot_load_fc`, `dam_price` and their posting times added to the Chalk `ForecastInput` feature class and resolvers (`sync_from_app.py` already vendors every `EXOG_SERIES` column);
+  - a re-vendor;
+  - `chalk apply`, with the user's approval.
+- Not done here.

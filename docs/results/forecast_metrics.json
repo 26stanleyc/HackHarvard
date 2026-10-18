@@ -1,7 +1,7 @@
 {
   "milestone": "M4",
   "as_of_rule": "as_of = 00:00 CST on target day D (next-24h forecast; all of D-1 available); only slots with start < as_of (i.e. ended by as_of) are used",
-  "weather_data": "M4: none (wind/solar rely on lags and calendar only); M10: see m10.inputs",
+  "weather_data": "M4: none (wind/solar rely on lags and calendar only); M10: see m10.inputs; M12: see m12.inputs",
   "model": "sklearn HistGradientBoostingRegressor, one per target (deviation from LightGBM: its macOS wheel needs a system libomp that is not installed; see model.py)",
   "model_selection": "settings chosen by blocked monthly CV inside the training period (under the rejected 10:00 D-1 issue time) and kept unchanged for the adopted issue time; the test period was never used for tuning",
   "train_days": {
@@ -403,6 +403,15 @@
             "nmae": 0.0397,
             "bias_mw": 126.4497,
             "mape_pct": 3.9932
+          },
+          "ercot_load_fc_direct_reference": {
+            "mae_mw": 840.7121,
+            "rmse_mw": 1113.2269,
+            "nmae": 0.0172,
+            "bias_mw": 247.7695,
+            "mape_pct": 1.7135,
+            "hours": 2208,
+            "note": "ERCOT's in-use load forecast (NP3-565-CD) used directly as a forecast of EIA-930 demand; reference only"
           }
         },
         "demo_days_mae_mw": {
@@ -661,9 +670,326 @@
     },
     "adopted": true
   },
-  "default_model": "M10",
+  "m12": {
+    "rule": "per target, lowest training-period blocked-CV MAE among M10's chosen spec and its M12 variants (ERCOT load forecast for demand, DAM prices for every target); M10 hyperparameters unchanged; test period chooses nothing",
+    "adoption_rule": "M12 set becomes the default iff test demand MAE < M10's and test wind and solar MAE <= M10's (whole set or nothing)",
+    "inputs": "ERCOT NP3-565-CD in-use load forecast, latest posting before as_of; NP4-190-CD HB_HUBAVG DAM prices from archived original files posted before as_of",
+    "test_mae_mw": {
+      "m10": {
+        "demand": 1424.9846,
+        "wind": 1205.2248,
+        "solar": 505.9006
+      },
+      "m12": {
+        "demand": 933.5935,
+        "wind": 1205.2248,
+        "solar": 463.5195
+      }
+    },
+    "results": {
+      "demand": {
+        "cv_selection": {
+          "m10": {
+            "mae_mw": 1921.2504,
+            "rmse_mw": 2924.7621,
+            "nmae": 0.0359,
+            "bias_mw": 166.5772,
+            "mape_pct": 3.5712
+          },
+          "m12_l": {
+            "mae_mw": 1169.9556,
+            "rmse_mw": 1835.5953,
+            "nmae": 0.0218,
+            "bias_mw": -61.4202,
+            "mape_pct": 2.1837
+          },
+          "m12_lb": {
+            "mae_mw": 1087.2848,
+            "rmse_mw": 1626.3677,
+            "nmae": 0.0203,
+            "bias_mw": -61.3513,
+            "mape_pct": 2.028
+          },
+          "m12_l_p": {
+            "mae_mw": 1169.8579,
+            "rmse_mw": 1835.4643,
+            "nmae": 0.0218,
+            "bias_mw": -64.4423,
+            "mape_pct": 2.1828
+          },
+          "m12_lb_p": {
+            "mae_mw": 1089.6645,
+            "rmse_mw": 1628.1919,
+            "nmae": 0.0203,
+            "bias_mw": -59.5079,
+            "mape_pct": 2.0338
+          }
+        },
+        "chosen": "m12_lb",
+        "test": {
+          "m10": {
+            "mae_mw": 1424.9846,
+            "rmse_mw": 2094.3597,
+            "nmae": 0.0291,
+            "bias_mw": 24.7178,
+            "mape_pct": 2.8844
+          },
+          "m12_l": {
+            "mae_mw": 932.5414,
+            "rmse_mw": 1306.3306,
+            "nmae": 0.0191,
+            "bias_mw": 279.691,
+            "mape_pct": 1.9127
+          },
+          "m12_lb": {
+            "mae_mw": 933.5935,
+            "rmse_mw": 1190.7135,
+            "nmae": 0.0191,
+            "bias_mw": 182.787,
+            "mape_pct": 1.9155
+          },
+          "m12_l_p": {
+            "mae_mw": 921.2148,
+            "rmse_mw": 1294.3136,
+            "nmae": 0.0188,
+            "bias_mw": 283.907,
+            "mape_pct": 1.8897
+          },
+          "m12_lb_p": {
+            "mae_mw": 935.3318,
+            "rmse_mw": 1195.2066,
+            "nmae": 0.0191,
+            "bias_mw": 180.2839,
+            "mape_pct": 1.9199
+          },
+          "yesterday": {
+            "mae_mw": 1942.0385,
+            "rmse_mw": 2801.8534,
+            "nmae": 0.0397,
+            "bias_mw": 126.4497,
+            "mape_pct": 3.9932
+          },
+          "ercot_load_fc_direct_reference": {
+            "mae_mw": 840.7121,
+            "rmse_mw": 1113.2269,
+            "nmae": 0.0172,
+            "bias_mw": 247.7695,
+            "mape_pct": 1.7135,
+            "hours": 2208,
+            "note": "ERCOT's in-use load forecast (NP3-565-CD) used directly as a forecast of EIA-930 demand; reference only"
+          }
+        },
+        "demo_days_mae_mw": {
+          "m10": {
+            "2024-03-29": {
+              "in_sample": 866.3,
+              "out_of_fold": 966.6
+            },
+            "2024-04-11": {
+              "in_sample": 501.3,
+              "out_of_fold": 806.4
+            },
+            "2024-08-20": {
+              "in_sample": 586.2,
+              "out_of_fold": 706.6
+            },
+            "2024-01-16": {
+              "in_sample": 3939.0,
+              "out_of_fold": 4374.5
+            }
+          },
+          "m12_lb": {
+            "2024-03-29": {
+              "in_sample": 280.4,
+              "out_of_fold": 400.9
+            },
+            "2024-04-11": {
+              "in_sample": 320.9,
+              "out_of_fold": 456.8
+            },
+            "2024-08-20": {
+              "in_sample": 621.2,
+              "out_of_fold": 639.5
+            },
+            "2024-01-16": {
+              "in_sample": 3616.6,
+              "out_of_fold": 4324.2
+            }
+          }
+        }
+      },
+      "wind": {
+        "cv_selection": {
+          "m10": {
+            "mae_mw": 1223.1717,
+            "rmse_mw": 1656.4286,
+            "nmae": 0.0971,
+            "bias_mw": -18.917,
+            "mape_pct": 13.505
+          },
+          "m12_p": {
+            "mae_mw": 1226.39,
+            "rmse_mw": 1660.4579,
+            "nmae": 0.0973,
+            "bias_mw": -29.9793,
+            "mape_pct": 13.6113
+          }
+        },
+        "chosen": "m10",
+        "test": {
+          "m10": {
+            "mae_mw": 1205.2248,
+            "rmse_mw": 1551.2705,
+            "nmae": 0.093,
+            "bias_mw": 658.4482,
+            "mape_pct": 12.9625
+          },
+          "m12_p": {
+            "mae_mw": 1200.6593,
+            "rmse_mw": 1548.3703,
+            "nmae": 0.0926,
+            "bias_mw": 654.1326,
+            "mape_pct": 12.9554
+          },
+          "yesterday": {
+            "mae_mw": 6122.7174,
+            "rmse_mw": 7818.2121,
+            "nmae": 0.4724,
+            "bias_mw": -103.5634,
+            "mape_pct": 77.0821
+          },
+          "ercot_stwpf_direct_reference": {
+            "mae_mw": 1454.9045,
+            "rmse_mw": 1914.9847,
+            "nmae": 0.1122,
+            "bias_mw": 914.9856,
+            "mape_pct": 13.8313,
+            "hours": 2208,
+            "note": "ERCOT forecast of uncurtailed potential, used directly as a forecast of EIA-930 output; reference only"
+          }
+        },
+        "demo_days_mae_mw": {
+          "m10": {
+            "2024-03-29": {
+              "in_sample": 611.4,
+              "out_of_fold": 922.5
+            },
+            "2024-04-11": {
+              "in_sample": 794.6,
+              "out_of_fold": 719.0
+            },
+            "2024-08-20": {
+              "in_sample": 743.2,
+              "out_of_fold": 783.8
+            },
+            "2024-01-16": {
+              "in_sample": 769.6,
+              "out_of_fold": 1030.6
+            }
+          }
+        }
+      },
+      "solar": {
+        "cv_selection": {
+          "m10": {
+            "mae_mw": 613.2013,
+            "rmse_mw": 1243.1606,
+            "nmae": 0.1133,
+            "bias_mw": 101.6728,
+            "mape_daylight_pct": 15.5461,
+            "daylight_hours": 3357
+          },
+          "m12_p": {
+            "mae_mw": 574.2473,
+            "rmse_mw": 1123.6129,
+            "nmae": 0.1061,
+            "bias_mw": 55.2364,
+            "mape_daylight_pct": 14.2718,
+            "daylight_hours": 3357
+          }
+        },
+        "chosen": "m12_p",
+        "test": {
+          "m10": {
+            "mae_mw": 505.9006,
+            "rmse_mw": 1171.3374,
+            "nmae": 0.0987,
+            "bias_mw": 172.6751,
+            "mape_daylight_pct": 12.4631,
+            "daylight_hours": 923
+          },
+          "m12_p": {
+            "mae_mw": 463.5195,
+            "rmse_mw": 1022.9666,
+            "nmae": 0.0904,
+            "bias_mw": 130.0888,
+            "mape_daylight_pct": 11.5962,
+            "daylight_hours": 923
+          },
+          "yesterday": {
+            "mae_mw": 1100.6898,
+            "rmse_mw": 2395.8899,
+            "nmae": 0.2147,
+            "bias_mw": 18.601,
+            "mape_daylight_pct": 28.1963,
+            "daylight_hours": 923
+          },
+          "ercot_stppf_direct_reference": {
+            "mae_mw": 524.9347,
+            "rmse_mw": 1234.0297,
+            "nmae": 0.1024,
+            "bias_mw": 281.7895,
+            "mape_daylight_pct": 13.1537,
+            "daylight_hours": 923,
+            "hours": 2208,
+            "note": "ERCOT forecast of uncurtailed potential, used directly as a forecast of EIA-930 output; reference only"
+          }
+        },
+        "demo_days_mae_mw": {
+          "m10": {
+            "2024-03-29": {
+              "in_sample": 1771.4,
+              "out_of_fold": 1878.0
+            },
+            "2024-04-11": {
+              "in_sample": 461.9,
+              "out_of_fold": 494.9
+            },
+            "2024-08-20": {
+              "in_sample": 152.2,
+              "out_of_fold": 390.7
+            },
+            "2024-01-16": {
+              "in_sample": 790.2,
+              "out_of_fold": 926.0
+            }
+          },
+          "m12_p": {
+            "2024-03-29": {
+              "in_sample": 827.0,
+              "out_of_fold": 1398.7
+            },
+            "2024-04-11": {
+              "in_sample": 409.6,
+              "out_of_fold": 431.9
+            },
+            "2024-08-20": {
+              "in_sample": 161.5,
+              "out_of_fold": 331.4
+            },
+            "2024-01-16": {
+              "in_sample": 777.2,
+              "out_of_fold": 913.9
+            }
+          }
+        }
+      }
+    },
+    "adopted": true
+  },
+  "default_model": "M12",
   "default_specs": {
-    "demand": "same_hour_latest | +inputs",
+    "demand": "demand_base_ercot | +inputs",
     "wind": "wind_base_ercot | +inputs",
     "solar": "solar_base_ercot | +inputs"
   }

@@ -75,16 +75,22 @@ FEATURES = (*CALENDAR_FEATURES, *DATA_FEATURES)  # M4
 # M10 forecast inputs (``clearinghouse.data.forecast_inputs``), per target.
 OM_PUBLICATION_ALLOWANCE_H = 12  # hours from GFS run initialization to publication (actual 4-6)
 EXOG_SERIES = ("ercot_stwpf", "ercot_wgrpp", "ercot_wind_cophsl", "ercot_stppf", "ercot_pvgrpp",
-               "ercot_solar_cophsl", "om_wind100", "om_wind_power", "om_ghi", "om_temp")
+               "ercot_solar_cophsl", "om_wind100", "om_wind_power", "om_ghi", "om_temp",
+               "ercot_load_fc", "dam_price")
 EXOG_SOURCE = {"ercot_wind_posted_utc": "ercot_wind", "ercot_solar_posted_utc": "ercot_solar",
-               "om_run_init_max_utc": "om"}  # time column -> source-index series name suffix
+               "om_run_init_max_utc": "om", "ercot_load_posted_utc": "ercot_load",
+               "dam_posted_utc": "dam"}  # time column -> source-index series name suffix
 EXOG_BY_TARGET = {
     "wind": ("ercot_stwpf", "ercot_wgrpp", "ercot_wind_cophsl", "om_wind100", "om_wind_power",
              "wind_base_ercot"),
     "solar": ("ercot_stppf", "ercot_pvgrpp", "ercot_solar_cophsl", "om_ghi", "solar_base_ercot"),
     "demand": ("om_temp", "om_temp_prev", "om_temp_max", "om_temp_min"),
 }
-EXOG_FEATURES = tuple(f for t in TARGETS for f in EXOG_BY_TARGET[t])
+# M12 (design M12): ERCOT's load forecast (demand) and DAM prices (candidates for every target).
+M12_LOAD_FEATURES = ("ercot_load_fc", "demand_base_ercot")
+M12_PRICE_FEATURES = ("dam_price", "dam_price_rank")
+EXOG_FEATURES = (*(f for t in TARGETS for f in EXOG_BY_TARGET[t]), *M12_LOAD_FEATURES,
+                 *M12_PRICE_FEATURES)
 ALL_FEATURES = (*FEATURES, *EXOG_FEATURES)
 
 
@@ -302,9 +308,23 @@ def _exog_features(grid: Grid, feats: dict, src: dict, d: np.ndarray, t: np.ndar
             v = np.where(sv < a, agg(s["om_temp"][day_idx], axis=1), np.nan)  # NaN if any missing
             feats[name] = v
             src[name] = np.where(np.isfinite(v), sv, np.nan)
+    put("ercot_load_fc", "ercot_load_fc", t, "ercot_load")
+    put("dam_price", "dam_price", t, "dam")
+    # Rank of the slot's DAM price among D's slots published by as_of (0 = cheapest, 1 = dearest).
+    sv = s["src_dam"][day_idx]
+    pv = np.where(sv < a[:, None], s["dam_price"][day_idx], np.nan)
+    n_ok = np.isfinite(pv).sum(axis=1)
+    ranks = pd.DataFrame(pv).rank(axis=1, method="average").to_numpy()
+    with np.errstate(all="ignore"):
+        rank = (ranks - 1) / (n_ok[:, None] - 1)
+    feats["dam_price_rank"] = np.where(np.isfinite(feats["dam_price"]) & (n_ok >= 2),
+                                       rank[np.arange(n), t - d * HOURS], np.nan)
+    rank_src = np.where(np.isfinite(pv), sv, -np.inf).max(axis=1)  # latest file the rank read
+    src["dam_price_rank"] = np.where(np.isfinite(feats["dam_price_rank"]), rank_src, np.nan)
     # Candidate bases: ERCOT's forecast, or the M4 base on days without a posting.
     for name, col, fallback in (("wind_base_ercot", "ercot_stwpf", "mean24h"),
-                                ("solar_base_ercot", "ercot_stppf", "same_hour_latest")):
+                                ("solar_base_ercot", "ercot_stppf", "same_hour_latest"),
+                                ("demand_base_ercot", "ercot_load_fc", "same_hour_latest")):
         ok = np.isfinite(feats[col])
         feats[name] = np.where(ok, feats[col], feats[fallback])
         src[name] = np.where(ok, src[col], src[fallback])

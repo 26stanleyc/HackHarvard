@@ -1,4 +1,4 @@
-"""M10 checks: forecast inputs are leakage-free (design M10; pre-registered there).
+"""M10 + M12 checks: forecast inputs are leakage-free (design M10, M12; pre-registered there).
 
 (a) ERCOT point-in-time extraction on synthetic postings: only postings before the issue time,
 the latest complete one, DST handled; adding or changing postings at/after the issue time changes
@@ -6,6 +6,7 @@ nothing. (b) Open-Meteo: only ``*_previous_day2`` columns are accepted. (c) The 
 every ERCOT posting before its day's issue time, every Open-Meteo run initialized >= 12 h before
 it, no forbidden columns. (d) Feature level: every new feature's source time is before as_of for
 every train/test day, values published at/after as_of are masked, later days' inputs are never read.
+M12: the same for ERCOT's load forecast (NP3-565-CD) and DAM prices (archived NP4-190-CD files).
 """
 
 from __future__ import annotations
@@ -19,6 +20,8 @@ from clearinghouse.data.forecast_inputs import (
     ERCOT_COLS,
     OM_LEAD,
     OUT_FILE,
+    dam_point_in_time,
+    ercot_load_point_in_time,
     ercot_point_in_time,
     load_forecast_inputs,
     open_meteo_slots,
@@ -174,7 +177,7 @@ def test_new_feature_sources_before_as_of_every_train_and_test_day(grid, as_of_h
         X, S = F.build_features(grid, target, days, as_of_hour)
         assert F.leakage_violations(X, S, as_of_hour) == []
         a = F.as_of_index(X["day"].to_numpy(), as_of_hour)
-        for name in F.EXOG_BY_TARGET[target]:
+        for name in F.EXOG_FEATURES:
             v, s = X[name].to_numpy(), S[name].to_numpy()
             assert (np.isfinite(v) <= np.isfinite(s)).all(), name  # every value has a source
             assert (s[np.isfinite(s)] < a[np.isfinite(s)]).all(), name
@@ -185,6 +188,18 @@ def test_new_features_present_on_test_days(grid):
     for target in F.TARGETS:
         X, _ = F.build_features(grid, target, days)
         assert X[list(F.EXOG_BY_TARGET[target])].notna().all().all(), target
+        assert X["ercot_load_fc"].notna().all()
+        # DAM: every slot, except CST slot 23 on daylight-time days (D+1's DAM run, after as_of)
+        nan = X["dam_price"].isna().to_numpy()
+        assert (X.loc[nan, "hour_slot"] == 23).all() and nan.sum() <= 33  # Oct 1 .. Nov 2
+
+
+def test_load_forecast_and_dam_masked_under_earlier_issue_time(grid):
+    """At 10:00 CST on D-1 neither the 23:30 load forecast nor the ~12:30 DAM file exists yet."""
+    d = grid.day_index("2024-10-15")
+    X, _ = F.build_features(grid, "demand", np.array([d]), F.REJECTED_AS_OF_HOUR)
+    assert X[["ercot_load_fc", "dam_price", "dam_price_rank"]].isna().all().all()
+    np.testing.assert_array_equal(X["demand_base_ercot"], X["same_hour_latest"])
 
 
 def test_ercot_inputs_masked_under_earlier_issue_time(grid):
@@ -204,11 +219,11 @@ def test_values_published_at_or_after_as_of_are_masked(grid):
     d = grid.day_index("2024-11-04")
     g = _copy(grid)
     sl = slice(d * 24, (d + 1) * 24)
-    for name in ("src_ercot_wind", "src_ercot_solar", "src_om"):
+    for name in [k for k in g.series if k.startswith("src_")]:
         g.series[name][sl] = F.as_of_index(d)  # pretend D's values were published at as_of
     for target in F.TARGETS:
         X, _ = F.build_features(g, target, np.array([d]))
-        cols = [c for c in F.EXOG_BY_TARGET[target] if not c.endswith("_base_ercot")
+        cols = [c for c in F.EXOG_FEATURES if not c.endswith("_base_ercot")
                 and c != "om_temp_prev"]
         assert X[cols].isna().all().all(), target
         assert X["om_temp_prev"].notna().all()  # D-1's values were published earlier
@@ -220,7 +235,7 @@ def test_later_days_inputs_never_read(grid):
         g = _copy(grid)
         rng = np.random.default_rng(d)
         cut = (d + 1) * 24  # every slot after day D
-        for name in (*F.EXOG_SERIES, "src_ercot_wind", "src_ercot_solar", "src_om"):
+        for name in (*F.EXOG_SERIES, *[k for k in g.series if k.startswith("src_")]):
             g.series[name][cut:] = rng.uniform(-1e6, 1e6, len(g.series[name]) - cut)
         for target in F.TARGETS:
             X0, _ = F.build_features(grid, target, np.array([d]))
@@ -245,3 +260,88 @@ def test_spring_forward_day_both_hour_labelings():
         assert (out["ts_utc"].to_numpy() == expected.to_numpy()).all()
         assert out["ercot_stwpf"].iloc[1] == (2.0 if skipped == 3 else 3.0)
         assert out["ercot_stwpf"].iloc[-1] == 99.0
+
+
+# --- M12: ERCOT load forecast and DAM prices ----------------------------------------------------
+
+
+def _load_posting(target_day: str, posted_local: str, value: float, model: str = "E1",
+                  n_hours: int = 24) -> pd.DataFrame:
+    rows = []
+    for h in range(n_hours):  # CST day in standard time: slot h = local hour ending h+1
+        rows.append({"target_day_cst": target_day, "postedDatetime": posted_local,
+                     "deliveryDate": target_day, "hourEnding": f"{h + 1}:00", "DSTFlag": False,
+                     "systemTotal": value + h, "model": model, "inUseFlag": True})
+    return pd.DataFrame(rows)
+
+
+def test_load_forecast_latest_in_use_posting_before_issue_time():
+    day = "2024-12-02"
+    base = pd.concat([_load_posting(day, "2024-12-01T22:30:01", 40_000.0),
+                      _load_posting(day, "2024-12-01T23:30:01", 41_000.0, model="E2")])
+    a = ercot_load_point_in_time(base)
+    assert len(a) == 24 and (a["ercot_load_fc"].to_numpy() == 41_000.0 + np.arange(24)).all()
+    assert (a["ercot_load_posted_utc"] == pd.Timestamp("2024-12-02 05:30:01", tz="UTC")).all()
+    later = pd.concat([base, _load_posting(day, "2024-12-02T00:00:00", -1.0),
+                       _load_posting(day, "2024-12-02T00:30:01", 9e9)])
+    pd.testing.assert_frame_equal(a, ercot_load_point_in_time(later))
+
+
+def test_load_forecast_rejects_two_in_use_models_in_one_posting():
+    day = "2024-12-02"
+    p = pd.concat([_load_posting(day, "2024-12-01T23:30:01", 1.0, model="E1"),
+                   _load_posting(day, "2024-12-01T23:30:01", 2.0, model="E2")])
+    with pytest.raises(ValueError, match="in-use"):
+        ercot_load_point_in_time(p)
+
+
+def _dam_file(op_day: str, posted_local: str, price: float, point: str = "HB_HUBAVG",
+              doc: int = 1) -> pd.DataFrame:
+    d = pd.Timestamp(op_day)
+    return pd.DataFrame({"DeliveryDate": d.strftime("%m/%d/%Y"),
+                         "HourEnding": [f"{h:02d}:00" for h in range(1, 25)],
+                         "SettlementPoint": point, "SettlementPointPrice": price + np.arange(24),
+                         "DSTFlag": "N", "postDatetime": posted_local, "docId": doc})
+
+
+def test_dam_uses_original_file_posted_before_issue_time():
+    """Standard time: D's 24 CST slots all come from the file posted ~12:30 on D-1; a later
+    correction for D (posted after the issue time) and other settlement points are ignored."""
+    files = pd.concat([_dam_file("2024-12-02", "2024-12-01T12:37:05.000", 30.0, doc=1),
+                       _dam_file("2024-12-02", "2024-12-04T09:00:00.000", 999.0, doc=2),
+                       _dam_file("2024-12-02", "2024-12-01T12:37:05.000", 5.0, "HB_WEST", 3)])
+    out = dam_point_in_time(files)
+    assert len(out) == 24
+    np.testing.assert_array_equal(out["dam_price"], 30.0 + np.arange(24))
+    assert (out["dam_posted_utc"] == pd.Timestamp("2024-12-01 18:37:05", tz="UTC")).all()
+    assert out["ts_utc"].iloc[0] == pd.Timestamp("2024-12-02 06:00", tz="UTC")
+
+
+def test_dam_daylight_time_last_slot_needs_next_days_run():
+    """Daylight time: CST slot 23 of D is local hour 1 of D+1, whose DAM run posts on D after
+    the issue time, so that slot has no price; it is never filled from the later file."""
+    files = pd.concat([_dam_file("2024-07-01", "2024-06-30T12:30:00.000", 30.0, doc=1),
+                       _dam_file("2024-07-02", "2024-07-01T12:30:00.000", 50.0, doc=2)])
+    out = dam_point_in_time(files).set_index("ts_utc")
+    day = pd.date_range("2024-07-01 06:00", periods=24, freq="h", tz="UTC")
+    got = out.reindex(day)["dam_price"].to_numpy()
+    np.testing.assert_array_equal(got[:23], 30.0 + np.arange(1, 24))  # local HE2..HE24 of D
+    assert np.isnan(got[23])
+    # the next CST day's slots do come from the D+1 file (posted before D+1's issue time):
+    # its slot 0 is local hour ending 2 of D+1
+    assert pd.Timestamp("2024-07-02 05:00", tz="UTC") not in out.index
+    assert out.loc[pd.Timestamp("2024-07-02 06:00", tz="UTC"), "dam_price"] == 51.0
+
+
+def test_every_load_forecast_and_dam_posting_is_before_issue_time(inputs):
+    issue = pd.to_datetime(inputs["date_cst"]).dt.tz_localize("UTC") + pd.Timedelta(hours=6)
+    load = inputs["ercot_load_posted_utc"]
+    has = inputs["ercot_load_fc"].notna()
+    assert (has == load.notna()).all()
+    assert (load[has] < issue[has]).all()
+    assert (load[has] >= issue[has] - pd.Timedelta(hours=6)).all()
+    assert (inputs[has].groupby("date_cst")["ercot_load_posted_utc"].nunique() == 1).all()
+    dam = inputs["dam_posted_utc"]
+    hd = inputs["dam_price"].notna()
+    assert (hd == dam.notna()).all()
+    assert (dam[hd] < issue[hd]).all()
