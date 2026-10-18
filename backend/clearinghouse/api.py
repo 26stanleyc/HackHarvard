@@ -355,7 +355,7 @@ def cors_origins() -> list[str]:
     return list(dict.fromkeys([*DEFAULT_ORIGINS, *[o for o in extra if o]]))
 
 
-app = FastAPI(title="Carbon Clearinghouse API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="sage.ai API", version="0.1.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=cors_origins(), allow_credentials=False,
                    allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["*"])
 

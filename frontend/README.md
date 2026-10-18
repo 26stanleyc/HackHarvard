@@ -1,6 +1,6 @@
-# Carbon Clearinghouse — frontend
+# sage.ai — frontend
 
-Next.js (App Router, TypeScript, Tailwind 4, Recharts) client for the Carbon Clearinghouse demo:
+Next.js (App Router, TypeScript, Tailwind 4, Recharts) client for the sage.ai demo:
 story (adoption chart + credibility strip) → bids → watch the coordinator (three acts, Beat the
 coordinator) → results (strategy comparison, herding gap, avoided-carbon receipts with
 leave-the-coalition toggles). It talks only to the backend API contract in `docs/design.md` (B6);

@@ -1,4 +1,4 @@
-# Carbon Clearinghouse
+# sage.ai
 
 Coordinated load shifting across competing companies, with avoided-carbon payouts.
 
