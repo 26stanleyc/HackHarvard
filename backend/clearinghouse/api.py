@@ -110,6 +110,8 @@ BACKGROUND_PCT_DEFAULT = 10.0  # % of the day's forecast peak demand
 
 ADOPTION_CHART_FILE = DATA_PROCESSED / "adoption_chart.json"
 CALIBRATION_FILE = RESULTS_DIR / "calibration.json"
+# docs/results is outside backend/, so a Vercel deploy of backend/ ships a copy here (README)
+CALIBRATION_FALLBACK = DATA_PROCESSED / "calibration.json"
 CALIBRATION_KEYS = ("coal_gas_split_error", "mef_simulated", "mef_observed", "fossil_co2_error")
 DEFAULT_ORIGINS = ("http://localhost:3000", "http://127.0.0.1:3000")
 
@@ -151,7 +153,8 @@ def check_day(day: str) -> None:
 
 
 def calibration() -> dict:
-    raw = json.loads(CALIBRATION_FILE.read_text()) if CALIBRATION_FILE.is_file() else {}
+    f = CALIBRATION_FILE if CALIBRATION_FILE.is_file() else CALIBRATION_FALLBACK
+    raw = json.loads(f.read_text()) if f.is_file() else {}
     return {k: (float(raw[k]) if raw.get(k) is not None else None) for k in CALIBRATION_KEYS}
 
 
