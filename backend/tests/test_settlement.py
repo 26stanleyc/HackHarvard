@@ -1,6 +1,6 @@
-"""M5 settlement checks: Shapley (exact + Monte Carlo), efficiency, symmetry, zero-energy bid,
-payouts and proration, leave-one-out vs direct recomputation, receipt efficiency identities.
-Calibration TRAINING days and demo days only (never herding-gate days)."""
+"""M5 settlement checks: exact Shapley and marginal-contribution shares, efficiency, symmetry,
+zero-energy bid, payouts and proration, leave-one-out vs direct recomputation, receipt
+efficiency identities. Calibration TRAINING days and demo days only (never herding-gate days)."""
 
 from __future__ import annotations
 
@@ -17,12 +17,13 @@ from clearinghouse.inputs import actual_inputs, yesterday_forecast_inputs
 from clearinghouse.params import load_params
 from clearinghouse.schemas import Bid
 from clearinghouse.settlement import (
+    EXACT_MAX_PLAYERS,
     canon_sum,
+    marginal_masks,
+    marginal_shares,
     payouts,
-    sample_permutations,
     settle,
     shapley_exact,
-    shapley_permutations,
 )
 from clearinghouse.simulator import DaySimulator
 
@@ -77,23 +78,41 @@ def test_shapley_exact_subgame_uses_global_masks():
     assert shapley_exact([0, 2], v) == pytest.approx([0.5, 0.5])
 
 
-def test_monte_carlo_efficient_and_converges():
+def test_marginal_shares_efficient_and_cheap():
     rng = np.random.default_rng(2)
-    n = 6
+    n = 10
+    players = list(range(n))
     table = rng.normal(size=1 << n)
     table[0] = 0.0
-    ex = shapley_exact(list(range(n)), table.__getitem__)
-    perms = sample_permutations(list(range(n)), 4000, seed=3)
-    mc = shapley_permutations(list(range(n)), perms, table.__getitem__)
-    assert sum(mc) == pytest.approx(table[-1], abs=1e-9)
-    assert mc == pytest.approx(ex, abs=0.1)
-    # additive game: MC is exact
+    seen = []
+
+    def v(m):
+        seen.append(m)
+        return float(table[m])
+    sh = marginal_shares(players, v)
+    assert math.fsum(sh) == pytest.approx(table[-1], abs=1e-9)
+    assert set(seen) == set(marginal_masks(players))  # n + 1 coalitions, not 2^n
+    assert len(set(seen)) == n + 1
+    # additive game: equal to the Shapley values (the weights)
     w = rng.normal(size=n)
 
     def add(m):
         return float(sum(w[i] for i in range(n) if m >> i & 1))
-    perms = sample_permutations(list(range(n)), 5, seed=4)
-    assert shapley_permutations(list(range(n)), perms, add) == pytest.approx(list(w), abs=1e-12)
+    assert marginal_shares(players, add) == pytest.approx(list(w), abs=1e-12)
+
+
+def test_marginal_shares_negative_contributor_and_no_helpers():
+    # v: player 0 adds 6, player 1 adds 2, player 2 costs 3 (the group is better without it)
+    w = [6.0, 2.0, -3.0]
+
+    def v(m):
+        return sum(w[i] for i in range(3) if m >> i & 1)
+    sh = marginal_shares([0, 1, 2], v)
+    assert sh[2] == pytest.approx(-3.0)  # keeps its negative contribution
+    assert sh[0] / sh[1] == pytest.approx(3.0)  # helpers split the rest 6:2
+    assert sum(sh) == pytest.approx(5.0)
+    # nobody helps: v(N) split equally
+    assert marginal_shares([0, 1], lambda m: -1.0 if m else 0.0) == pytest.approx([-0.5, -0.5])
 
 
 def test_payouts_proration_and_negative_share():
@@ -241,7 +260,7 @@ def test_symmetry_identical_bids_and_zero_energy_bid():
     print("\nsymmetry shares:", {k: round(v["shapley_t"], 6) for k, v in per.items()})
 
 
-def test_monte_carlo_above_eight_bids():
+def test_marginal_above_eight_bids():
     day = "2024-02-04"
     plan, score = make_sims(day)
     rng = np.random.default_rng(9)
@@ -253,10 +272,17 @@ def test_monte_carlo_above_eight_bids():
         bids.append(bid(f"m{i}", 0.6 * m * (d - a), a, d, m))
     r, det = clear_with_details(day, bids, 5.0, 50.0, 1e6, plan, score)
     s = r["settlement"]
-    assert s["method"] == "monte_carlo"
-    assert 0 < s["coalitions_evaluated"] <= 2 ** 9
-    assert s["coalitions_evaluated"] == len(det.game.values)
+    n = len(bids)
+    assert n > EXACT_MAX_PLAYERS
+    assert s["method"] == "marginal"
+    # full + all-but-one + all-but-two: 1 + n + n(n-1)/2, far below 2^n
+    assert s["coalitions_evaluated"] == len(det.game.values) == 1 + n + n * (n - 1) // 2
     assert sum(b["shapley_t"] for b in s["per_bid"]) == pytest.approx(
         s["total_avoided_t"], abs=1e-6)
-    assert len(s["leave_one_out"]) == 9
+    assert len(s["leave_one_out"]) == n
+    for i, lo in s["leave_one_out"].items():
+        k = [b.id for b in bids].index(i)
+        assert lo["total_avoided_t"] == det.game.v(det.game.full ^ (1 << k))
+        assert sum(b["shapley_t"] for b in lo["per_bid"]) == pytest.approx(
+            lo["total_avoided_t"], abs=1e-6)
     assert math.isfinite(s["total_avoided_t"])

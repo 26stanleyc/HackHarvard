@@ -38,23 +38,34 @@ const FleetView = dynamic(() => import("./FleetView").then((m) => m.FleetView), 
 // warm that bundle in the background, so Results opens without a wait
 if (typeof window !== "undefined") setTimeout(() => void import("./FleetView"), 2000);
 
-/** Results page frame: the results on the left, the company sidebar on the right. */
+/**
+ * Demo page frame: the story intro on top, then the demo (results on the left, the company
+ * sidebar on the right, anchored at #demo), then the story's background material.
+ */
 export function ResultsLayout({
+  intro,
   sidebar,
+  below,
   onNext,
   children,
 }: {
+  intro?: ReactNode;
   sidebar: ReactNode;
+  below?: ReactNode;
   onNext?: () => void;
   children: ReactNode;
 }) {
   return (
     <div>
-      <SectionTitle kicker="Step 2 · Results" title="What we saved, and who gets paid" />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="min-w-0">{children}</div>
-        <aside className="min-w-0 lg:sticky lg:top-28 lg:self-start">{sidebar}</aside>
+      {intro && <div className="mb-10">{intro}</div>}
+      <div id="demo" className="scroll-mt-28">
+        <SectionTitle kicker="Step 1 · Demo" title="What we saved, and who gets paid" />
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="min-w-0">{children}</div>
+          <aside className="min-w-0 lg:sticky lg:top-28 lg:self-start">{sidebar}</aside>
+        </div>
       </div>
+      {below && <div className="mt-10">{below}</div>}
       {onNext && (
         <div className="mt-6 flex justify-end">
           <Button variant="secondary" onClick={onNext} testId="to-coordinator">
@@ -117,7 +128,7 @@ function Headline({ response }: { response: ClearResponse }) {
   const gap = response.herding.independent_marginal.gap_t;
   const paid = response.settlement.per_bid.reduce((a, p) => a + p.payout_usd, 0);
   const paidTo = response.settlement.per_bid.filter((p) => p.payout_usd > 0).length;
-  const estimated = response.settlement.method === "monte_carlo";
+  const estimated = response.settlement.method === "marginal";
   return (
     <section className="card p-4 sm:p-5" data-testid="headline">
       <div className="grid gap-4 sm:grid-cols-3">
@@ -143,8 +154,9 @@ function Headline({ response }: { response: ClearResponse }) {
       </div>
       {estimated && (
         <p className="mt-3 border-t border-line pt-2.5 text-xs text-muted" data-testid="payout-disclaimer">
-          Payouts are estimates. Exact Shapley payouts are only practical up to {SHAPLEY_MAX_BIDS_DEFAULT} companies, so
-          with {response.settlement.per_bid.length} they are sampled and may shift slightly between runs.
+          Exact Shapley payouts are only practical up to {SHAPLEY_MAX_BIDS_DEFAULT} companies. With{" "}
+          {response.settlement.per_bid.length}, each company is paid for its marginal contribution: how much less CO2 the
+          group avoids without it, scaled so the shares add up to the total.
         </p>
       )}
     </section>
@@ -422,8 +434,8 @@ function Receipts({
         <Stat label="Paid out" value={fmtUsd(totalPaid)} sub={`of ${fmtUsd(st.pool_usd)} pool`} testId="total-paid" />
         <Stat label="Carbon price" value={`${fmtUsd(request.carbon_price)}/t`} sub={st.prorated ? "prorated to fit the pool" : "not prorated"} />
         <Stat
-          label="Shapley method"
-          value={st.method === "exact" ? "Exact" : "Monte Carlo"}
+          label="Payout method"
+          value={st.method === "exact" ? "Exact Shapley" : "Marginal contribution"}
           sub={`${fmtInt(st.coalitions_evaluated)} coalitions evaluated`}
         />
       </div>
@@ -517,7 +529,7 @@ function Receipts({
                 <div className="flex-1 space-y-2">
                   <div className="grid grid-cols-2 gap-3">
                     <Stat
-                      label="Shapley share"
+                      label={st.method === "exact" ? "Shapley share" : "Marginal share"}
                       value={p ? fmtShareT(p.shapley_t) : "—"}
                       sub={
                         leftOut && p && f
@@ -575,7 +587,8 @@ function Receipts({
       </div>
       <Source className="mt-3">
         settlement.per_bid{leftOut ? ` → settlement.leave_one_out.${leftOut} (no new request)` : ""} · settled after
-        the fact on actual grid conditions · Shapley shares sum to the coalition&apos;s avoided CO2
+        the fact on actual grid conditions · {st.method === "exact" ? "Shapley shares" : "marginal shares"} sum to the
+        coalition&apos;s avoided CO2
         {API_MODE === "fixture" ? " · fixture values" : ""}
       </Source>
     </section>
@@ -668,7 +681,10 @@ function ValueBreakdown({ response }: { response: ClearResponse }) {
         {response.settlement.method === "skipped" ? (
           <>Not shared out: Shapley payouts are skipped above {SHAPLEY_MAX_BIDS_DEFAULT} companies.</>
         ) : matches ? (
-          <>Value of coordination equals the settlement total ({fmtSignedT(settled)} t), the amount shared by Shapley.</>
+          <>
+            Value of coordination equals the settlement total ({fmtSignedT(settled)} t), the amount shared{" "}
+            {response.settlement.method === "exact" ? "by Shapley" : "by marginal contribution"}.
+          </>
         ) : (
           <>Settlement total avoided: {fmtSignedT(settled)} t.</>
         )}

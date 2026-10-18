@@ -283,11 +283,9 @@ export function CompanySidebar({
         >
           + Add a company
         </button>
-        {drafts.length > SHAPLEY_MAX_BIDS_DEFAULT && (
+        {drafts.length > shapleyMax && (
           <p className="mt-2 text-xs text-muted" data-testid="shapley-limit-hint">
-            {drafts.length > shapleyMax
-              ? `No payouts above ${shapleyMax} companies.`
-              : `Above ${SHAPLEY_MAX_BIDS_DEFAULT} companies, payouts are estimates, not exact Shapley values.`}
+            Above {shapleyMax} companies, payouts use each company&apos;s marginal contribution, not exact Shapley values.
           </p>
         )}
       </div>

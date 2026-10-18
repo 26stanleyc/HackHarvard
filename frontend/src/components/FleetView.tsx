@@ -343,7 +343,7 @@ export function FleetView({
         noPayoutNote={noPayoutNote}
         totalPaid={totalPaid}
         carbonPrice={request.carbon_price}
-        estimated={response.settlement.method === "monte_carlo"}
+        estimated={response.settlement.method === "marginal"}
       />
     </section>
   );
@@ -1011,7 +1011,7 @@ function CompanyTable({
         </div>
         <div className="num text-xs text-muted">
           {hasPayouts
-            ? `${fmtUsd(totalPaid)} paid · ${fmtUsd(carbonPrice)}/t${estimated ? " · estimated (sampled Shapley)" : ""}`
+            ? `${fmtUsd(totalPaid)} paid · ${fmtUsd(carbonPrice)}/t${estimated ? " · by marginal contribution" : ""}`
             : noPayoutNote}
         </div>
       </div>
