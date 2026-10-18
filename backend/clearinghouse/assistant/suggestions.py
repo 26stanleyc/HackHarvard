@@ -6,9 +6,10 @@ Rules (in priority order, at most ``MAX_SUGGESTIONS``):
    run hours (or the start back if that passes 24:00).
 2. ``fix`` capacity: energy above max MW x window -> extend the deadline to fit at max power, or
    if that passes 24:00, raise max MW to energy / window.
-3. ``improve`` no clean hours: a feasible window holding none of the day's 4 cleanest hours, and
-   whose best hour has a higher marginal rate than they do -> extend the window to the nearest
-   one (marked "if your operations allow"). Never fires when timing cannot lower emissions.
+3. ``improve`` no clean hours: a feasible window holding none of the day's cleanest hours (the
+   4 cleanest, or every hour tied at the lowest rate), and whose best hour has a higher marginal
+   rate than they do -> extend the window to the nearest one (marked "if your operations
+   allow"). Never fires when timing cannot lower emissions.
 
 Every suggestion is ``{bid_id, field, from, to, reason, kind}``. Numbers in reasons come from the
 payload only.
@@ -97,8 +98,9 @@ def rule_suggestions(payload: dict) -> list[dict]:
                 what = "deadline" if field == "deadline_hour" else "start"
                 improves.append(dict(bid_id=b["id"], field=field, **{"from": frm}, to=to,
                                      kind="improve", reason=(
-                    f"None of today's 4 cleanest forecast hours ({hours}) fall in your window. "
-                    f"Moving the {what} to {_hh(to)} adds {_hh(c)}, if your operations allow.")))
+                    f"None of today's {len(cleanest)} cleanest forecast hours ({hours}) fall in "
+                    f"your window. Moving the {what} to {_hh(to)} adds {_hh(c)}, if your "
+                    "operations allow.")))
     out = fixes + improves
     return out[:MAX_SUGGESTIONS]
 

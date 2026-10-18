@@ -302,6 +302,37 @@ def test_improve_only_when_it_lowers_the_rate(payload):
         assert min(rates[lo2:hi2]) < min(rates[lo:hi])
 
 
+def test_improve_reason_counts_every_tied_cleanest_hour(engine):
+    """When 6 hours tie for cleanest, the reason says 6, not 4, and lists all of them."""
+    b = AssistantBid(id="x", name="X", load_type="ev_fleet", energy_mwh=10, earliest_hour=20,
+                     deadline_hour=23, max_mw=10)
+    p = build_grounding(engine, DAY, [b])
+    tied = [6, 9, 10, 14, 15, 18]
+    p["marginal_co2_t_per_mwh"] = [0.1 if h in tied else 0.5 for h in range(24)]
+    p["cleanest_hours"], p["cleanest_hours_tied"] = tied, True
+    p["bids"][0]["cleanest_hours_in_window"] = []
+    (s,) = suggestions.rule_suggestions(p)
+    assert s["kind"] == "improve"
+    assert "None of today's 6 cleanest forecast hours" in s["reason"]
+    assert all(f"{h:02d}:00" in s["reason"] for h in tied)
+    assert ungrounded_numbers(s["reason"], p, extra=[s["to"]]) == []
+
+
+def test_all_feasible_answer_counts_every_bid(engine):
+    """With 20 feasible companies the answer gives the count and only a few examples."""
+    many = [AssistantBid(**{**b.model_dump(), "id": f"c{k}", "name": f"Company {k}"})
+            for k, b in enumerate(preset_bids() * 4, start=1)]
+    p = build_grounding(engine, DAY, many)
+    assert all(b["feasible"] for b in p["bids"])
+    a = local.answer("Is my window feasible?", p, "ev_fleet")
+    assert a.startswith("All 20 bids are feasible. For example, ")
+    assert sum(f"Company {k} " in a for k in range(1, 21)) == 3
+    assert numbers_grounded(a, p) == 1.0
+    one = local.answer("Is my window feasible?", build_grounding(engine, DAY, many[:1]),
+                       "ev_fleet")
+    assert one.startswith("Your bid is feasible. ") and "For example" not in one
+
+
 # Regressions from evaluation run c5124fb0 (docs/eval_results.md). Paraphrases, not the
 # dataset's own questions, so the fix is checked beyond the rows that exposed it.
 @pytest.mark.parametrize("q,expect", [

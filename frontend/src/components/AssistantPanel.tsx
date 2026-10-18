@@ -55,6 +55,7 @@ export function AssistantPanel({
   scenario,
   onApply,
   help,
+  onOpenChange,
 }: {
   day: string;
   dayLabel: string;
@@ -62,6 +63,7 @@ export function AssistantPanel({
   scenario: AssistantScenario;
   onApply: (s: Suggestion) => void;
   help: HelpRequest | null;
+  onOpenChange: (open: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [persona, setPersona] = useState<PersonaId>("ev_fleet");
@@ -79,6 +81,8 @@ export function AssistantPanel({
   const bidsKey = JSON.stringify([day, bids, persona, scenario]);
   const nameOf = (id: string) => drafts.find((d) => d.id === id)?.name || id;
   const sugKey = (s: Suggestion) => `${s.bid_id}|${s.field}|${s.from}|${s.to}`;
+
+  useEffect(() => onOpenChange(open), [open, onOpenChange]);
 
   useEffect(() => {
     if (!ASSISTANT_AVAILABLE) return;
@@ -197,7 +201,7 @@ export function AssistantPanel({
       )}
       {open && (
         <aside
-          className="fixed right-0 top-0 z-[60] flex h-full w-full flex-col border-l border-line bg-surface shadow-2xl sm:w-[360px]"
+          className="fixed right-0 top-0 z-[60] flex h-full w-full flex-col border-l border-line bg-surface shadow-2xl sm:w-[320px] lg:w-[360px]"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
           data-testid="assistant-panel"
           aria-label="Coordinator Guide"
