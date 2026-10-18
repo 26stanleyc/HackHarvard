@@ -1,0 +1,12 @@
+# Vercel deploys only the API: clearinghouse/ and data/processed/ (README: "Deploying the API
+# on Vercel"). Everything below is development-only; /chalk alone is ~650 MB.
+.venv
+.env*
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+/chalk
+/chalk_compute
+/scripts
+/tests
+/data/raw

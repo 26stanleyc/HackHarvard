@@ -32,6 +32,9 @@ packages = ["clearinghouse"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+[tool.vercel]
+entrypoint = "clearinghouse.api:app"  # FastAPI on Vercel (README: "Deploying the API on Vercel")
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
