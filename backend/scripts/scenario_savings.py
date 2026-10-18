@@ -21,7 +21,9 @@ Rule (fixed before any result was seen):
   coordination emits less. Reported per share: mean, median, p10, p90 over all day x draw runs,
   the share of runs with saved > 0 (and < 0), and saved per MWh of flexible energy.
 
-Run from ``backend/``: ``uv run python scripts/scenario_savings.py``.
+Run from ``backend/``: ``uv run python scripts/scenario_savings.py``. M11: with
+``PLANNING_MODE=robust`` every strategy plans on the robust scenario simulator
+(``clearinghouse.robust``) and results go to ``scenario_savings_q4_2024_robust*``.
 """
 
 from __future__ import annotations
@@ -47,12 +49,22 @@ from clearinghouse.forecast import get_provider  # noqa: E402
 from clearinghouse.inputs import actual_inputs, forecast_inputs  # noqa: E402
 from clearinghouse.params import load_params  # noqa: E402
 from clearinghouse.population import DEFAULT_N, distribution_summary, make_population  # noqa: E402
+from clearinghouse.robust import build_planning_sim, planning_mode  # noqa: E402
 from clearinghouse.simulator import DaySimulator  # noqa: E402
 
-OUT_FILE = RESULTS_DIR / "scenario_savings_q4_2024.json"
-RUNS_FILE = RESULTS_DIR / "scenario_savings_q4_2024_runs.csv"
+MODE = planning_mode()  # PLANNING_MODE env (M11); "plain" keeps the original file names
+# M13 dev/test split by date index (even = dev, odd = test); seeds keep the all-days index.
+SUBSET = __import__("os").environ.get("SCENARIO_DAYS", "all").strip().lower() or "all"
+if SUBSET not in ("all", "dev", "test"):
+    raise ValueError(f"SCENARIO_DAYS must be all, dev or test, got {SUBSET!r}")
+TAG = __import__("os").environ.get("SCENARIO_TAG", "").strip()
+_SUFFIX = ("" if MODE == "plain" else f"_{MODE}") + ("" if SUBSET == "all" else f"_{SUBSET}") \
+    + (f"_{TAG}" if TAG else "")
+OUT_FILE = RESULTS_DIR / f"scenario_savings_q4_2024{_SUFFIX}.json"
+RUNS_FILE = RESULTS_DIR / f"scenario_savings_q4_2024{_SUFFIX}_runs.csv"
 DAYS = tuple(pd.date_range("2024-10-01", "2024-12-31").strftime("%Y-%m-%d"))
-SHARES = (5.0, 10.0, 20.0)
+SHARES = tuple(float(x) for x in __import__("os").environ.get("SCENARIO_SHARES", "5,10,20")
+               .split(","))  # M13 dev iterations may run 10 only; seeds do not depend on share
 HEADLINE_SHARE = 10.0
 K = 10
 N = DEFAULT_N
@@ -76,9 +88,14 @@ def main() -> dict:
     provider = get_provider()
     runs, sources = [], Counter()
     for di, day in enumerate(DAYS):
+        if (SUBSET == "dev" and di % 2) or (SUBSET == "test" and not di % 2):
+            continue
         fc = provider.get_forecast(REGION_CODE, day)
         sources[fc.source] += 1
-        plan_sim = DaySimulator(forecast_inputs(fc), params)
+        plan_sim = build_planning_sim(
+            day, forecast_inputs(fc), params, MODE,
+            forecast_for=lambda d: forecast_inputs(provider.get_forecast(REGION_CODE, d)),
+            actual_for=actual_inputs)
         score_sim = DaySimulator(actual_inputs(day), params)
         peak = score_sim.inputs.peak_demand_mw
         no_flex = score_sim.baseline["total_co2_t"]
@@ -112,7 +129,8 @@ def main() -> dict:
         "days": [DAYS[0], DAYS[-1], len(DAYS)], "shares_pct": list(SHARES),
         "headline_share_pct": HEADLINE_SHARE, "k_draws": K, "n_bids": N,
         "seed_rule": f"{SEED_BASE} + 100 x day_index + k",
-        "forecast_sources": dict(sources), "params_source": params_source.split(":", 1)[0],
+        "forecast_sources": dict(sources), "planning_mode": MODE, "day_subset": SUBSET, "tag": TAG,
+        "params_source": params_source.split(":", 1)[0],
         "baselines": BASELINES, "t_per_car_year": T_PER_CAR_YEAR,
         "population": distribution_summary(),
         "summary_by_share_pct": summary,

@@ -1,0 +1,12 @@
+{
+ "tag": "r20_x15_imp07",
+ "planning_mode": "robust",
+ "coordinator": "improve",
+ "improve_q": "0.7",
+ "robust_days": "20",
+ "runs": 920,
+ "win_pct": 69.45652173913044,
+ "loss_pct": 29.456521739130437,
+ "mean_saved_vs_self_t": 921.2662379423982,
+ "mean_saved_vs_bau_t": 4856.6866143493435
+}

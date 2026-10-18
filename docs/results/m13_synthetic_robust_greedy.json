@@ -1,0 +1,12 @@
+{
+ "tag": "robust_greedy",
+ "planning_mode": "robust",
+ "coordinator": "greedy",
+ "improve_q": null,
+ "robust_days": null,
+ "runs": 920,
+ "win_pct": 74.67391304347825,
+ "loss_pct": 24.891304347826086,
+ "mean_saved_vs_self_t": 1586.7268043472438,
+ "mean_saved_vs_bau_t": 5650.936203401019
+}

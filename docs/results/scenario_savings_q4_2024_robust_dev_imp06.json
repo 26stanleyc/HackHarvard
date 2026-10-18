@@ -1,0 +1,129 @@
+{
+ "generated_utc": "2026-10-18T03:07:33+00:00",
+ "rule": "* Days: every CST day 2024-10-01..2024-12-31 (92 days, the forecast's test period: the M10 models\n  never saw them).\n* Companies: ``make_population(share, actual peak, seed, N=30)`` (the stated synthetic\n  distributions in ``population.py``); K = 10 draws per day with fresh seeds\n  ``SEED_BASE + 100 x day_index + k``; shares 5, 10 and 20 % of the day's actual peak (the same\n  draw rescaled). Headline share: 10 %. No background population.\n* Strategies, exactly as the adoption chart (``build_adoption_chart.draw_totals``): default\n  (business as usual), independent_average (baseline 1: every company picks the cleanest hours\n  of the public average-intensity forecast), independent_marginal (baseline 2: every company\n  self-optimizes its own marginal CO2), coordinated (greedy over all companies with the\n  planning-time fallback to baseline 2).\n* Planned on the forecast provider's inputs (Chalk when configured, else the local M10 model;\n  the two give identical forecasts), scored on the day's actual inputs, calibrated params.\n* Saved vs a baseline = E(baseline) - E(coordinated), fossil CO2 (t) of the whole day; positive =\n  coordination emits less. Reported per share: mean, median, p10, p90 over all day x draw runs,\n  the share of runs with saved > 0 (and < 0), and saved per MWh of flexible energy.",
+ "days": [
+  "2024-10-01",
+  "2024-12-31",
+  92
+ ],
+ "shares_pct": [
+  10.0
+ ],
+ "headline_share_pct": 10.0,
+ "k_draws": 10,
+ "n_bids": 30,
+ "seed_rule": "7000 + 100 x day_index + k",
+ "forecast_sources": {
+  "local": 46
+ },
+ "planning_mode": "robust",
+ "day_subset": "dev",
+ "tag": "imp06",
+ "params_source": "calibrated",
+ "baselines": {
+  "vs_cleanest_slot": "independent_average",
+  "vs_self_optimizing": "independent_marginal",
+  "vs_business_as_usual": "default"
+ },
+ "t_per_car_year": 4.6,
+ "population": {
+  "n_default": 30,
+  "load_types": {
+   "ev_fleet_overnight": {
+    "p": 0.25,
+    "duty": [
+     0.3,
+     0.8
+    ]
+   },
+   "ev_fleet_evening": {
+    "p": 0.1,
+    "duty": [
+     0.3,
+     0.8
+    ]
+   },
+   "data_center_batch": {
+    "p": 0.2,
+    "duty": [
+     0.3,
+     0.8
+    ]
+   },
+   "office_precooling": {
+    "p": 0.2,
+    "duty": [
+     0.3,
+     0.8
+    ]
+   },
+   "cold_storage": {
+    "p": 0.1,
+    "duty": [
+     0.15,
+     0.35
+    ]
+   },
+   "generic": {
+    "p": 0.15,
+    "duty": [
+     0.3,
+     0.8
+    ]
+   }
+  },
+  "windows": {
+   "ev_fleet_overnight": "earliest U{0..4}, deadline U{5..9}",
+   "ev_fleet_evening": "earliest U{16..19}, deadline 24",
+   "data_center_batch": "0-24",
+   "office_precooling": "earliest U{5..10}, deadline U{12..18}",
+   "cold_storage": "0-24",
+   "generic": "earliest U{0..20}, length U{3..12}, deadline min(24, earliest+length)"
+  },
+  "size": "max_mw ~ LogNormal(0, 1.0) relative, then scaled",
+  "energy": "duty x max_mw x window_hours",
+  "scaling": "sum(max_mw) = share_pct/100 x day's actual peak demand (energy scaled alike)"
+ },
+ "summary_by_share_pct": {
+  "10": {
+   "runs": 460,
+   "mean_flex_mwh_per_day": 32272.580028725897,
+   "fallback_fired_pct": 0.0,
+   "vs_cleanest_slot": {
+    "mean_t": 390.2529597058079,
+    "median_t": 10.54991840312141,
+    "p10_t": -2134.080595803686,
+    "p90_t": 3470.5356489600326,
+    "pct_runs_positive": 50.43478260869565,
+    "pct_runs_negative": 48.69565217391305,
+    "t_per_mwh_flex": 0.012092400401778934,
+    "q4_total_t_of_mean_day": 35903.27229293432,
+    "car_years_per_mean_day": 84.8375999360452
+   },
+   "vs_self_optimizing": {
+    "mean_t": 366.33772756874544,
+    "median_t": 236.05985296377912,
+    "p10_t": -785.7664912180072,
+    "p90_t": 1800.9591983852272,
+    "pct_runs_positive": 65.0,
+    "pct_runs_negative": 31.08695652173913,
+    "t_per_mwh_flex": 0.01135136165880346,
+    "q4_total_t_of_mean_day": 33703.07093632458,
+    "car_years_per_mean_day": 79.63863642798815
+   },
+   "vs_business_as_usual": {
+    "mean_t": 1816.536001034023,
+    "median_t": 1345.9916175725812,
+    "p10_t": -1134.7310198612627,
+    "p90_t": 5531.874692958507,
+    "pct_runs_positive": 72.82608695652173,
+    "pct_runs_negative": 26.304347826086953,
+    "t_per_mwh_flex": 0.056287287828153815,
+    "q4_total_t_of_mean_day": 167121.31209513012,
+    "car_years_per_mean_day": 394.89913065957023
+   }
+  }
+ },
+ "runtime_s": 73.6484933749889,
+ "runs_file": "scenario_savings_q4_2024_robust_dev_imp06_runs.csv"
+}

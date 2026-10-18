@@ -240,8 +240,10 @@ def clear_with_details(day: str, bids: Sequence[Bid | Mapping], background_pct: 
     fallback = full.fallback_fired
     if fallback:
         raw = schedule_placements(plan_sim, bg, bids, s3)
+    elif full.trace is None:  # optimizers without a placement trace (M13 local search)
+        raw = schedule_placements(plan_sim, bg, bids, s4)
     else:
-        raw = full.trace or []
+        raw = full.trace
     trace = aggregate_trace(raw)
 
     sett = (settle(bids, s3, fixed, plan_sim, score_sim, carbon_price, pool_usd, game=game)

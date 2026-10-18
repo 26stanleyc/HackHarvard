@@ -1,0 +1,205 @@
+{
+ "generated_utc": "2026-10-18T03:08:50+00:00",
+ "rule": "* Days: every CST day 2024-10-01..2024-12-31 (92 days, the forecast's test period: the M10 models\n  never saw them).\n* Companies: ``make_population(share, actual peak, seed, N=30)`` (the stated synthetic\n  distributions in ``population.py``); K = 10 draws per day with fresh seeds\n  ``SEED_BASE + 100 x day_index + k``; shares 5, 10 and 20 % of the day's actual peak (the same\n  draw rescaled). Headline share: 10 %. No background population.\n* Strategies, exactly as the adoption chart (``build_adoption_chart.draw_totals``): default\n  (business as usual), independent_average (baseline 1: every company picks the cleanest hours\n  of the public average-intensity forecast), independent_marginal (baseline 2: every company\n  self-optimizes its own marginal CO2), coordinated (greedy over all companies with the\n  planning-time fallback to baseline 2).\n* Planned on the forecast provider's inputs (Chalk when configured, else the local M10 model;\n  the two give identical forecasts), scored on the day's actual inputs, calibrated params.\n* Saved vs a baseline = E(baseline) - E(coordinated), fossil CO2 (t) of the whole day; positive =\n  coordination emits less. Reported per share: mean, median, p10, p90 over all day x draw runs,\n  the share of runs with saved > 0 (and < 0), and saved per MWh of flexible energy.",
+ "days": [
+  "2024-10-01",
+  "2024-12-31",
+  92
+ ],
+ "shares_pct": [
+  5.0,
+  10.0,
+  20.0
+ ],
+ "headline_share_pct": 10.0,
+ "k_draws": 10,
+ "n_bids": 30,
+ "seed_rule": "7000 + 100 x day_index + k",
+ "forecast_sources": {
+  "local": 92
+ },
+ "planning_mode": "robust",
+ "params_source": "calibrated",
+ "baselines": {
+  "vs_cleanest_slot": "independent_average",
+  "vs_self_optimizing": "independent_marginal",
+  "vs_business_as_usual": "default"
+ },
+ "t_per_car_year": 4.6,
+ "population": {
+  "n_default": 30,
+  "load_types": {
+   "ev_fleet_overnight": {
+    "p": 0.25,
+    "duty": [
+     0.3,
+     0.8
+    ]
+   },
+   "ev_fleet_evening": {
+    "p": 0.1,
+    "duty": [
+     0.3,
+     0.8
+    ]
+   },
+   "data_center_batch": {
+    "p": 0.2,
+    "duty": [
+     0.3,
+     0.8
+    ]
+   },
+   "office_precooling": {
+    "p": 0.2,
+    "duty": [
+     0.3,
+     0.8
+    ]
+   },
+   "cold_storage": {
+    "p": 0.1,
+    "duty": [
+     0.15,
+     0.35
+    ]
+   },
+   "generic": {
+    "p": 0.15,
+    "duty": [
+     0.3,
+     0.8
+    ]
+   }
+  },
+  "windows": {
+   "ev_fleet_overnight": "earliest U{0..4}, deadline U{5..9}",
+   "ev_fleet_evening": "earliest U{16..19}, deadline 24",
+   "data_center_batch": "0-24",
+   "office_precooling": "earliest U{5..10}, deadline U{12..18}",
+   "cold_storage": "0-24",
+   "generic": "earliest U{0..20}, length U{3..12}, deadline min(24, earliest+length)"
+  },
+  "size": "max_mw ~ LogNormal(0, 1.0) relative, then scaled",
+  "energy": "duty x max_mw x window_hours",
+  "scaling": "sum(max_mw) = share_pct/100 x day's actual peak demand (energy scaled alike)"
+ },
+ "summary_by_share_pct": {
+  "5": {
+   "runs": 920,
+   "mean_flex_mwh_per_day": 16002.816691706528,
+   "fallback_fired_pct": 0.32608695652173914,
+   "vs_cleanest_slot": {
+    "mean_t": -78.17177229767637,
+    "median_t": -147.92406252317596,
+    "p10_t": -1501.535478212146,
+    "p90_t": 1523.7702151599929,
+    "pct_runs_positive": 42.06521739130435,
+    "pct_runs_negative": 55.326086956521735,
+    "t_per_mwh_flex": -0.004884875819279299,
+    "q4_total_t_of_mean_day": -7191.803051386226,
+    "car_years_per_mean_day": -16.993863542973124
+   },
+   "vs_self_optimizing": {
+    "mean_t": 55.61733640338185,
+    "median_t": 37.452640601986786,
+    "p10_t": -547.4567654587911,
+    "p90_t": 721.6972801485535,
+    "pct_runs_positive": 53.80434782608695,
+    "pct_runs_negative": 41.95652173913044,
+    "t_per_mwh_flex": 0.0034754716919431798,
+    "q4_total_t_of_mean_day": 5116.79494911113,
+    "car_years_per_mean_day": 12.090725305083012
+   },
+   "vs_business_as_usual": {
+    "mean_t": 622.7993581854897,
+    "median_t": 451.8084121674474,
+    "p10_t": -1018.3766317540664,
+    "p90_t": 2460.0222197892376,
+    "pct_runs_positive": 63.47826086956522,
+    "pct_runs_negative": 33.04347826086956,
+    "t_per_mwh_flex": 0.03891810861698216,
+    "q4_total_t_of_mean_day": 57297.54095306506,
+    "car_years_per_mean_day": 135.39116482293255
+   }
+  },
+  "10": {
+   "runs": 920,
+   "mean_flex_mwh_per_day": 32005.633383413056,
+   "fallback_fired_pct": 0.43478260869565216,
+   "vs_cleanest_slot": {
+    "mean_t": 432.9376591857558,
+    "median_t": 102.97482584082172,
+    "p10_t": -2191.8640567242746,
+    "p90_t": 3502.735008507548,
+    "pct_runs_positive": 52.60869565217391,
+    "pct_runs_negative": 45.76086956521739,
+    "t_per_mwh_flex": 0.013526920526750958,
+    "q4_total_t_of_mean_day": 39830.26464508953,
+    "car_years_per_mean_day": 94.11688243168605
+   },
+   "vs_self_optimizing": {
+    "mean_t": 268.033018133577,
+    "median_t": 220.36117035869393,
+    "p10_t": -1087.3579535855388,
+    "p90_t": 1764.448168122303,
+    "pct_runs_positive": 60.652173913043484,
+    "pct_runs_negative": 37.5,
+    "t_per_mwh_flex": 0.008374557532502554,
+    "q4_total_t_of_mean_day": 24659.037668289086,
+    "car_years_per_mean_day": 58.26804742034283
+   },
+   "vs_business_as_usual": {
+    "mean_t": 1730.1391857914555,
+    "median_t": 1163.132099632654,
+    "p10_t": -1167.206672682386,
+    "p90_t": 5344.189566615958,
+    "pct_runs_positive": 72.71739130434783,
+    "pct_runs_negative": 25.76086956521739,
+    "t_per_mwh_flex": 0.054057333128364256,
+    "q4_total_t_of_mean_day": 159172.8050928139,
+    "car_years_per_mean_day": 376.11721430249037
+   }
+  },
+  "20": {
+   "runs": 920,
+   "mean_flex_mwh_per_day": 64011.26676682611,
+   "fallback_fired_pct": 0.7608695652173914,
+   "vs_cleanest_slot": {
+    "mean_t": 1989.4280117846565,
+    "median_t": 1633.8493050825782,
+    "p10_t": -2642.9030813608374,
+    "p90_t": 7528.721354573785,
+    "pct_runs_positive": 68.3695652173913,
+    "pct_runs_negative": 31.630434782608695,
+    "t_per_mwh_flex": 0.031079341376441548,
+    "q4_total_t_of_mean_day": 183027.3770841884,
+    "car_years_per_mean_day": 432.48435038796885
+   },
+   "vs_self_optimizing": {
+    "mean_t": 818.6905152247041,
+    "median_t": 703.8398730851186,
+    "p10_t": -1762.8418985604483,
+    "p90_t": 3656.653297027969,
+    "pct_runs_positive": 65.21739130434783,
+    "pct_runs_negative": 34.02173913043478,
+    "t_per_mwh_flex": 0.012789787744819182,
+    "q4_total_t_of_mean_day": 75319.52740067277,
+    "car_years_per_mean_day": 177.9761989618922
+   },
+   "vs_business_as_usual": {
+    "mean_t": 3818.8510088510893,
+    "median_t": 3259.1102394676127,
+    "p10_t": -447.70661213380515,
+    "p90_t": 9293.708352078149,
+    "pct_runs_positive": 85.54347826086956,
+    "pct_runs_negative": 14.456521739130434,
+    "t_per_mwh_flex": 0.05965904444231702,
+    "q4_total_t_of_mean_day": 351334.2928143002,
+    "car_years_per_mean_day": 830.1850019241499
+   }
+  }
+ },
+ "runtime_s": 335.7959219159966,
+ "runs_file": "scenario_savings_q4_2024_robust_runs.csv"
+}

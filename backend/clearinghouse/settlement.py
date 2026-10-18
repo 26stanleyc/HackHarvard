@@ -51,6 +51,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from clearinghouse.improve import coordinator_mode, improve
 from clearinghouse.inputs import HOURS
 from clearinghouse.schemas import Bid
 from clearinghouse.simulator import DaySimulator
@@ -190,6 +191,7 @@ class CoalitionGame:
     plan_sim: DaySimulator
     score_sim: DaySimulator
     block_frac: float = 0.01
+    optimizer: str = field(default_factory=coordinator_mode)  # "greedy" | "improve" (M13)
     plans: dict[Mask, CoalitionPlan] = field(default_factory=dict)
     values: dict[Mask, float] = field(default_factory=dict)
     e_score: dict[Mask, float] = field(default_factory=dict)
@@ -213,9 +215,13 @@ class CoalitionGame:
         trace = None
         if mem:
             fixed = canon_sum(list(self.fixed_components) + [self.s3[j] for j in non_ids])
-            res = greedy_place(self.plan_sim, fixed, [self.bids[i] for i in mem],
-                               block_frac=self.block_frac, record_trace=record_trace)
-            greedy, trace = res if record_trace else (res, None)
+            if self.optimizer == "improve":
+                greedy = improve(self.plan_sim, fixed, [self.bids[i] for i in mem],
+                                 {i: self.s3[i] for i in mem_ids})
+            else:
+                res = greedy_place(self.plan_sim, fixed, [self.bids[i] for i in mem],
+                                   block_frac=self.block_frac, record_trace=record_trace)
+                greedy, trace = res if record_trace else (res, None)
             cand = canon_sum(list(self.fixed_components) + [greedy[i] for i in mem_ids]
                              + [self.s3[j] for j in non_ids])
             e_cand = float(self.plan_sim.emissions_batch(cand[None, :])[0])

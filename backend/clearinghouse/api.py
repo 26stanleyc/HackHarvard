@@ -71,6 +71,7 @@ from clearinghouse.forecast.provider import HOURLY_FIELDS, ForecastResult
 from clearinghouse.inputs import actual_inputs, forecast_inputs
 from clearinghouse.params import load_params
 from clearinghouse.presets import PRESETS
+from clearinghouse.robust import build_planning_sim, planning_mode
 from clearinghouse.schemas import (
     AdoptionChartResponse,
     Bid,
@@ -176,6 +177,10 @@ def data_sources(forecast_source: str, model_set: str = "M4") -> list[str]:
         "CAMPD validation skipped (api.data.gov key pending); validation (b) uses EIA-930 fuel "
         "mix x eGRID emission factors",
         "Simulator calibrated on 248 training days, validated on 104 held-out days (2024)",
+        ("Planning: robust (every plan minimizes average CO2 over the forecast plus 10 "
+         "scenarios built from the forecast's errors on days D-2..D-11; scored on actuals)"
+         if planning_mode() == "robust" else
+         "Planning: on the single day-ahead forecast; scored on actuals"),
         "Illustrative defaults: carbon price $50/t, payout pool $100,000, background flexible "
         "load 10% of forecast peak",
     ]
@@ -198,7 +203,7 @@ class Engine:
         self.params, self.params_source = load_params()
         self._provider_factory = provider_factory
         self._lock = threading.RLock()
-        self._plan: dict[tuple[str, str], tuple[DaySimulator, list[float]]] = {}
+        self._plan: dict[tuple[str, str, str], tuple[DaySimulator, list[float]]] = {}
         self._score: dict[str, DaySimulator] = {}
         self._background: dict[tuple[str, str, float], Background] = {}
         self._last_fc: dict[str, ForecastResult] = {}
@@ -228,14 +233,22 @@ class Engine:
         return fc, latency
 
     def plan_sim(self, fc: ForecastResult) -> tuple[DaySimulator, list[float], str]:
-        key = (fc.date, _fingerprint(fc))
+        """Planning simulator (plain or robust, M11) plus the single-forecast average intensity
+        served as ``forecast.hourly.avg_intensity`` (premise 3, unchanged by the planning mode)."""
+        mode = planning_mode()
+        key = (fc.date, _fingerprint(fc), mode)
         with self._lock:
             hit = self._plan.get(key)
             if hit is None:
-                sim = DaySimulator(forecast_inputs(fc), self.params)
-                intensity = [float(x) for x in sim.avg_intensity(np.zeros(24))]
+                fc_inputs = forecast_inputs(fc)
+                single = DaySimulator(fc_inputs, self.params)
+                intensity = [float(x) for x in single.avg_intensity(np.zeros(24))]
+                sim = build_planning_sim(
+                    fc.date, fc_inputs, self.params, mode,
+                    forecast_for=lambda d: forecast_inputs(self.forecast(d, fresh=False)[0]),
+                    actual_for=actual_inputs)
                 hit = self._plan[key] = (sim, intensity)
-        return hit[0], hit[1], key[1]
+        return hit[0], hit[1], f"{key[1]}:{mode}"
 
     def score_sim(self, day: str) -> DaySimulator:
         with self._lock:

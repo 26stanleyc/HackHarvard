@@ -1,0 +1,12 @@
+{
+ "tag": "r10_imp08",
+ "planning_mode": "robust",
+ "coordinator": "improve",
+ "improve_q": "0.8",
+ "robust_days": null,
+ "runs": 920,
+ "win_pct": 76.63043478260869,
+ "loss_pct": 22.39130434782609,
+ "mean_saved_vs_self_t": 1132.0113260099706,
+ "mean_saved_vs_bau_t": 5196.220725063746
+}
