@@ -22,6 +22,11 @@ import { Button, Details, ErrorBanner, Segmented, SectionTitle, Source, Stat } f
 
 export type Act = "1" | "2" | "beat" | "3";
 
+/** Beat the coordinator: the user places the first BEAT_EDITABLE companies; the rest run the
+ * coordinator's own schedule, so the score compares the user's choices with the coordinator's
+ * for the same companies. */
+export const BEAT_EDITABLE = 5;
+
 export interface TraceState {
   /** number of trace step GROUPS applied (0..N); entries sharing a `step` form one group */
   idx: number;
@@ -563,9 +568,7 @@ function Narrative({
     return (
       <div className="card space-y-2 p-4 text-sm leading-relaxed text-ink-2">
         <div className="kicker">Your turn · Beat the coordinator</div>
-        <p>
-          Drag in each row to place each company&apos;s energy, then score it.
-        </p>
+        <p>{beatInstructions(Object.keys(response.strategies.default.schedule).length)}</p>
         <ScoreBoard response={response} evalState={evalState} act3Done={act3Done} />
       </div>
     );
@@ -589,6 +592,13 @@ function Narrative({
       )}
     </div>
   );
+}
+
+function beatInstructions(n: number): string {
+  const mine = Math.min(BEAT_EDITABLE, n);
+  return n > mine
+    ? `Drag in each row to place the first ${mine} companies' energy; the other ${n - mine} already run the coordinator's schedule. Then score it.`
+    : "Drag in each row to place each company's energy, then score it.";
 }
 
 function ScoreBoard({
@@ -660,7 +670,9 @@ function BeatPanel({
   const serverErr = new Map<string, string>();
   for (const e of evalState.result?.errors ?? []) serverErr.set(e.bid_id, e.message);
   for (const e of evalState.error?.bidErrors ?? []) if (e.bid_id) serverErr.set(e.bid_id, e.message);
-  const allPlaced = bids.every((b) => scheduleErrors(b, userSchedule[b.id] ?? []) === null);
+  const editable = bids.slice(0, BEAT_EDITABLE);
+  const fixed = bids.slice(BEAT_EDITABLE);
+  const allPlaced = editable.every((b) => scheduleErrors(b, userSchedule[b.id] ?? []) === null);
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
@@ -668,11 +680,11 @@ function BeatPanel({
           Start from default
         </Button>
         <Button variant="ghost" onClick={() => resetUserSchedule("empty")} testId="beat-clear">
-          Clear all
+          {fixed.length ? "Clear mine" : "Clear all"}
         </Button>
       </div>
       <div className="space-y-4">
-        {bids.map((b) => {
+        {editable.map((b) => {
           const c = companies.find((x) => x.id === b.id);
           return (
             <ScheduleGrid
@@ -686,6 +698,13 @@ function BeatPanel({
           );
         })}
       </div>
+      {fixed.length > 0 && (
+        <p className="rounded-md bg-surface-2/70 px-3 py-2 text-xs leading-relaxed text-ink-2" data-testid="beat-fixed-note">
+          The other {fixed.length} companies ({fixed.slice(0, 3).map((b) => b.name).join(", ")}
+          {fixed.length > 3 ? ", …" : ""}) run the coordinator&apos;s schedule, so the score compares your{" "}
+          {editable.length} with the coordinator&apos;s choices for the same {editable.length}.
+        </p>
+      )}
       {evalState.error && (
         <ErrorBanner
           title="Could not score the schedule"
@@ -710,7 +729,7 @@ function BeatPanel({
         <Button onClick={onScore} disabled={evalState.loading} testId="score-schedule">
           {evalState.loading ? "Scoring…" : "Score my schedule"}
         </Button>
-        {!allPlaced && <span className="text-xs text-warn">Place every company&apos;s full energy to score.</span>}
+        {!allPlaced && <span className="text-xs text-warn">Place each of your companies&apos; full energy to score.</span>}
       </div>
       {evalState.result && (
         <div>
