@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { API_MODE, ApiError, postBidFeatures } from "@/lib/api";
 import {
+  presetToDraft,
   customDraft,
   loadTypeLabel,
   loadTypeOptions,
@@ -26,7 +27,7 @@ import { suggestionPatch, type Suggestion } from "@/lib/assistant";
 import { AssistantPanel, type HelpRequest } from "./AssistantPanel";
 import { ExtractDropzone } from "./ExtractDropzone";
 import { CompanyModal } from "./CompanyModal";
-import { Button, ErrorBanner, SectionTitle, Source } from "./ui";
+import { Button, ErrorBanner, LoadTypeTag, SectionTitle, Source } from "./ui";
 
 export interface Scenario {
   day: string;
@@ -130,6 +131,13 @@ export function BidBuilder({
     }
     setModal(null);
   };
+  // One-click quick add by category (restored alongside the Add company dialog).
+  const addPreset = (p: Preset) =>
+    setDrafts((prev) =>
+      prev.length >= max ? prev : [...prev, presetToDraft(p, nextBidId(prev), prev.map((d) => d.name))],
+    );
+  const addCustom = () =>
+    setDrafts((prev) => (prev.length >= max ? prev : [...prev, customDraft(nextBidId(prev))]));
   const update = (id: string, patch: Partial<BidDraft>) =>
     setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
 
@@ -197,6 +205,37 @@ export function BidBuilder({
               <span aria-hidden className="text-lg leading-none text-accent">+</span> Add company
               <span className="hidden font-normal text-muted sm:inline">· build a bid, start from a preset, or upload a CSV</span>
             </button>
+            <div className="mt-3 text-[11px] font-medium uppercase tracking-wider text-muted">Quick add by category</div>
+            <div className="mt-1.5 flex flex-wrap gap-2" data-testid="quick-add">
+              {presets.map((p) => (
+                <button
+                  key={p.name}
+                  type="button"
+                  disabled={full}
+                  onClick={() => addPreset(p)}
+                  data-testid={`add-preset-${p.load_type}`}
+                  title={p.size_reference}
+                  className="rounded-md border border-line bg-surface px-2.5 py-1.5 text-left text-xs text-ink-2 hover:border-line-strong hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className="font-medium text-ink">+ {p.name}</span>
+                    <LoadTypeTag type={p.load_type} />
+                  </span>
+                  <span className="num mt-0.5 block text-muted">
+                    {fmtInt(p.energy_mwh)} MWh · {fmtInt(p.max_mw)} MW · {windowLabel(p.earliest_hour, p.deadline_hour)}
+                  </span>
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={full}
+                onClick={addCustom}
+                data-testid="add-custom"
+                className="rounded-md border border-dashed border-line-strong px-2.5 py-1.5 text-xs font-medium text-ink-2 hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                + Custom company
+              </button>
+            </div>
             {full && <p className="mt-2 text-xs text-muted">Maximum of {max} companies.</p>}
             {drafts.length > shapleyMax && (
               <p className="mt-2 text-xs text-muted" data-testid="shapley-limit-hint">
@@ -204,7 +243,7 @@ export function BidBuilder({
                 payouts (those are computed for up to {shapleyMax} companies).
               </p>
             )}
-            <Source className="mt-3">presets (inside Add company): GET /api/presets · sizes are reference values, see each preset&apos;s note</Source>
+            <Source className="mt-3">presets (quick add and inside Add company): GET /api/presets · sizes are reference values, see each preset&apos;s note</Source>
           </div>
 
           <ExtractDropzone disabled={full} onAdd={addExtracted} />
