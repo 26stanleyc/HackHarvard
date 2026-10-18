@@ -6,8 +6,9 @@ Rules (in priority order, at most ``MAX_SUGGESTIONS``):
    run hours (or the start back if that passes 24:00).
 2. ``fix`` capacity: energy above max MW x window -> extend the deadline to fit at max power, or
    if that passes 24:00, raise max MW to energy / window.
-3. ``improve`` no clean hours: a feasible window holding none of the day's 4 cleanest hours ->
-   extend the window to the nearest one (marked "if your operations allow").
+3. ``improve`` no clean hours: a feasible window holding none of the day's 4 cleanest hours, and
+   whose best hour has a higher marginal rate than they do -> extend the window to the nearest
+   one (marked "if your operations allow"). Never fires when timing cannot lower emissions.
 
 Every suggestion is ``{bid_id, field, from, to, reason, kind}``. Numbers in reasons come from the
 payload only.
@@ -79,7 +80,10 @@ def rule_suggestions(payload: dict) -> list[dict]:
                     f"{b['energy_mwh']:g} MWh in a {window} h window needs at least {mw:g} MW "
                     f"(now {b['max_mw']:g} MW), if your equipment can draw that.")))
             continue
-        if b.get("cleanest_hours_in_window") == [] and cleanest:
+        rates = payload["marginal_co2_t_per_mwh"]
+        best_in_window = min(rates[lo:hi])
+        if (b.get("cleanest_hours_in_window") == [] and cleanest
+                and best_in_window > min(rates[c] for c in cleanest) + 1e-6):
             after = [c for c in cleanest if c >= hi]
             before = [c for c in cleanest if c < lo]
             cand = []

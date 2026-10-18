@@ -121,6 +121,10 @@ def build_grounding(engine: Any, day: str, bids: list[AssistantBid],
         "avg_intensity_t_per_mwh": [round(float(x), 3) for x in intensity],
         "cleanest_hours": cleanest,
         "dirtiest_hours": dirtiest,
+        # True when every hour has the same marginal rate (e.g. curtailed wind absorbs extra load
+        # all day): timing then changes nothing, and the rankings above only break ties by
+        # average intensity.
+        "marginal_rates_all_equal": bool(float(np.ptp(marginal)) < 1e-6),
         "bids": rows,
         "bid_features_source": features_source,
         "scenario": scenario.model_dump() if scenario else None,

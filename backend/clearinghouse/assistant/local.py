@@ -54,6 +54,13 @@ def _feasibility(payload: dict) -> str:
 
 def _clean_hours(payload: dict) -> str:
     m = payload["marginal_co2_t_per_mwh"]
+    if payload.get("marginal_rates_all_equal"):
+        a = payload["avg_intensity_t_per_mwh"]
+        lo = ", ".join(f"{_hh(h)} ({a[h]:g} t/MWh)" for h in payload["cleanest_hours"])
+        return (f"On the {payload['forecast']['source']} forecast for {payload['day']}, every "
+                f"hour has the same marginal CO2 rate ({m[0]:g} t/MWh), so moving load does not "
+                "change emissions today. By average grid intensity instead, the cleanest hours "
+                f"are {lo}.")
     clean = ", ".join(f"{_hh(h)} ({m[h]:g} t/MWh)" for h in payload["cleanest_hours"])
     dirty = ", ".join(f"{_hh(h)} ({m[h]:g} t/MWh)" for h in payload["dirtiest_hours"])
     zero = sum(1 for x in m if x == 0)

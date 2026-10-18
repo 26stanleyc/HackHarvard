@@ -271,3 +271,26 @@ def test_assistant_routes_reject_unknown_day(client):
     r = client.post("/api/assistant/suggest", json={"day": "1999-01-01", "bids": []})
     assert r.status_code == 422
     SuggestRequest(day=DAY)  # empty bids are allowed
+
+
+def test_flat_marginal_day_gives_no_timing_advice(engine):
+    """2024-03-29 (windy night): if every hour's marginal rate is equal, no "improve" moves and
+    the answer says timing does not matter instead of naming arbitrary clean/dirty hours."""
+    p = build_grounding(engine, "2024-03-29", bids())
+    if not p["marginal_rates_all_equal"]:
+        pytest.skip("forecast for this day has distinct marginal rates")
+    assert [s for s in suggestions.rule_suggestions(p) if s["kind"] == "improve"] == []
+    a = local.answer("Which hours are cleanest today?", p, "ev_fleet")
+    assert "does not change emissions" in a and "dirtiest" not in a
+    assert numbers_grounded(a, p) == 1.0
+
+
+def test_improve_only_when_it_lowers_the_rate(payload):
+    rates = payload["marginal_co2_t_per_mwh"]
+    for s in suggestions.rule_suggestions(payload):
+        if s["kind"] != "improve":
+            continue
+        b = next(x for x in payload["bids"] if x["id"] == s["bid_id"])
+        lo, hi = b["earliest_hour"], b["deadline_hour"]
+        lo2, hi2 = (s["to"], hi) if s["field"] == "earliest_hour" else (lo, s["to"])
+        assert min(rates[lo2:hi2]) < min(rates[lo:hi])

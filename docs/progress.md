@@ -452,3 +452,16 @@ Findings and decisions:
 - Fields: the spec's 7 fields are `earliest_hour`, `deadline_hour`, `energy_mwh`, `max_mw`, `load_type`, `carbon_price`, `pool_usd`; `background_pct` is also in the glossary.
 - **Live now:** forecast and bid features via Chalk; LLM **not live** (`chalk router model list` is empty: no provider connection, no `CHALK_ROUTER_API_KEY`). The status route reports `gateway: unavailable` with the reason.
 - Checks: `tests/test_assistant.py` (58): grounding equals provider + simulator; window and capacity fixes; rule reasons and every local answer (all personas, all glossary fields) pass `numbers_grounded`; LLM output validation; marker stripping, fallback before the first token, mid-stream error (fake gateway, no network); SSE route; suggest under 1 s. `uv run pytest -q` → 276 passed with and without `CHALK_*`; ruff clean.
+
+## Chalk assistant, Phase 2 — assistant UI (2026-10-18)
+
+`frontend/src/components/AssistantPanel.tsx` + `src/lib/assistant.ts`, mounted inside `BidBuilder` (so only on the Bids step).
+- Floating "Coordinator Guide" button (badge = open live suggestions); 360 px side panel, full width on phones. Header: avatar, name, persona switcher (EV fleet / data center / facilities; default EV fleet, sent with every request).
+- Credibility strip from `GET /api/assistant/status`: `LLM: Chalk Model Gateway (model) | local rule-based · Forecast: chalk | local · Extract: …`. Each answer also says which path answered it and why.
+- Greeting names the day and the forecast source; three starter chips. Chat streams via `fetch` + `ReadableStream` (SSE over POST).
+- `?` icon on every bid field: opens the panel, asks a canned question with `focus_field`, and rings the field for 2.5 s.
+- Live suggestions: 600 ms debounce on any bid / day / scenario / persona change → `POST /api/assistant/suggest` → cards with **Apply**, which patches the draft through `setDrafts`; the applied field is tagged "suggested by Coordinator Guide" until the user edits it. Never auto-applied.
+- **Fixed after the first screenshot:** on 2024-03-29 every hour's marginal rate is 0, so "cleanest/dirtiest" rankings were arbitrary and an "improve" suggestion gained nothing. The payload now carries `marginal_rates_all_equal`; the answer says timing does not change emissions that day (ranking by average intensity instead, labeled), the prompt forbids window moves, and "improve" suggestions require a lower marginal rate (2 new tests).
+- Checked in a real browser (gstack headless Chromium) on the live API: panel and chips render; making b1's window invalid (start 20:00, deadline 07:00) showed a fix card 1.1 s after the edit (incl. the 600 ms debounce); Apply set the deadline to 24:00, cleared the error and tagged the field; the `?` on Max power answered with the bids' current values; layout at 400 px; no console errors.
+- Fixture mode: the assistant is hidden (it needs the live backend).
+- Checks: `uv run pytest -q` → 278 passed; ruff, frontend lint / typecheck / build clean.
