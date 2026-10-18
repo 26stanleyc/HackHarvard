@@ -300,7 +300,9 @@ export function ClearinghouseApp() {
           <div className="flex min-w-0 items-center gap-2.5">
             <Mark />
             <div className="min-w-0">
-              <div className="whitespace-nowrap font-serif text-[17px] font-semibold leading-tight text-ink">sage.ai</div>
+              <div className="whitespace-nowrap text-[18px] font-semibold leading-tight tracking-tight text-ink">
+                sage<span className="text-[#7f9070]">.ai</span>
+              </div>
               <div className="hidden truncate text-[11px] text-muted sm:block">
                 Coordinated load shifting with avoided-carbon payouts
               </div>
@@ -451,12 +453,37 @@ export function ClearinghouseApp() {
 
 function Mark() {
   return (
-    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden className="shrink-0">
-      <rect x="0.5" y="0.5" width="25" height="25" rx="6" fill="#0f5c45" />
-      <rect x="5" y="14" width="3" height="7" rx="1" fill="#fdfdfb" opacity="0.55" />
-      <rect x="9.5" y="10" width="3" height="11" rx="1" fill="#fdfdfb" opacity="0.75" />
-      <rect x="14" y="7" width="3" height="14" rx="1" fill="#fdfdfb" />
-      <rect x="18.5" y="11" width="3" height="10" rx="1" fill="#fdfdfb" opacity="0.75" />
+    // Spiral vine mark; mirrors src/app/icon.svg and public/brand/sage-mark.svg.
+    <svg width="26" height="34" viewBox="385 208 360 470" aria-hidden className="shrink-0">
+      <path
+        d="M559 668C559 610 520 560 495 520C470 475 470 420 500 390C535 355 600 358 625 395C650 435 620 480 578 478C545 476 528 445 540 420C550 400 572 392 582 398"
+        fill="none"
+        stroke="#4f6143"
+        strokeWidth="24"
+        strokeLinecap="round"
+      />
+      <circle cx="582" cy="398" r="15" fill="#4f6143" />
+      <path d="M393 311C450 320 485 360 487 413C430 400 395 365 393 311Z" fill="#b7c8a9" />
+      <path d="M466 478C520 490 555 525 560 580C505 570 470 535 466 478Z" fill="#b7c8a9" />
+      <g fill="#7f9070">
+        <rect x="518" y="216" width="63" height="105" rx="7" />
+        <rect x="643" y="268" width="94" height="136" rx="8" />
+        <rect x="601" y="466" width="84" height="115" rx="8" />
+      </g>
+      <g fill="#f6f5f0">
+        <rect x="534" y="243" width="14" height="14" />
+        <rect x="560" y="243" width="14" height="14" />
+        <rect x="534" y="274" width="14" height="14" />
+        <rect x="560" y="274" width="14" height="14" />
+        <rect x="664" y="295" width="18" height="18" />
+        <rect x="700" y="295" width="18" height="18" />
+        <rect x="664" y="337" width="18" height="18" />
+        <rect x="700" y="337" width="18" height="18" />
+        <rect x="622" y="492" width="16" height="16" />
+        <rect x="652" y="492" width="16" height="16" />
+        <rect x="622" y="528" width="16" height="16" />
+        <rect x="652" y="528" width="16" height="16" />
+      </g>
     </svg>
   );
 }
