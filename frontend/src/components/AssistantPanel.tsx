@@ -238,9 +238,8 @@ export function AssistantPanel({
 
           <div ref={listRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3" data-testid="assistant-messages">
             <Bubble role="assistant">
-              Hi! I explain every bid field and check your bids against {dayLabel} (
-              <span className="num">{day}</span>). The forecast I use is served by{" "}
-              {status ? (status.forecast === "chalk" ? "Chalk" : "the local model") : "…"}.
+              Hi! Ask me what any bid field means, or whether your bids work for {dayLabel} (
+              <span className="num">{day}</span>). When a bid can be fixed or made cleaner, I suggest a change at the bottom.
             </Bubble>
             {messages.length === 0 && (
               <div className="flex flex-wrap gap-1.5">
@@ -277,7 +276,12 @@ export function AssistantPanel({
 
           {liveOpen.length > 0 && (
             <div className="max-h-[40%] space-y-2 overflow-y-auto border-t border-line bg-surface-2 px-4 py-3" data-testid="assistant-live">
-              <div className="text-[11px] font-medium uppercase tracking-wider text-muted">Live suggestions</div>
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-wider text-muted">Suggested changes</div>
+                <p className="mt-0.5 text-[11px] leading-snug text-muted">
+                  Checked as you edit. Apply only changes the bid form; nothing is submitted.
+                </p>
+              </div>
               {liveOpen.map((s) => (
                 <SuggestionCard key={sugKey(s)} s={s} name={nameOf(s.bid_id)} applied={false} onApply={() => apply(s)} />
               ))}
@@ -345,15 +349,17 @@ function SuggestionCard({ s, name, applied, onApply }: { s: Suggestion; name: st
   return (
     <div className="rounded-md border border-line bg-surface p-2.5" data-testid="assistant-suggestion">
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 text-xs">
-          <span className={`mr-1.5 rounded px-1 py-px text-[10px] font-semibold uppercase ${s.kind === "fix" ? "bg-danger-soft text-danger" : "bg-accent-soft text-accent-ink"}`}>
-            {s.kind}
+        <div className="min-w-0 space-y-1 text-xs">
+          <span className={`inline-block rounded px-1 py-px text-[10px] font-semibold uppercase ${s.kind === "fix" ? "bg-danger-soft text-danger" : "bg-accent-soft text-accent-ink"}`}>
+            {s.kind === "fix" ? "Needs fix" : "Cleaner option"}
           </span>
-          <span className="font-medium text-ink">{name}</span>
-          <span className="text-muted"> · {FIELD_LABEL[s.field]} </span>
-          <span className="num text-ink-2">
-            {fmtValue(s.field, s.from)} → {fmtValue(s.field, s.to)}
-          </span>
+          <div className="font-medium text-ink">{name}</div>
+          <div>
+            <span className="text-muted">{FIELD_LABEL[s.field]}: </span>
+            <span className="num text-ink-2">
+              {fmtValue(s.field, s.from)} → {fmtValue(s.field, s.to)}
+            </span>
+          </div>
         </div>
         <button
           type="button"
@@ -373,12 +379,12 @@ function SuggestionCard({ s, name, applied, onApply }: { s: Suggestion; name: st
 function CredibilityStrip({ status, failed }: { status: AssistantStatus | null; failed: boolean }) {
   if (failed) return <p className="border-b border-line bg-warn-soft px-4 py-1.5 text-[11px] text-warn">Assistant status unavailable (backend not reachable).</p>;
   if (!status) return <p className="border-b border-line px-4 py-1.5 text-[11px] text-muted">Checking assistant sources…</p>;
-  const llm = status.gateway === "chalk" ? `Chalk Model Gateway (${status.model})` : "local rule-based";
-  const extract = status.extract === "chalk_function" ? "Chalk function" : status.extract === "gateway" ? "gateway direct" : "off";
+  const llm = status.gateway === "chalk" ? `AI (${status.model} via Chalk)` : "built-in rules (no AI model connected)";
+  const extract = status.extract === "chalk_function" ? "Chalk" : status.extract === "gateway" ? "AI direct" : "off";
   return (
-    <p className="border-b border-line bg-surface-2 px-4 py-1.5 font-mono text-[10.5px] leading-relaxed text-muted" data-testid="assistant-strip" title={status.gateway_reason ?? undefined}>
-      LLM: <span className="text-ink-2">{llm}</span> · Forecast: <span className="text-ink-2">{status.forecast}</span> · Extract:{" "}
-      <span className="text-ink-2">{extract}</span>
+    <p className="border-b border-line bg-surface-2 px-4 py-1.5 text-[11px] leading-relaxed text-muted" data-testid="assistant-strip" title={status.gateway_reason ?? undefined}>
+      Answers: <span className="text-ink-2">{llm}</span> · Forecast: <span className="text-ink-2">{status.forecast === "chalk" ? "Chalk" : "local model"}</span> · File
+      import: <span className="text-ink-2">{extract}</span>
     </p>
   );
 }

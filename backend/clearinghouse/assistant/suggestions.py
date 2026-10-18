@@ -98,9 +98,10 @@ def rule_suggestions(payload: dict) -> list[dict]:
                 what = "deadline" if field == "deadline_hour" else "start"
                 improves.append(dict(bid_id=b["id"], field=field, **{"from": frm}, to=to,
                                      kind="improve", reason=(
-                    f"None of today's {len(cleanest)} cleanest forecast hours ({hours}) fall in "
-                    f"your window. Moving the {what} to {_hh(to)} adds {_hh(c)}, if your "
-                    "operations allow.")))
+                    f"Your window misses all {len(cleanest)} of today's cleanest hours "
+                    f"({hours}). With a {_hh(to)} {what}, this bid can also run "
+                    f"{_hh(c)}-{_hh(c + 1)}, one of those clean hours. Apply only if your "
+                    "operations allow it.")))
     out = fixes + improves
     return out[:MAX_SUGGESTIONS]
 
