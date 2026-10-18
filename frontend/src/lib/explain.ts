@@ -104,19 +104,46 @@ export function fallbackSentence(r: ClearResponse): string | null {
   );
 }
 
+const FALLBACK_REASON =
+  "the coordinator's joint plan looked worse than every company's solo plan on the forecast, so it " +
+  "was set aside and each company ran its solo schedule";
+
+const FALLBACK_LIKELIHOOD =
+  "This is more common when the run has little flexible load (fewer or smaller companies); with " +
+  "more, the joint plan usually wins, though not always.";
+
 /**
- * Why a fallback run pays nothing, in plain words. When the fallback fires every company runs
- * its solo schedule, so coordination added exactly 0 t and there is nothing to share.
+ * What a fallback run pays, in plain words. When the fallback fires every company runs its solo
+ * schedule, so coordination added exactly 0 t. Shares still compare groups without each company,
+ * though: a company whose absence would have let the rest keep a joint plan that did worse on the
+ * actual day gets a positive share and is paid, while negative shares are paid $0 (never charged).
  */
 export function fallbackPayoutSentence(r: ClearResponse): string | null {
   if (!r.fallback_fired) return null;
+  const per = r.settlement.per_bid;
+  const paid = per.reduce((a, p) => a + p.payout_usd, 0);
+  if (r.settlement.method === "skipped" || paid < 0.005) {
+    return (
+      `Nothing is paid because ${FALLBACK_REASON}. Coordination added nothing beyond what each ` +
+      `company would do alone, and payouts only cover that difference. ${FALLBACK_LIKELIHOOD}`
+    );
+  }
+  const paidTo = per.filter((p) => p.payout_usd > 0).length;
   return (
-    "Nothing is paid because the coordinator's joint plan looked worse than every company's solo plan " +
-    "on the forecast, so it was set aside and each company ran its solo schedule. Coordination added " +
-    "nothing beyond what each company would do alone, and payouts only cover that difference. " +
-    "This is more common when the run has little flexible load (fewer or smaller companies); with " +
-    "more, the joint plan usually wins, though not always."
+    `Coordination added 0 t overall: ${FALLBACK_REASON}. ${paidTo} ` +
+    `${paidTo === 1 ? "company is" : "companies are"} still paid ${fmtUsd(paid)}, because shares also ` +
+    `compare groups without each company: without ${paidTo === 1 ? "it" : "them"}, the others would ` +
+    "have kept a joint plan that did worse on the actual day, so their presence counts as a saving. " +
+    "Companies with negative shares are paid $0 " +
+    "(nobody is charged), which is why payouts can exceed the carbon avoided. " +
+    FALLBACK_LIKELIHOOD
   );
+}
+
+/** The fallback reason alone, for places that state the payouts separately. */
+function fallbackTotalSentence(r: ClearResponse): string | null {
+  if (!r.fallback_fired) return null;
+  return `Coordination avoided 0 t because ${FALLBACK_REASON}.`;
 }
 
 export interface SettlementNotes {
@@ -136,7 +163,7 @@ export function settlementNotes(
   const neg = perBid.filter((p) => p.shapley_t < -SHARE_EPS_T);
   const paid = perBid.reduce((a, p) => a + p.payout_usd, 0);
   let total: string | null = null;
-  const fallback = totalAvoided === st.total_avoided_t ? fallbackPayoutSentence(r) : null;
+  const fallback = totalAvoided === st.total_avoided_t ? fallbackTotalSentence(r) : null;
   if (fallback) {
     total = fallback;
   } else if (isZeroT(totalAvoided)) {
