@@ -89,6 +89,17 @@ hour).
 | `clear_response.json` | `POST /api/clear` | `ClearResponse` |
 | `evaluate_request.json` | `POST /api/evaluate` (body) | `EvaluateRequest` |
 | `evaluate_response.json` | `POST /api/evaluate` | `EvaluateResponse` |
+| `herding_scroll_request.json` | `POST /api/clear` (body) | `ClearRequest` |
+| `herding_scroll_response.json` | `POST /api/clear` | `ClearResponse` |
+
+**Scroll-section scenario (not pre-registered):** `herding_scroll_*` back the story page's
+scroll-scrubbed animation (`frontend/src/components/HerdingScroll.tsx`), which calls the live
+API and falls back to this recording. Unlike the example scenario, it was **chosen after looking
+at results**: the four presets that appear in the animation (`b1..b4`) were cleared on each demo
+day at 0/5/10/20/30% background, and 2024-08-20 at 30% was picked because it shows a herding gap,
+coordination gains and a gain over default together. On other days and backgrounds the results
+are mixed; the page says so. Not written by this script: re-record it by posting
+`herding_scroll_request.json` to the live API's `/api/clear`.
 
 Hour convention: slot `h` (0-23) covers `[h:00, h+1:00)` fixed CST; `earliest_hour` (0-23) is
 the inclusive start and `deadline_hour` (1-24) the exclusive end. The coordinator trace uses the

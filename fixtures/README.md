@@ -31,7 +31,8 @@ API and falls back to this recording. Unlike the example scenario, it was **chos
 at results**: the four presets that appear in the animation (`b1..b4`) were cleared on each demo
 day at 0/5/10/20/30% background, and 2024-08-20 at 30% was picked because it shows a herding gap,
 coordination gains and a gain over default together. On other days and backgrounds the results
-are mixed; the page says so. Recorded 2026-10-17 from the live API.
+are mixed; the page says so. Not written by this script: re-record it by posting
+`herding_scroll_request.json` to the live API's `/api/clear`.
 
 Hour convention: slot `h` (0-23) covers `[h:00, h+1:00)` fixed CST; `earliest_hour` (0-23) is
 the inclusive start and `deadline_hour` (1-24) the exclusive end. The coordinator trace uses the
@@ -39,6 +40,6 @@ engine's 1% blocks, aggregated to at most 200 steps (several entries may share a
 `forecast.latency_ms` is the measured wall time of that request's forecast call, so it changes
 on every regeneration.
 
-Example-scenario outcome at generation time: total CO2 default 96,334 t, independent_average 96,334 t, independent_marginal 96,334 t, coordinated 96,334 t; fallback_fired=false; total avoided vs independent_marginal 0.0 t; payouts $0 of $100,000.
+Example-scenario outcome at generation time: total CO2 default 96,343 t, independent_average 96,343 t, independent_marginal 96,343 t, coordinated 96,343 t; fallback_fired=false; total avoided vs independent_marginal 0.0 t; payouts $0 of $100,000.
 
 `backend/tests/test_fixtures_schema.py` validates every file here.
