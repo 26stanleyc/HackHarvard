@@ -19,6 +19,18 @@ def _hours(hs: list[int]) -> str:
     return ", ".join(_hh(h) for h in hs) if hs else "none"
 
 
+def _spans(hs: list[int]) -> str:
+    """[0..9, 15..23] -> '00:00-10:00 and 15:00-24:00' (hour h is h:00-h+1:00)."""
+    runs, start = [], None
+    for i, h in enumerate(sorted(hs)):
+        if start is None:
+            start = h
+        if i + 1 == len(hs) or sorted(hs)[i + 1] != h + 1:
+            runs.append(f"{_hh(start)}-{_hh(h + 1)}")
+            start = None
+    return " and ".join(runs)
+
+
 def _field_for(text: str, focus: str | None) -> str | None:
     if focus in GLOSSARY:
         return focus
@@ -69,19 +81,25 @@ def _clean_hours(payload: dict) -> str:
     m = payload["marginal_co2_t_per_mwh"]
     if payload.get("marginal_rates_all_equal"):
         a = payload["avg_intensity_t_per_mwh"]
-        lo = ", ".join(f"{_hh(h)} ({a[h]:g} t/MWh)" for h in payload["cleanest_hours"])
+        by_avg = sorted(range(24), key=lambda h: (a[h], h))[:4]
+        lo = ", ".join(f"{_hh(h)} ({a[h]:g} t/MWh)" for h in sorted(by_avg))
         return (f"On the {payload['forecast']['source']} forecast for {payload['day']}, every "
                 f"hour has the same marginal CO2 rate ({m[0]:g} t/MWh), so moving load does not "
                 "change emissions today. By average grid intensity instead, the cleanest hours "
                 f"are {lo}.")
-    clean = ", ".join(f"{_hh(h)} ({m[h]:g} t/MWh)" for h in payload["cleanest_hours"])
+    ch = payload["cleanest_hours"]
     dirty = ", ".join(f"{_hh(h)} ({m[h]:g} t/MWh)" for h in payload["dirtiest_hours"])
-    zero = sum(1 for x in m if x == 0)
-    text = (f"On the {payload['forecast']['source']} forecast for {payload['day']}, the cleanest "
-            f"hours by marginal CO2 rate are {clean}. The dirtiest are {dirty}.")
-    if zero:
-        text += (f" {zero} hours have a rate of 0: extra load there is absorbed by curtailed "
-                 "wind and solar.")
+    src = f"On the {payload['forecast']['source']} forecast for {payload['day']}"
+    if payload.get("cleanest_hours_tied"):
+        text = (f"{src}, {len(ch)} hours tie for cleanest at a marginal CO2 rate of "
+                f"{m[ch[0]]:g} t/MWh: {_spans(ch)}. They are equally clean")
+        text += (", because extra load there is absorbed by curtailed wind and solar."
+                 if m[ch[0]] == 0 else ".")
+    else:
+        clean = ", ".join(f"{_hh(h)} ({m[h]:g} t/MWh)" for h in ch)
+        text = f"{src}, the cleanest hours by marginal CO2 rate are {clean}."
+    if dirty:
+        text += f" The dirtiest are {dirty}."
     for b in payload["bids"][:3]:
         if "cleanest_hours_in_window" in b:
             text += (f" {b['name'] or b['id']}'s window holds "

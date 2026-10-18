@@ -58,8 +58,14 @@ def test_grounding_comes_from_provider_and_simulator(engine, payload):
     np.testing.assert_allclose(payload["marginal_co2_t_per_mwh"], mr, atol=5e-4)
     clean, dirty = rank_hours(mr, np.asarray(intensity))
     assert payload["cleanest_hours"] == clean and payload["dirtiest_hours"] == dirty
-    assert len(clean) == len(dirty) == 4 and not set(clean) & set(dirty)
-    assert max(mr[h] for h in clean) <= min(mr[h] for h in dirty)
+    assert len(clean) >= 4 and len(dirty) <= 4 and not set(clean) & set(dirty)
+    if dirty:
+        assert max(mr[h] for h in clean) < min(mr[h] for h in dirty)
+    low = float(np.min(mr))
+    tied = [h for h in range(24) if mr[h] <= low + 1e-6]
+    assert payload["cleanest_hours_tied"] == (len(tied) >= 4)
+    if payload["cleanest_hours_tied"]:
+        assert clean == tied  # every tied hour, never an arbitrary subset
     assert payload["results"] is None
     assert payload["bid_features_source"] in ("chalk", "local")
     for row in payload["bids"]:
@@ -339,9 +345,91 @@ def test_scorers_catch_failures(payload):
     assert S.suggestion_matches(_output("x"), "")[0] is None
     assert S.suggestion_matches(_output("x", [up]), json.dumps({"none": True}))[0] == 0.0
     cl = json.dumps({"kind": "cleanest", "hours": [1, 2, 3, 4], "flat": False})
-    assert S.answer_correct(_output("01:00, 02:00, 03:00 and 04:00"), cl)[0] == 1.0
-    assert S.answer_correct(_output("01:00 and 02:00"), cl)[0] == 0.5
+    assert S.answer_correct(_output("The cleanest are 01:00, 02:00, 03:00 and 04:00."), cl)[0] == 1
+    assert S.answer_correct(_output("The cleanest are 01:00 and 02:00."), cl)[0] == 0.5
     sav = json.dumps({"kind": "savings"})
     assert S.answer_correct(_output("Your fleet will avoid 40 t."), sav)[0] == 0.0
     fe = json.dumps({"kind": "feasibility", "infeasible": ["A"], "feasible": ["B"]})
     assert S.answer_correct(_output("A is not feasible: x. B is not feasible: y."), fe)[0] == 0.5
+
+
+# answer_correct v2 (meaning, not wording). Answers below are verbatim from evaluation runs
+# c5124fb0 (rule-based baseline) and 0a9478d4 (first LLM run); docs/eval_results*.md.
+BIDS = json.dumps([{"id": "b1", "name": "EV fleet aggregator"}, {"id": "b2", "name": "Data center"},
+                   {"id": "b9", "name": "Night depot"}])
+FEAS_B1 = json.dumps({"kind": "feasibility", "infeasible": ["EV fleet aggregator"],
+                      "feasible": ["Data center"]})
+FEAS_B9 = json.dumps({"kind": "feasibility", "infeasible": ["Night depot"],
+                      "feasible": ["EV fleet aggregator", "Data center"]})
+
+
+@pytest.mark.parametrize("answer,expected,score", [
+    # rule-based baseline misses: must still fail
+    ("You have 3 companies on 2024-08-20. All your bids are feasible. Ask me what any field "
+     "means, whether a window is feasible, or which hours are cleanest today.",
+     json.dumps({"kind": "definition", "label": "Carbon price"}), 0.0),
+    ("I can only quote savings and payouts from a simulator run, and none is in my data yet.",
+     json.dumps({"kind": "definition", "label": "Payout pool"}), 0.0),
+    ("Energy (MWh): The total energy your load needs inside the window. The coordinator decides "
+     "when it is delivered, never how much.", FEAS_B9, 0.0),
+    # LLM answers, correct but worded differently: must pass
+    ("Your EV fleet bid (b1) is not feasible as written. It starts charging at 20:00 but the "
+     "vehicles must leave by 18:00.", FEAS_B1, 1.0),
+    ("Not for the EV fleet aggregator (b1). Its earliest hour is 20 and its deadline is 18, so "
+     "the window runs backward.", FEAS_B1, 1.0),
+    ("Yes, one bid is infeasible: b9 (Night depot). It needs 100 MWh.", FEAS_B9, 1.0),
+    ("Not yet: one bid can't fit. The Night depot (b9) needs 100 MWh, but its racks top out at "
+     "10 MW.", FEAS_B9, 1.0),
+    ("Today the cleanest hours by marginal CO2 are 9, 10, 14 and 15.",
+     json.dumps({"kind": "cleanest", "hours": [9, 10, 14, 15], "flat": False}), 1.0),
+    ("pool_usd is the cap on total payouts from the clearinghouse.",
+     json.dumps({"kind": "definition", "label": "Payout pool"}), 1.0),
+    ("Max MW is the combined power of the racks your jobs can use in any single hour.",
+     json.dumps({"kind": "definition", "label": "Max power"}), 1.0),
+    ("I can't say how many tonnes your fleet will avoid. The simulator only estimates savings "
+     "after you run the clearinghouse.", json.dumps({"kind": "savings"}), 1.0),
+    ("On 2024-03-29 the marginal CO2 rate is 0 in every hour, so timing does not change "
+     "emissions.", json.dumps({"kind": "cleanest", "hours": [1, 2, 3, 4], "flat": True}), 1.0),
+    # LLM weak answer (names no bid) and an invented figure: must fail
+    ("Mostly yes, but one bid can't fit. As a data-center ops lead, I'd read it like an SLA "
+     "check: energy must fit within max MW x window hours.", FEAS_B9, 0.0),
+    ("Your fleet will avoid about 40 t once the coordinator runs the clearinghouse.",
+     json.dumps({"kind": "savings"}), 0.0),
+    ("Yes, all three bids are valid. Each one has enough room to deliver its energy inside its "
+     "window.", json.dumps({"kind": "feasibility", "infeasible": [],
+                            "feasible": ["EV fleet aggregator", "Data center"]}), 1.0),
+    ("The Data center bid can't fit.", json.dumps({"kind": "feasibility", "infeasible": [],
+                                                   "feasible": ["Data center"]}), 0.0),
+    # calling a feasible bid infeasible is penalised
+    ("Night depot is infeasible. The Data center bid is not feasible either.", FEAS_B9, 0.5),
+])
+def test_answer_correct_v2(answer, expected, score):
+    from clearinghouse.assistant.eval_scorers import answer_correct
+    assert answer_correct(_output(answer), expected, BIDS)[0] == score
+
+
+def test_numbers_grounded_allows_proposed_edit_values(payload):
+    from clearinghouse.assistant.eval_scorers import numbers_grounded
+    g = json.dumps(payload)
+    sug = {"bid_id": "b9", "field": "max_mw", "from": 10, "to": 777777.5, "kind": "fix"}
+    text = "Raise max_mw to 777777.5."
+    assert numbers_grounded(_output(text, [sug]), g, "q")[0] == 1.0
+    assert numbers_grounded(_output(text), g, "q")[0] == 0.0
+
+
+def test_tied_cleanest_hours_are_all_listed(engine):
+    """2024-01-16: many hours tie at the lowest marginal rate (judge feedback, run e29825cd)."""
+    p = build_grounding(engine, "2024-01-16", bids())
+    if not p["cleanest_hours_tied"] or p["marginal_rates_all_equal"]:
+        pytest.skip("no partial tie on this forecast")
+    a = local.answer("Which hours are cleanest today?", p, "ev_fleet")
+    assert "tie for cleanest" in a and "equally clean" in a
+    from clearinghouse.assistant.eval_scorers import _hours_named
+    assert set(p["cleanest_hours"]) <= _hours_named(a)
+    assert numbers_grounded(a, p) == 1.0
+
+
+def test_hour_ranges_are_expanded():
+    from clearinghouse.assistant.eval_scorers import _hours_named
+    assert _hours_named("hours 0-9 and 15 to 23") >= set(range(10)) | set(range(15, 24))
+    assert _hours_named("00:00-10:00") >= set(range(11))

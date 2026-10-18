@@ -9,7 +9,9 @@ Built from real app state on every call:
 * the day's forecast (demand, wind, solar for 24 h) from the same provider the clearing uses
   (a Chalk ``grid_day`` online query when configured), with its source;
 * the simulator's marginal CO2 rate per hour on the forecast day (``DaySimulator.marginal_rate``
-  on the planning simulator; never actuals), and the 4 cleanest / 4 dirtiest hours by it.
+  on the planning simulator; never actuals), the cleanest hours (the 4 lowest, or every hour
+  tied at the lowest rate when 4 or more tie, e.g. 18 hours at 0 t/MWh on 2024-01-16: picking 4
+  of equals would be arbitrary) and the 4 dirtiest hours above that rate.
 """
 
 from __future__ import annotations
@@ -60,10 +62,22 @@ def _r(x: Any, nd: int = 1):
     return round(float(x), nd)
 
 
+TIE_T_PER_MWH = 1e-6
+
+
 def rank_hours(marginal: np.ndarray, intensity: np.ndarray) -> tuple[list[int], list[int]]:
-    """Cleanest and dirtiest hours by marginal rate (ties broken by average intensity)."""
+    """Cleanest and dirtiest hours by marginal rate.
+
+    Cleanest: every hour tied at the lowest rate if at least ``N_EXTREME_HOURS`` tie, else the
+    4 lowest (ties broken by average intensity). Dirtiest: the 4 highest among hours above the
+    lowest rate (empty when every hour ties).
+    """
     order = sorted(range(HOURS), key=lambda h: (marginal[h], intensity[h], h))
-    return sorted(order[:N_EXTREME_HOURS]), sorted(order[-N_EXTREME_HOURS:])
+    low = float(np.min(marginal))
+    tied = [h for h in range(HOURS) if marginal[h] <= low + TIE_T_PER_MWH]
+    cleanest = tied if len(tied) >= N_EXTREME_HOURS else sorted(order[:N_EXTREME_HOURS])
+    above = [h for h in order if h not in cleanest and marginal[h] > low + TIE_T_PER_MWH]
+    return cleanest, sorted(above[-N_EXTREME_HOURS:])
 
 
 def build_grounding(engine: Any, day: str, bids: list[AssistantBid],
@@ -120,6 +134,9 @@ def build_grounding(engine: Any, day: str, bids: list[AssistantBid],
         "marginal_co2_t_per_mwh": [round(float(x), 3) for x in marginal],
         "avg_intensity_t_per_mwh": [round(float(x), 3) for x in intensity],
         "cleanest_hours": cleanest,
+        # True when cleanest_hours is every hour tied at the lowest rate (more than 4 may tie).
+        "cleanest_hours_tied": int(np.sum(marginal <= marginal.min() + TIE_T_PER_MWH))
+        >= N_EXTREME_HOURS,
         "dirtiest_hours": dirtiest,
         # True when every hour has the same marginal rate (e.g. curtailed wind absorbs extra load
         # all day): timing then changes nothing, and the rankings above only break ties by

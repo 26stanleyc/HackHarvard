@@ -37,7 +37,15 @@ import chalkcompute
 BACKEND = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND))
 
-from clearinghouse.assistant.eval_dataset import DATASET  # noqa: E402
+from pydantic import BaseModel, Field  # noqa: E402
+
+# Every deployed function here runs in IMAGE (which ships the clearinghouse package), so this
+# light import is safe at module level. The judge gets the same glossary the assistant uses.
+from clearinghouse.assistant.glossary import GLOSSARY  # noqa: E402
+
+# Must equal clearinghouse.assistant.eval_dataset.DATASET (checked in main). Not imported at top
+# level: Chalk loads this file in every deployed function's container.
+DATASET = "clearinghouse-assistant-v1"
 
 EVALUATIONS = {"local": "clearinghouse-assistant", "llm": "clearinghouse-assistant-llm"}
 RESULTS = {"local": "eval_results_local.md", "llm": "eval_results.md"}
@@ -86,6 +94,29 @@ def clearinghouse_assistant_llm(question: str, grounding_json: str, persona: str
 TASKS = {"local": clearinghouse_assistant, "llm": clearinghouse_assistant_llm}
 
 
+class ExplanationQuality(BaseModel):
+    # No ge/le: Claude structured outputs reject minimum/maximum on numbers (HTTP 400 in run
+    # 0a9478d4); the range is stated in the description instead.
+    score: float = Field(description="Overall quality, a number from 0 to 1 inclusive.")
+    correct: bool = Field(description="Is the explanation factually correct per the glossary?")
+    reason: str
+
+
+# LLM judge (Chalk llm_judge, through the Model Gateway as this environment). Defined at module
+# level so Chalk can import it in its container; it only runs in the LLM evaluation.
+EXPLANATION_QUALITY = chalkcompute.scorers.llm_judge(
+    ExplanationQuality, model=MODEL, name="explanation-quality", image=IMAGE,
+    inputs=("output", "expected_field", "question"),
+    instructions=(
+        "You grade an assistant that explains electricity-bid fields to non-experts. The "
+        "output is JSON; grade its 'answer'. If expected_field is non-empty: is the explanation "
+        "of that field correct per the glossary below, and understandable to a non-expert? If "
+        "expected_field is empty, grade whether the answer addresses the question clearly "
+        "without inventing numbers.\n\nGlossary:\n"
+        + "\n".join(f"- {k} ({g['label']}, {g['unit']}): {g['definition']}"
+                    for k, g in GLOSSARY.items())))
+
+
 Results = chalkcompute.EvaluationScorerResult
 
 
@@ -117,9 +148,9 @@ def ch_suggestion_matches(output: str,
 
 
 @chalkcompute.function(image=IMAGE)
-def ch_answer_correct(output: str, expected_json: str) -> list[Results]:
+def ch_answer_correct(output: str, expected_json: str, bids_json: str) -> list[Results]:
     from clearinghouse.assistant import eval_scorers as S
-    return _result(S.answer_correct(output, expected_json))
+    return _result(S.answer_correct(output, expected_json, bids_json))
 
 
 SCORER_FNS = {
@@ -133,7 +164,7 @@ SCORER_FNS = {
 # --- run -----------------------------------------------------------------------------------------
 
 
-def main(path: str = "llm") -> None:
+def main(path: str = "llm", rescore: str | None = None) -> None:
     import datetime as dt
     import subprocess
     import tempfile
@@ -142,43 +173,50 @@ def main(path: str = "llm") -> None:
 
     from clearinghouse.assistant import eval_scorers as S
 
-    # Rows (and the gateway check) are built in a subprocess: building them loads the repo
-    # .env, whose CHALK_CLIENT_* are the app's query-only token. This process keeps using the
-    # developer's `chalk login` for the dataset upload and the evaluation run.
-    with tempfile.TemporaryDirectory() as tmp:
-        path = Path(tmp) / "rows.json"
-        subprocess.run([sys.executable, "-m", "clearinghouse.assistant.eval_dataset", str(path)],
-                       check=True, cwd=BACKEND)
-        built = json.loads(path.read_text())
-    rows, gw = built["rows"], built["gateway"]
-    print(f"dataset {DATASET}: {len(rows)} rows")
-    scorers = list(SCORER_FNS.values())
-    judge_note = "skipped: Chalk Model Gateway serves no model in this environment"
-    if gw["gateway"] == "chalk":
-        from pydantic import BaseModel, Field
-
-        class ExplanationQuality(BaseModel):
-            score: float = Field(ge=0, le=1, description="Overall quality.")
-            reason: str
-
-        scorers.append(chalkcompute.scorers.llm_judge(
-            ExplanationQuality, model=gw["model"], name="explanation-quality",
-            inputs=("output", "expected_field", "question"),
-            instructions=("Is the explanation of expected_field correct per the glossary and "
-                          "understandable to a non-expert? If expected_field is empty, grade "
-                          "whether the answer addresses the question.")))
-        judge_note = f"llm_judge with {gw['model']} via the Chalk Model Gateway"
-
-    if path == "llm" and gw["gateway"] != "chalk":
-        raise SystemExit(f"--path llm needs the Model Gateway: {gw['reason']}")
-    EVALUATION = EVALUATIONS[path]
-    dataset = chalkcompute.DatasetClient().upload(DATASET, rows)
-    evaluation = chalkcompute.Evaluation.create(EVALUATION, dataset=dataset,
-                                                task=TASKS[path], scorers=scorers)
     sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True,
                          text=True, cwd=BACKEND).stdout.strip()
-    run = evaluation.run(metadata={"git_sha": sha, "path": path}).wait()
-    print("run", run.id, run.status)
+    judge_table = None
+    if rescore:
+        # Score an existing run's task outputs with the current scorers (no task re-run, no
+        # model usage); the LLM judge's scores are read from the original run.
+        original = chalkcompute.EvaluationRun.from_id(rescore)
+        EVALUATION = f"{EVALUATIONS[path]} (rescored)"
+        rescorers = list(SCORER_FNS.values()) + ([EXPLANATION_QUALITY] if path == "llm" else [])
+        run = original.rescore(scorers=rescorers, name=EVALUATION,
+                               metadata={"git_sha": sha, "path": path,
+                                         "rescore_of": rescore}).wait()
+        print("rescore run", run.id, run.status, "of", rescore)
+        judge_note = (f"Chalk llm_judge with {MODEL} via the Chalk Model Gateway (rescore)"
+                      if path == "llm" else "not run")
+    else:
+        # Rows (and the gateway check) are built in a subprocess: building them loads the repo
+        # .env, whose CHALK_CLIENT_* are the app's query-only token. This process keeps using the
+        # developer's `chalk login` for the dataset upload and the evaluation run.
+        with tempfile.TemporaryDirectory() as tmp:
+            rows_file = Path(tmp) / "rows.json"
+            subprocess.run([sys.executable, "-m", "clearinghouse.assistant.eval_dataset",
+                            str(rows_file)], check=True, cwd=BACKEND)
+            built = json.loads(rows_file.read_text())
+        rows, gw = built["rows"], built["gateway"]
+        print(f"dataset {DATASET}: {len(rows)} rows")
+        from clearinghouse.assistant.eval_dataset import DATASET as BUILT_DATASET
+
+        assert BUILT_DATASET == DATASET, (BUILT_DATASET, DATASET)
+        scorers = list(SCORER_FNS.values())
+        judge_note = ("not run on the local path (keeps `make eval-local` free of model usage)"
+                      if path == "local" else "")
+        if path == "llm":
+            scorers.append(EXPLANATION_QUALITY)
+            judge_note = f"Chalk llm_judge with {MODEL} via the Chalk Model Gateway"
+
+        if path == "llm" and gw["gateway"] != "chalk":
+            raise SystemExit(f"--path llm needs the Model Gateway: {gw['reason']}")
+        EVALUATION = EVALUATIONS[path]
+        dataset = chalkcompute.DatasetClient().upload(DATASET, rows)
+        evaluation = chalkcompute.Evaluation.create(EVALUATION, dataset=dataset,
+                                                    task=TASKS[path], scorers=scorers)
+        run = evaluation.run(metadata={"git_sha": sha, "path": path}).wait()
+        print("run", run.id, run.status)
     table: pa.Table = chalkcompute.DatasetClient().read(run.result_dataset)
     res = table.to_pylist()
 
@@ -227,7 +265,18 @@ def main(path: str = "llm") -> None:
         unmatched.remove(best)
         vals = [v for v in chalk_vals[best] if v is not None]
         means[name] = (sum(vals) / len(vals) if vals else None, len(vals), best, agree)
-    judge_vals = [v for c in unmatched for v in chalk_vals[c] if v is not None]
+    judge_cols = unmatched + [c for c in cols if "explanation" in c.lower().replace("-", "_")
+                              and not c.endswith(("_error", "_metadata"))]
+    judge_vals = [v for c in judge_cols
+                  for v in (chalk_vals.get(c) or [chalk_score(r.get(c)) for r in res])
+                  if v is not None]
+    if judge_table is not None:
+        jres = judge_table.to_pylist()
+        judge_cols = [c for c in judge_table.column_names if "explanation" in c.lower()
+                      and not c.endswith(("_error", "_metadata"))]
+        judge_vals = [v for c in judge_cols for v in (chalk_score(r.get(c)) for r in jres)
+                      if v is not None]
+    print("judge columns:", judge_cols)
     llm_paths = sorted({json.loads(r["output"]).get("llm") for r in res if r.get("output")})
 
     lines = [
@@ -235,7 +284,9 @@ def main(path: str = "llm") -> None:
         + ("LLM via Chalk Model Gateway" if path == "llm" else "local rule-based path") + ")", "",
         f"Run `{run.id}` on Chalk Evaluations ({run.status}), "
         f"{dt.datetime.now().strftime('%Y-%m-%d %H:%M')}, git `{sha}`. "
-        f"Dataset `{DATASET}`, {len(rows)} rows; evaluation `{EVALUATION}`.", "",
+        f"Dataset `{DATASET}`, {len(res)} rows; evaluation `{EVALUATION}`"
+        + (f" (rescore of run `{rescore}`: same task outputs, current scorers)" if rescore
+           else "") + ".", "",
         f"Assistant path in the task: **{', '.join(p or '?' for p in llm_paths)}**"
         + (" (no Model Gateway key inside the task: the labeled local rule-based answerer, "
            "the path live on the site today)" if llm_paths == ["local"] else "") + ".", "",
@@ -255,11 +306,21 @@ def main(path: str = "llm") -> None:
               f"Task errors: {len(task_errors)}.", "", "## How to read this", "",
               "- The task runs the app's own code on Chalk (`assistant.service.respond`, the "
               "chat route's path after grounding) over grounding built from real app state.",
-              "- Without a Model Gateway key the task takes the local rule-based path, so these "
-              "numbers describe that path (live on the site today), not an LLM.",
+              ("- The task calls Claude through the Chalk Model Gateway (key from a Chalk "
+               "secret), the path live on the site when the gateway key is set."
+               if path == "llm" else
+               "- The task has no Model Gateway key, so it measures the labeled local "
+               "rule-based fallback, not an LLM."),
               "- Fixes made after a run that exposed misses are scored on the same rows, so a "
               "later 1.000 is optimistic; `tests/test_assistant.py` checks those fixes on new "
               "paraphrases. A fresh, held-out question set would be the stronger test.",
+              "- `numbers_grounded` accepts a number within 1% of any number in the grounding "
+              "(spec tolerance). With ~200 numbers there (MW figures in the thousands), a "
+              "made-up large number can pass by coincidence; small and exact values cannot.",
+              "- `answer_correct` v2 checks meaning (any hour format, \"infeasible\" / "
+              "\"can't fit\", field key or label) after the first LLM run showed v1 matched "
+              "only the rule-based wording; tests in `tests/test_assistant.py` keep the "
+              "baseline's real misses failing under v2.",
               "- Chalk names custom-scorer columns by id; each is matched to its scorer by "
               "per-row agreement with the local re-score (last column). Scorers whose rows are "
               "all identical cannot be told apart, but then their means are equal too.",
@@ -300,4 +361,7 @@ if __name__ == "__main__":
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--path", choices=("llm", "local"), default="llm")
-    main(ap.parse_args().path)
+    ap.add_argument("--rescore", metavar="RUN_ID",
+                    help="score an existing run's outputs with the current scorers")
+    a = ap.parse_args()
+    main(a.path, a.rescore)
