@@ -104,6 +104,21 @@ export function fallbackSentence(r: ClearResponse): string | null {
   );
 }
 
+/**
+ * Why a fallback run pays nothing, in plain words. When the fallback fires every company runs
+ * its solo schedule, so coordination added exactly 0 t and there is nothing to share.
+ */
+export function fallbackPayoutSentence(r: ClearResponse): string | null {
+  if (!r.fallback_fired) return null;
+  return (
+    "Nothing is paid because the coordinator's joint plan looked worse than every company's solo plan " +
+    "on the forecast, so it was set aside and each company ran its solo schedule. Coordination added " +
+    "nothing beyond what each company would do alone, and payouts only cover that difference. " +
+    "This is more common when the run has little flexible load (fewer or smaller companies); with " +
+    "more, the joint plan usually wins, though not always."
+  );
+}
+
 export interface SettlementNotes {
   /** headline sentence when total avoided is zero or negative (null when positive) */
   total: string | null;
@@ -121,7 +136,10 @@ export function settlementNotes(
   const neg = perBid.filter((p) => p.shapley_t < -SHARE_EPS_T);
   const paid = perBid.reduce((a, p) => a + p.payout_usd, 0);
   let total: string | null = null;
-  if (isZeroT(totalAvoided)) {
+  const fallback = totalAvoided === st.total_avoided_t ? fallbackPayoutSentence(r) : null;
+  if (fallback) {
+    total = fallback;
+  } else if (isZeroT(totalAvoided)) {
     total = "Coordination avoided 0 t beyond the baseline (each company's best solo schedule).";
   } else if (totalAvoided < 0) {
     total =

@@ -313,7 +313,7 @@ def test_improve_reason_counts_every_tied_cleanest_hour(engine):
     p["bids"][0]["cleanest_hours_in_window"] = []
     (s,) = suggestions.rule_suggestions(p)
     assert s["kind"] == "improve"
-    assert "None of today's 6 cleanest forecast hours" in s["reason"]
+    assert "misses all 6 of today's cleanest hours" in s["reason"]
     assert all(f"{h:02d}:00" in s["reason"] for h in tied)
     assert ungrounded_numbers(s["reason"], p, extra=[s["to"]]) == []
 
