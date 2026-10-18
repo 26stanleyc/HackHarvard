@@ -415,3 +415,32 @@ Checks:
   - a re-vendor;
   - `chalk apply`, with the user's approval.
 - Not done here.
+
+## M11. Robust planning against forecast error — PASS, adopted by rule (2026-10-17)
+
+Pre-registered rule (design M11): 65 primary days, 10% share, mean ΔE (plain − robust coordinated) = **+311.5 t/day, 95% day-clustered CI 96.3..542.7 → adopt robust**. 20% share: +679.0 t (CI 318..1053). 5%: +41.2 t (CI −109..200). Code: `clearinghouse/robust.py` (`ScenarioSimulator`, vectorized over scenarios; `PLANNING_MODE`), wired into `api.Engine.plan_sim` and `scenario_savings.py`; `scripts/m11_evaluate.py` → `docs/results/m11_robust_vs_plain.json`; tests `tests/test_robust.py`.
+
+## M13. Coordination win rate ≥ 75% at 20% of peak — NOT MET on the test set (2026-10-17)
+
+Metric: % of runs where coordinated emits strictly less than independent marginal (same planning information), 20% share. Dev = even-index Q4 days, test = odd-index (pre-registered split).
+
+| Candidate | Forecast | Dev win % | Synthetic win % | Test win % |
+|---|---|---|---|---|
+| plain greedy (baseline) | M10 | 58.5 | 65.8 | — |
+| robust greedy (10 scenario days) | M10 | 64.3 | 74.7 | — |
+| robust + robust local search q=0.8 (10 days) | M10 | 73.9 | 76.6 | — |
+| robust + local search q=0.6 | M10 | 71.5 | — | — |
+| robust + local search q=0.9 | M10 | 74.3 | — | — |
+| robust (20 days) + local search q=0.8 | M10 | 74.8 | 79.6 | — |
+| robust (20 days) + local search q=0.9 | M10 | 72.4 | — | — |
+| robust (30 days) + local search q=0.8 | M10 | 72.6 | — | — |
+| robust (20 days, errors x1.5/x2.0) + q=0.8 | M10 | 70.7 / 69.6 | — | — |
+| robust (20 days, errors x1.5) + q=0.7 | M10 | 74.6 | 69.5 (flagged: >5 pts below dev) | — |
+| plain greedy | M12 | 64.8 | 72.4 | **71.5** |
+| robust greedy | M12 | 62.0 | — | — |
+| robust (10 days) + local search q=0.8 | M12 | 71.1 | 78.8 | — |
+| **robust (20 days) + local search q=0.8** | M12 | **75.7** | 78.5 | **70.4** (test run 1 of 3) |
+
+- The only candidate that cleared 75% on dev did not hold on test (70.4%); on the same test days the plain greedy coordinator with the M12 forecast scored 71.5%. Dev-to-test swings of ±5 points with 46 days each mean the dev gains of the local search are within day-to-day noise once the forecast is good.
+- Losses cluster on days where the day-ahead forecast is far off (e.g. 2024-10-31: every run lost); planning-side knobs cannot recover those.
+- Code: `clearinghouse/improve.py` (`COORDINATOR=improve`, `IMPROVE_Q`), `ROBUST_DAYS` / `ROBUST_ERROR_SCALE` experiment knobs in `robust.py`, `scenario_savings.py` `SCENARIO_DAYS` / `SCENARIO_SHARES` / `SCENARIO_TAG`, `scripts/synthetic_check.py`. Results under `docs/results/` (`*_dev_*`, `*_test_*`, `m13_synthetic_*`). Defaults unchanged (`COORDINATOR=greedy`).
