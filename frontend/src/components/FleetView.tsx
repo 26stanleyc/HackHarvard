@@ -14,11 +14,10 @@ import { ToneMappingMode } from "postprocessing";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
 import { loadTypeLabel } from "@/lib/bids";
-import { activeRuns, fmtAvoided, fmtInt, fmtPct, fmtShareT, fmtT, fmtUsd, hh, slotLabel, windowLabel } from "@/lib/format";
+import { activeRuns, fmtInt, fmtUsd, hh, slotLabel } from "@/lib/format";
 import {
   SHAPLEY_MAX_BIDS_DEFAULT,
   type Bid,
-  type BidFeatures,
   type ClearRequest,
   type ClearResponse,
   type MarginalResource,
@@ -60,7 +59,6 @@ interface FleetRow {
   mw: number[];
   now: number;
   settle: SettlementBid | undefined;
-  features: BidFeatures | undefined;
 }
 
 const shortName = (name: string) => name.split(" (")[0];
@@ -142,7 +140,6 @@ export function FleetView({
       mw,
       now: mw[hour] ?? 0,
       settle: per.get(bid.id),
-      features: response.bid_features?.per_bid[bid.id],
     };
   });
   const running = rows.filter((r) => r.now > EPS_MW);
@@ -167,8 +164,7 @@ export function FleetView({
           <div className="kicker mb-1">Fleet replay</div>
           <h3 className="text-lg font-semibold text-ink">Who runs when, and who gets paid</h3>
           <p className="mt-1 max-w-2xl text-xs text-muted">
-            Each car is one company. Cars light up in the hours the coordinator scheduled them,
-            brighter the closer they run to their max power. Hover a car for its numbers.
+            Each car is a company. It lights up when it&apos;s scheduled to run. Hover for details.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -181,7 +177,7 @@ export function FleetView({
         </div>
       </div>
 
-      <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="grid gap-4 p-4 sm:p-5">
         <div className="min-w-0">
           <div
             className="relative isolate h-[380px] overflow-hidden rounded-lg border border-black bg-[#08090b] sm:h-[440px]"
@@ -241,7 +237,6 @@ export function FleetView({
           hour={hour}
           running={running}
           total={rows.length}
-          co2={coordinated.hourly_co2_t[hour]}
           marginal={coordinated.marginal_resource[hour]}
         />
       </div>
@@ -253,7 +248,6 @@ export function FleetView({
         hasPayouts={hasPayouts}
         noPayoutNote={noPayoutNote}
         totalPaid={totalPaid}
-        pool={response.settlement.pool_usd}
         carbonPrice={request.carbon_price}
       />
     </section>
@@ -655,7 +649,7 @@ function NameTag({
 }
 
 function CarCard({ row, noPayoutNote }: { row: FleetRow; noPayoutNote: string }) {
-  const { bid, settle, features } = row;
+  const { bid, settle } = row;
   const runs = activeRuns(row.mw);
   return (
     <div
@@ -667,11 +661,6 @@ function CarCard({ row, noPayoutNote }: { row: FleetRow; noPayoutNote: string })
         <span className="font-semibold text-ink">{bid.name}</span>
       </div>
       <div className="mt-0.5 text-muted">{loadTypeLabel(bid.load_type)}</div>
-      <p className="mt-2 text-ink-2">
-        Needs <span className="num">{fmtInt(bid.energy_mwh)} MWh</span> between{" "}
-        <span className="num">{windowLabel(bid.earliest_hour, bid.deadline_hour)}</span>, up to{" "}
-        <span className="num">{fmtInt(bid.max_mw)} MW</span>.
-      </p>
       <p className="mt-1 text-ink-2">
         {row.now > EPS_MW ? (
           <span className="font-medium text-accent">Running now at {fmtInt(row.now)} MW.</span>
@@ -685,24 +674,8 @@ function CarCard({ row, noPayoutNote }: { row: FleetRow; noPayoutNote: string })
         .
       </p>
       <dl className="mt-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5 border-t border-dashed border-line-strong pt-2">
-        <dt className="text-muted">vs default</dt>
-        <dd className="num text-right text-ink">{settle ? fmtAvoided(settle.vs_default_t) : "—"}</dd>
-        <dt className="text-muted">Shapley share</dt>
-        <dd className="num text-right text-ink">{settle ? `${fmtShareT(settle.shapley_t)} t` : "—"}</dd>
         <dt className="text-muted">Payout</dt>
         <dd className="num text-right font-medium text-accent">{settle ? fmtUsd(settle.payout_usd) : "—"}</dd>
-        {features?.window_mean_renewable_share != null && (
-          <>
-            <dt className="text-muted">Wind + solar in window</dt>
-            <dd className="num text-right text-ink">{fmtPct(features.window_mean_renewable_share, 0)}</dd>
-          </>
-        )}
-        {features?.slack_hours != null && (
-          <>
-            <dt className="text-muted">Slack</dt>
-            <dd className="num text-right text-ink">{features.slack_hours.toFixed(1)} h</dd>
-          </>
-        )}
       </dl>
       {!settle && <p className="mt-1.5 text-[11px] text-muted">{noPayoutNote}</p>}
     </div>
@@ -787,18 +760,16 @@ function HourPanel({
   hour,
   running,
   total,
-  co2,
   marginal,
 }: {
   hour: number;
   running: FleetRow[];
   total: number;
-  co2: number | undefined;
   marginal: MarginalResource | undefined;
 }) {
   const mw = running.reduce((a, r) => a + r.now, 0);
   return (
-    <aside className="space-y-3 text-sm" data-testid="fleet-hour-panel">
+    <aside className="grid gap-3 text-sm sm:grid-cols-2" data-testid="fleet-hour-panel">
       <div className="rounded-lg border border-line bg-surface-2 p-3">
         <div className="text-[11px] font-medium uppercase tracking-wider text-muted">{slotLabel(hour)}</div>
         <div className="num mt-1 text-2xl font-medium text-ink">
@@ -806,27 +777,11 @@ function HourPanel({
         </div>
         <div className="num mt-0.5 text-xs text-muted">{fmtInt(mw)} MW of flexible load this hour</div>
       </div>
-      <div className="rounded-lg border border-line p-3 text-xs">
-        <div className="text-[10px] uppercase tracking-wider text-muted">Grid CO2 this hour (coordinated)</div>
-        <div className="num font-medium text-ink">{co2 != null ? `${fmtT(co2)} t` : "—"}</div>
-        {marginal && (
-          <div className="mt-2">
-            <MarginalLine m={marginal} />
-          </div>
-        )}
-      </div>
-      <ul className="space-y-1 text-xs">
-        {running.length === 0 && <li className="text-muted">Nobody is scheduled this hour.</li>}
-        {running.map((r) => (
-          <li key={r.bid.id} className="flex items-center justify-between gap-2">
-            <span className="flex min-w-0 items-center gap-1.5">
-              <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: r.color }} />
-              <span className="truncate text-ink">{r.bid.name}</span>
-            </span>
-            <span className="num shrink-0 text-accent">{fmtInt(r.now)} MW</span>
-          </li>
-        ))}
-      </ul>
+      {marginal && (
+        <div className="rounded-lg border border-line p-3 text-xs">
+          <MarginalLine m={marginal} />
+        </div>
+      )}
     </aside>
   );
 }
@@ -838,7 +793,6 @@ function CompanyTable({
   hasPayouts,
   noPayoutNote,
   totalPaid,
-  pool,
   carbonPrice,
 }: {
   rows: FleetRow[];
@@ -847,19 +801,16 @@ function CompanyTable({
   hasPayouts: boolean;
   noPayoutNote: string;
   totalPaid: number;
-  pool: number;
   carbonPrice: number;
 }) {
   return (
     <div className="border-t border-line px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
         <div className="text-[11px] font-medium uppercase tracking-wider text-muted">
-          Full-day settlement, full coalition
+          Payouts for the day
         </div>
         <div className="num text-xs text-muted">
-          {hasPayouts
-            ? `${fmtUsd(totalPaid)} paid of ${fmtUsd(pool)} pool · ${fmtUsd(carbonPrice)}/t`
-            : noPayoutNote}
+          {hasPayouts ? `${fmtUsd(totalPaid)} paid · ${fmtUsd(carbonPrice)}/t` : noPayoutNote}
         </div>
       </div>
       <div className="max-h-72 overflow-auto">
@@ -868,8 +819,6 @@ function CompanyTable({
             <tr>
               <th className="py-1 pr-2 font-medium">Company</th>
               <th className="py-1 pr-2 text-right font-medium">This hour</th>
-              <th className="py-1 pr-2 text-right font-medium">vs default</th>
-              <th className="py-1 pr-2 text-right font-medium">Shapley</th>
               <th className="py-1 text-right font-medium">Payout</th>
             </tr>
           </thead>
@@ -893,8 +842,6 @@ function CompanyTable({
                   <td className={`num py-1.5 pr-2 text-right ${on ? "text-accent" : "text-muted"}`}>
                     {on ? `${fmtInt(r.now)} MW` : "idle"}
                   </td>
-                  <td className="num py-1.5 pr-2 text-right text-ink-2">{r.settle ? fmtAvoided(r.settle.vs_default_t) : "—"}</td>
-                  <td className="num py-1.5 pr-2 text-right text-ink-2">{r.settle ? `${fmtShareT(r.settle.shapley_t)} t` : "—"}</td>
                   <td className="num py-1.5 text-right font-medium text-ink">{r.settle ? fmtUsd(r.settle.payout_usd) : "—"}</td>
                 </tr>
               );

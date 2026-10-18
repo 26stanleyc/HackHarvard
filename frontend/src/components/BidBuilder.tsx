@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { API_MODE, ApiError, postBidFeatures } from "@/lib/api";
 import {
   customDraft,
@@ -12,7 +13,7 @@ import {
   presetToDraft,
   type BidDraft,
 } from "@/lib/bids";
-import { fmtInt, fmtPct, fmtUsd, hh, windowLabel } from "@/lib/format";
+import { fmtInt, fmtPct, hh, windowLabel } from "@/lib/format";
 import { companyColor } from "@/lib/theme";
 import {
   SHAPLEY_MAX_BIDS_DEFAULT,
@@ -22,7 +23,7 @@ import {
   type MetaResponse,
   type Preset,
 } from "@/lib/types";
-import { Button, ErrorBanner, LoadTypeTag, SectionTitle, Source } from "./ui";
+import { Button, ErrorBanner, Source } from "./ui";
 
 export interface Scenario {
   day: string;
@@ -74,7 +75,11 @@ function useBidProfiles(day: string, bids: Bid[]) {
   return { block, failed };
 }
 
-export function BidBuilder({
+/**
+ * Results sidebar: run button, the company list with Edit links, "Add a company" (opens the
+ * editor modal) and the day / price settings. Edits only take effect on the next run.
+ */
+export function CompanySidebar({
   meta,
   presets,
   drafts,
@@ -86,6 +91,7 @@ export function BidBuilder({
   clearing,
   clearError,
   onDismissError,
+  dirty,
 }: {
   meta: MetaResponse;
   presets: Preset[];
@@ -98,6 +104,8 @@ export function BidBuilder({
   clearing: boolean;
   clearError: ApiError | null;
   onDismissError: () => void;
+  /** the companies or settings changed since the last run */
+  dirty: boolean;
 }) {
   const max = meta.max_bids;
   const shapleyMax = meta.shapley_max_bids ?? SHAPLEY_MAX_BIDS_DEFAULT;
@@ -111,145 +119,212 @@ export function BidBuilder({
   for (const e of clearError?.bidErrors ?? []) {
     if (e.bid_id) serverErrByBid.set(e.bid_id, [...(serverErrByBid.get(e.bid_id) ?? []), e.message]);
   }
+  // null = closed, "add" = preset picker, otherwise the id of the company being edited
+  const [modal, setModal] = useState<string | null>(null);
 
-  const addPreset = (p: Preset) =>
-    setDrafts((prev) =>
-      prev.length >= max ? prev : [...prev, presetToDraft(p, nextBidId(prev), prev.map((d) => d.name))],
-    );
-  const addCustom = () =>
-    setDrafts((prev) => (prev.length >= max ? prev : [...prev, customDraft(nextBidId(prev))]));
+  const addPreset = (p: Preset) => {
+    const id = nextBidId(drafts);
+    setDrafts((prev) => [...prev, presetToDraft(p, id, prev.map((d) => d.name))]);
+    setModal(id);
+  };
+  const addCustom = () => {
+    const id = nextBidId(drafts);
+    setDrafts((prev) => [...prev, customDraft(id)]);
+    setModal(id);
+  };
   const update = (id: string, patch: Partial<BidDraft>) =>
     setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
-  const remove = (id: string) => setDrafts((prev) => prev.filter((d) => d.id !== id));
+  const remove = (id: string) => {
+    setDrafts((prev) => prev.filter((d) => d.id !== id));
+    setModal(null);
+  };
   const loadTypes = loadTypeOptions(presets);
+  const editIdx = drafts.findIndex((d) => d.id === modal);
+  const day = meta.days.find((d) => d.date === scenario.day);
 
   return (
-    <div>
-      <SectionTitle kicker="Step 2 · Bids" title="Submit flexibility bids">
-        Each company states only how much energy it needs, its window and its maximum power,
-        never its usage history. Bids are extra load on top of the real day&apos;s demand.
-      </SectionTitle>
-
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="min-w-0 space-y-4">
-          <div className="card p-4">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <div className="text-sm font-medium text-ink">
-                Companies <span className="num text-muted">{drafts.length}/{max}</span>
-              </div>
-              <Button variant="secondary" onClick={onLoadExample} testId="load-example">
-                Load example scenario
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {presets.map((p) => (
-                <button
-                  key={p.name}
-                  type="button"
-                  disabled={full}
-                  onClick={() => addPreset(p)}
-                  data-testid={`add-preset-${p.load_type}`}
-                  title={p.size_reference}
-                  className="rounded-md border border-line bg-surface px-2.5 py-1.5 text-left text-xs text-ink-2 hover:border-line-strong hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <span className="font-medium text-ink">+ {p.name}</span>
-                    <LoadTypeTag type={p.load_type} />
-                  </span>
-                  <span className="num mt-0.5 block text-muted">
-                    {fmtInt(p.energy_mwh)} MWh · {fmtInt(p.max_mw)} MW · {windowLabel(p.earliest_hour, p.deadline_hour)}
-                  </span>
-                </button>
-              ))}
-              <button
-                type="button"
-                disabled={full}
-                onClick={addCustom}
-                data-testid="add-custom"
-                className="rounded-md border border-dashed border-line-strong px-2.5 py-1.5 text-xs font-medium text-ink-2 hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                + Custom company
-              </button>
-            </div>
-            {full && <p className="mt-2 text-xs text-muted">Maximum of {max} companies.</p>}
-            {drafts.length > shapleyMax && (
-              <p className="mt-2 text-xs text-muted" data-testid="shapley-limit-hint">
-                More than {shapleyMax} companies: results show CO2 for every strategy, but no Shapley
-                payouts (those are computed for up to {shapleyMax} companies).
-              </p>
+    <div className="space-y-4" data-testid="company-sidebar">
+      <div className="space-y-2">
+        {clearError && (
+          <ErrorBanner
+            title={clearError.kind === "validation" ? "Bids rejected" : "Could not run the clearinghouse"}
+            message={clearError.message}
+            items={clearError.bidErrors.map((e) => ({
+              label: drafts.find((d) => d.id === e.bid_id)?.name ?? e.bid_id ?? "Request",
+              message: e.message,
+            }))}
+            onDismiss={onDismissError}
+          />
+        )}
+        {sErr.map((e) => (
+          <p key={e} className="text-xs text-danger">
+            {e}
+          </p>
+        ))}
+        <button
+          type="button"
+          onClick={onRun}
+          disabled={!canRun}
+          data-testid="run-clear"
+          className={`w-full rounded-xl px-4 py-3.5 text-left text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+            dirty ? "bg-accent hover:bg-accent-ink" : "bg-accent/80 hover:bg-accent"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-[17px] font-semibold">
+            {clearing ? (
+              <>
+                <Spinner /> Running…
+              </>
+            ) : (
+              <>
+                {dirty ? "Run with changes" : "Run again"} <span aria-hidden>→</span>
+              </>
             )}
-            <Source className="mt-3">presets: GET /api/presets · sizes are reference values, see each preset&apos;s note</Source>
           </div>
-
-          {drafts.length === 0 && (
-            <div className="card border-dashed p-8 text-center text-sm text-muted">
-              No companies yet. Add a preset above, or load the example scenario.
-            </div>
-          )}
-
-          {drafts.length > 0 && API_MODE !== "fixture" && (
-            <ProfileSourceNote block={profiles.block} failed={profiles.failed} />
-          )}
-
-          {drafts.map((d, i) => (
-            <BidCard
-              key={d.id}
-              index={i}
-              draft={d}
-              error={errors[i]}
-              serverErrors={serverErrByBid.get(d.id) ?? []}
-              loadTypes={loadTypes}
-              profile={errors[i] === null ? (profiles.block?.per_bid[d.id] ?? null) : null}
-              onChange={(patch) => update(d.id, patch)}
-              onRemove={() => remove(d.id)}
-            />
-          ))}
-        </div>
-
-        <aside className="min-w-0 space-y-4 lg:sticky lg:top-28 lg:self-start">
-          <ScenarioPanel meta={meta} scenario={scenario} setScenario={setScenario} />
-          <div className="card space-y-3 p-4">
-            {clearError && (
-              <ErrorBanner
-                title={
-                  clearError.kind === "validation"
-                    ? "Bids rejected"
-                    : clearError.kind === "timeout"
-                      ? "Clear timed out"
-                      : "Could not run the clearinghouse"
-                }
-                message={`${clearError.message} Your inputs are kept.`}
-                items={clearError.bidErrors.map((e) => ({
-                  label: drafts.find((d) => d.id === e.bid_id)?.name ?? e.bid_id ?? "Request",
-                  message: e.message,
-                }))}
-                onDismiss={onDismissError}
-              />
-            )}
-            {sErr.map((e) => (
-              <p key={e} className="text-xs text-danger">
-                {e}
-              </p>
-            ))}
-            <Button onClick={onRun} disabled={!canRun} testId="run-clear" className="w-full py-2.5">
-              {clearing ? (
-                <>
-                  <Spinner /> Clearing {drafts.length} bids…
-                </>
-              ) : (
-                "Run the clearinghouse"
-              )}
-            </Button>
-            <p className="text-xs text-muted">
-              Runs four strategies, the coordinator and the Shapley settlement (up to {shapleyMax}{" "}
-              companies) in one request (POST /api/clear).
-              {API_MODE === "fixture" &&
-                " In fixture mode the recorded example response is shown, whatever you enter."}
-            </p>
+          <div className="mt-0.5 text-xs text-white/80">
+            {drafts.length} {drafts.length === 1 ? "company" : "companies"} · {day?.label ?? scenario.day} ·{" "}
+            ${scenario.carbon_price}/t
           </div>
-        </aside>
+        </button>
       </div>
+
+      <div>
+        <div className="mb-2 flex items-baseline justify-between">
+          <div className="kicker">Companies</div>
+          <button type="button" onClick={onLoadExample} className="text-[11px] text-muted hover:text-ink" data-testid="load-example">
+            Reset to example
+          </button>
+        </div>
+        <ul className="space-y-2">
+          {drafts.map((d, i) => {
+            const bid = draftToBid(d);
+            const bad = errors[i] !== null || serverErrByBid.has(d.id);
+            return (
+              <li key={d.id}>
+                <button
+                  type="button"
+                  onClick={() => setModal(d.id)}
+                  data-testid={`company-row-${d.id}`}
+                  className={`flex w-full items-start gap-2.5 rounded-lg border bg-surface px-3 py-2.5 text-left hover:border-line-strong ${
+                    bad ? "border-danger/50" : "border-line"
+                  }`}
+                >
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: companyColor(i) }} aria-hidden />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-ink">{d.name || "Unnamed company"}</span>
+                    <span className="num block text-[11px] text-muted">
+                      {bad
+                        ? "needs a fix"
+                        : `${fmtInt(bid.energy_mwh)} MWh · ${fmtInt(bid.max_mw)} MW · ${windowLabel(bid.earliest_hour, bid.deadline_hour)}`}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-xs text-accent">Edit</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <button
+          type="button"
+          disabled={full}
+          onClick={() => setModal("add")}
+          data-testid="add-company"
+          className="mt-2 w-full rounded-lg border border-dashed border-line-strong px-3 py-2.5 text-sm font-medium text-ink-2 hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          + Add a company
+        </button>
+        {drafts.length > shapleyMax && (
+          <p className="mt-2 text-xs text-muted" data-testid="shapley-limit-hint">
+            Payouts are computed for up to {shapleyMax} companies.
+          </p>
+        )}
+      </div>
+
+      <ScenarioPanel meta={meta} scenario={scenario} setScenario={setScenario} />
+
+      {modal === "add" && (
+        <Modal title="Add a company" onClose={() => setModal(null)}>
+          <p className="mb-3 text-sm text-ink-2">Start from a typical company, then adjust it.</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {presets.map((p) => (
+              <button
+                key={p.name}
+                type="button"
+                onClick={() => addPreset(p)}
+                data-testid={`add-preset-${p.load_type}`}
+                className="rounded-lg border border-line bg-surface px-3 py-2.5 text-left text-xs hover:border-line-strong hover:bg-surface-2"
+              >
+                <span className="flex items-center gap-1.5">
+                  <span className="font-medium text-ink">{p.name}</span>
+                </span>
+                <span className="num mt-0.5 block text-muted">
+                  {fmtInt(p.energy_mwh)} MWh · {fmtInt(p.max_mw)} MW · {windowLabel(p.earliest_hour, p.deadline_hour)}
+                </span>
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={addCustom}
+              data-testid="add-custom"
+              className="rounded-lg border border-dashed border-line-strong px-3 py-2.5 text-left text-xs font-medium text-ink-2 hover:bg-surface-2"
+            >
+              Custom company
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {editIdx >= 0 && (
+        <Modal title="Company bid" onClose={() => setModal(null)}>
+          <BidCard
+            index={editIdx}
+            draft={drafts[editIdx]}
+            error={errors[editIdx]}
+            serverErrors={serverErrByBid.get(drafts[editIdx].id) ?? []}
+            loadTypes={loadTypes}
+            profile={errors[editIdx] === null ? (profiles.block?.per_bid[drafts[editIdx].id] ?? null) : null}
+            onChange={(patch) => update(drafts[editIdx].id, patch)}
+            onRemove={() => remove(drafts[editIdx].id)}
+          />
+          <div className="mt-4 flex items-center justify-between gap-3">
+            {API_MODE !== "fixture" ? <ProfileSourceNote block={profiles.block} failed={profiles.failed} /> : <span />}
+            <Button onClick={() => setModal(null)} testId="company-done">
+              Done
+            </Button>
+          </div>
+        </Modal>
+      )}
     </div>
+  );
+}
+
+function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  // portal: the sticky sidebar is its own stacking context, which would trap the overlay under the header
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 p-4 pt-[12vh] backdrop-blur-[2px]"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div role="dialog" aria-modal="true" aria-label={title} className="w-full max-w-2xl rounded-2xl bg-paper p-5 shadow-2xl sm:p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-serif text-2xl font-semibold text-ink">{title}</h3>
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded px-2 text-xl text-muted hover:text-ink">
+            ×
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -296,7 +371,6 @@ function ScenarioPanel({
           ))}
         </select>
         {day && <p className="mt-1.5 text-xs leading-relaxed text-ink-2">{day.description}</p>}
-        <p className="mt-1 text-[11px] text-muted">Days were chosen by weather type before any results were seen.</p>
       </div>
 
       <div>
@@ -321,8 +395,7 @@ function ScenarioPanel({
           className="w-full"
         />
         <p className="mt-1 text-xs leading-relaxed text-ink-2">
-          Everyone else in the region already following a standard carbon-aware tool. Fixed
-          context, not part of the payout game.
+          Everyone else in the region, already using a standard carbon-aware tool.
         </p>
       </div>
 
@@ -342,10 +415,6 @@ function ScenarioPanel({
           onChange={(v) => setScenario((s) => ({ ...s, pool_usd: v }))}
         />
       </div>
-      <Source>
-        defaults from /api/meta: {meta.background_pct_default}% background, {fmtUsd(meta.carbon_price_default)}/t,{" "}
-        {fmtUsd(meta.pool_default_usd)} pool
-      </Source>
     </div>
   );
 }
@@ -448,8 +517,6 @@ function BidCard({
 }) {
   const bid = draftToBid(draft);
   const windowH = Math.max(0, bid.deadline_hour - bid.earliest_hour);
-  const capacity = Number.isFinite(bid.max_mw) ? bid.max_mw * windowH : NaN;
-  const use = Number.isFinite(capacity) && capacity > 0 ? bid.energy_mwh / capacity : NaN;
   return (
     <div
       className={`card p-4 ${error || serverErrors.length ? "border-danger/50" : ""}`}
@@ -506,15 +573,8 @@ function BidCard({
           Window <span className="num text-ink-2">{windowLabel(bid.earliest_hour, bid.deadline_hour)}</span> ·{" "}
           <span className="num">{windowH} h</span>
         </span>
-        {Number.isFinite(use) && (
-          <span>
-            Needs <span className="num text-ink-2">{Math.round(use * 100)}%</span> of window capacity (
-            <span className="num">{fmtInt(capacity)}</span> MWh)
-          </span>
-        )}
       </div>
       {profile && <BidProfile f={profile} />}
-      {draft.size_reference && <p className="mt-1.5 text-[11px] text-muted">{draft.size_reference}</p>}
       {error && (
         <p className="mt-2 text-xs font-medium text-danger" data-testid={`bid-error-${draft.id}`}>
           {error}
@@ -544,21 +604,9 @@ function BidProfile({ f }: { f: BidFeatures }) {
       value: `${fmtInt(f.window_curtailed_mwh)} MWh`,
       title: "Forecast curtailed wind + solar in the window: extra load here is absorbed with no fossil ramp",
     });
-  if (f.window_lowest_net_load_hour !== null)
-    items.push({
-      label: "Lowest net load",
-      value: hh(f.window_lowest_net_load_hour),
-      title: "Hour in the window with the lowest forecast demand minus wind and solar",
-    });
-  if (f.slack_hours !== null)
-    items.push({
-      label: "Slack",
-      value: `${f.slack_hours.toFixed(1)} h`,
-      title: "Window length minus the hours needed at max power: room the coordinator has to move this bid",
-    });
   if (items.length === 0) return null;
   return (
-    <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-md bg-surface-2 px-3 py-2 sm:grid-cols-4" data-testid="bid-profile">
+    <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-md bg-surface-2 px-3 py-2 " data-testid="bid-profile">
       {items.map((it) => (
         <div key={it.label} className="min-w-0" title={it.title}>
           <dt className="truncate text-[10px] font-medium uppercase tracking-wider text-muted">{it.label}</dt>
@@ -572,11 +620,11 @@ function BidProfile({ f }: { f: BidFeatures }) {
 function ProfileSourceNote({ block, failed }: { block: BidFeaturesBlock | null; failed: boolean }) {
   if (failed && !block) return <Source>bid profiles unavailable (POST /api/bid-features failed)</Source>;
   if (!block) return <Source>bid profiles: loading…</Source>;
-  const src = block.source === "chalk" ? "Chalk online query (flex_bid features)" : "local model (Chalk credentials pending)";
+  const src = block.source === "chalk" ? "Chalk" : "local model";
   const ms = block.latency_ms < 10 ? block.latency_ms.toFixed(1) : fmtInt(block.latency_ms);
   return (
     <Source>
-      bid profiles: {src} · {ms} ms · from the day&apos;s forecast, never actuals
+      bid profiles: {src} · {ms} ms
       {failed ? " · last refresh failed, showing previous" : ""}
     </Source>
   );

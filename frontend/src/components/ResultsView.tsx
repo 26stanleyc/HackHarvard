@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Fragment, useState } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Tooltip, XAxis, YAxis } from "recharts";
 import { API_MODE } from "@/lib/api";
 import {
@@ -27,7 +27,7 @@ import {
 } from "@/lib/types";
 import type { ChartCompany } from "./LoadChart";
 import { forecastSourceText } from "./StoryScreen";
-import { LoadTypeTag, SectionTitle, Source, Stat } from "./ui";
+import { Button, Details, LoadTypeTag, SectionTitle, Source, Stat } from "./ui";
 
 // three.js only runs in the browser, and loads in its own bundle
 const FleetView = dynamic(() => import("./FleetView").then((m) => m.FleetView), {
@@ -36,6 +36,34 @@ const FleetView = dynamic(() => import("./FleetView").then((m) => m.FleetView), 
 });
 // warm that bundle and the car model in the background, so Results opens without a wait
 if (typeof window !== "undefined") setTimeout(() => void import("./FleetView"), 2000);
+
+/** Results page frame: the results on the left, the company sidebar on the right. */
+export function ResultsLayout({
+  sidebar,
+  onNext,
+  children,
+}: {
+  sidebar: ReactNode;
+  onNext?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <SectionTitle kicker="Step 2 · Results" title="What we saved, and who gets paid" />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0">{children}</div>
+        <aside className="min-w-0 lg:sticky lg:top-28 lg:self-start">{sidebar}</aside>
+      </div>
+      {onNext && (
+        <div className="mt-6 flex justify-end">
+          <Button variant="secondary" onClick={onNext} testId="to-coordinator">
+            How the coordinator decides <span aria-hidden>→</span>
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ResultsView({
   request,
@@ -53,30 +81,57 @@ export function ResultsView({
   setLeftOut: (id: string | null) => void;
 }) {
   return (
-    <div className="space-y-8">
-      <SectionTitle kicker="Step 4 · Results" title="What coordination saved, and who gets paid for it">
-        Every number here comes from one clear: strategies scored on the actual day, the herding
-        metric, and{" "}
-        {response.settlement.method === "skipped"
-          ? `the coalition's total (no Shapley payouts above ${SHAPLEY_MAX_BIDS_DEFAULT} companies).`
-          : "an exact Shapley settlement."}
-      </SectionTitle>
-      <ResultNotes response={response} />
+    <div className="space-y-6">
+      <Headline response={response} />
       <FleetView request={request} response={response} bids={bids} companies={companies} />
-      <ValueBreakdown response={response} />
-      <div className="grid gap-4 lg:grid-cols-2">
-        <StrategyComparison response={response} />
-        <HerdingCallout response={response} />
-      </div>
-      <Receipts
-        request={request}
-        response={response}
-        bids={bids}
-        companies={companies}
-        leftOut={leftOut}
-        setLeftOut={setLeftOut}
-      />
+      <Details>
+        <ResultNotes response={response} />
+        <ValueBreakdown response={response} />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <StrategyComparison response={response} />
+          <HerdingCallout response={response} />
+        </div>
+        <Receipts
+          request={request}
+          response={response}
+          bids={bids}
+          companies={companies}
+          leftOut={leftOut}
+          setLeftOut={setLeftOut}
+        />
+      </Details>
     </div>
+  );
+}
+
+/** The three numbers worth saying out loud: CO2 saved, the herding gap, and what was paid. */
+function Headline({ response }: { response: ClearResponse }) {
+  const saved = comparisons(response).vsDefault;
+  const gap = response.herding.independent_marginal.gap_t;
+  const paid = response.settlement.per_bid.reduce((a, p) => a + p.payout_usd, 0);
+  const paidTo = response.settlement.per_bid.filter((p) => p.payout_usd > 0).length;
+  return (
+    <section className="card grid gap-4 p-4 sm:grid-cols-3 sm:p-5" data-testid="headline">
+      <Stat
+        label="CO2 avoided"
+        value={`${fmtT(saved)} t`}
+        sub="vs every company running at its usual time"
+        tone={saved > 0 ? "good" : "default"}
+        testId="headline-saved"
+      />
+      <Stat
+        label="Herding gap"
+        value={`${fmtT(gap)} t`}
+        sub="lost when everyone chases the same clean hours"
+        testId="headline-gap"
+      />
+      <Stat
+        label="Paid out"
+        value={response.settlement.method === "skipped" ? "—" : fmtUsd(paid)}
+        sub={response.settlement.method === "skipped" ? `payouts skipped above ${SHAPLEY_MAX_BIDS_DEFAULT} companies` : `to ${paidTo} of ${response.settlement.per_bid.length} companies`}
+        testId="headline-paid"
+      />
+    </section>
   );
 }
 

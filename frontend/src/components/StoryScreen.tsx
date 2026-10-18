@@ -6,7 +6,7 @@ import { fmtInt, fmtSignedT, fmtT } from "@/lib/format";
 import { STRATEGY_LABEL } from "@/lib/theme";
 import type { AdoptionChartResponse, Calibration, Forecast, MetaResponse } from "@/lib/types";
 import { AdoptionChart, adoptionReadout } from "./AdoptionChart";
-import { Button, Source } from "./ui";
+import { Button, Details, Source } from "./ui";
 
 export function StoryScreen({
   meta,
@@ -22,123 +22,124 @@ export function StoryScreen({
   onNext: () => void;
 }) {
   const r = adoptionReadout(adoption);
-  const lower = (x: keyof typeof STRATEGY_LABEL) => STRATEGY_LABEL[x].toLowerCase();
   return (
     <div className="space-y-8">
       <header className="max-w-4xl pt-2">
-        <div className="kicker mb-3">{meta.region} · day-ahead clearinghouse for flexible load</div>
+        <div className="kicker mb-3">{meta.region} · clearinghouse for flexible load</div>
         <h1 className="font-serif text-[26px] leading-[1.15] font-semibold tracking-tight text-ink sm:text-[36px] lg:text-[44px] lg:leading-[1.12]">
-          When every flexible load chases the same clean hour, fossil plants serve the rush.
-          A clearinghouse coordinates competing companies, and pays each only for the carbon
-          coordination actually helped avoid.
+          When everyone chases the same clean hour, fossil plants pick up the rush. We coordinate
+          companies and pay each one for the carbon it helps avoid.
         </h1>
       </header>
 
       <section className="card p-4 sm:p-6">
-        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-          <div>
-            <div className="kicker">Adoption chart</div>
-            <h3 className="mt-1 text-lg font-semibold text-ink">
-              Total CO2 for the day as more of the region&apos;s load becomes flexible
-            </h3>
-          </div>
-        </div>
+        <h3 className="mb-4 text-lg font-semibold text-ink">Daily CO2 as more load becomes flexible</h3>
         <AdoptionChart data={adoption} />
+        {r.coVsIm < -r.tol && (
+          <p className="mt-3 text-sm text-ink-2" data-testid="chart-takeaway">
+            At {r.maxX}% flexible load, coordination saves{" "}
+            <span className="num font-medium text-accent">{fmtT(-r.coVsIm)} t</span> of CO2 a day compared with
+            everyone following the same signal.
+          </p>
+        )}
+      </section>
+
+      <section className="card p-5">
+        <div className="kicker mb-2">The herding gap</div>
+        <p className="text-[15px] leading-relaxed text-ink-2">
+          A carbon-aware tool sends every company to the same clean hours. When they all go at once, the
+          clean power runs out and gas or coal fills the gap. A coordinator that sees everyone&apos;s bids
+          spreads them out.
+        </p>
+      </section>
+
+      <Details>
         <AdoptionCaption meta={meta} adoption={adoption} />
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="card p-5 md:col-span-2">
-          <div className="kicker mb-2">The herding gap</div>
-          <p className="text-[15px] leading-relaxed text-ink-2">
-            A carbon-aware tool tells each company which hours are cleanest. Each one, alone,
-            would save real carbon by moving there. But when many large loads follow the same
-            signal, the spare clean generation runs out and the next megawatt comes from a gas
-            or coal plant. Add up what each company was promised and compare it with what they
-            realize together: the shortfall is the <strong className="text-ink">herding gap</strong>.
-            A coordinator that sees everyone&apos;s bids can spread the load and recover much of it.
-          </p>
-          <p className="mt-3 text-[15px] leading-relaxed text-ink-2">
-            The herding effect itself is prior work (Martin, Powell &amp; Rajagopal, Nature
-            Communications, 2025, for EV charging). What is new here is coordination across
-            independent, competing companies with different load types, and paying each one only
-            for what coordination adds beyond what it could have done alone.
-          </p>
+        <div>
+          <div className="kicker mb-2">Reading the chart</div>
+          <ChartReading r={r} />
         </div>
-        <div className="card p-5">
-          <div className="kicker mb-3">Reading the chart</div>
-          <ul className="space-y-3 text-sm text-ink-2" data-testid="chart-reading">
-            {r.flatUntil !== null && (
-              <li>
-                <span className="font-medium text-ink">Up to {r.flatUntil}% of peak: </span>
-                default, marginal-solo and coordinated add no CO2 over the no-flex day (
-                <span className="num">{fmtInt(r.baseline)}</span> t). The added load is absorbed by
-                curtailed renewables, so there is nothing to coordinate.
-              </li>
-            )}
-            <li>
-              <span className="font-medium text-ink">Average signal: </span>
-              {r.crossesAt === null ? (
-                <>never emits more than default up to {r.maxX}% of peak.</>
-              ) : (
-                <>emits more than default from {r.crossesAt}% of peak onward.</>
-              )}
-            </li>
-            {r.worst !== "default" && (
-              <li>
-                <span className="font-medium text-ink">From {r.worstFrom}% on: </span>
-                {lower(r.worst)} is the highest-emitting strategy
-                {r.worst === "independent_marginal" ? " (herding: everyone moves into the same hours)" : ""}; at{" "}
-                {r.maxX}% it is <span className="num">{fmtSignedT(r.worstVsDefault)}</span> t vs default.
-              </li>
-            )}
-            <li>
-              <span className="font-medium text-ink">Coordination at {r.maxX}%: </span>
-              {r.coVsIm < -r.tol ? (
-                <>
-                  recovers <span className="num">{fmtT(-r.coVsIm)}</span> t vs {lower("independent_marginal")}
-                </>
-              ) : r.coVsIm > r.tol ? (
-                <>
-                  emits <span className="num">{fmtT(r.coVsIm)}</span> t more than {lower("independent_marginal")}
-                </>
-              ) : (
-                <>equal to {lower("independent_marginal")}</>
-              )}
-              {", "}
-              {Math.abs(r.coVsDefault) <= r.tol ? (
-                <>and equals default.</>
-              ) : r.coVsDefault < 0 ? (
-                <>
-                  ending <span className="num">{fmtT(-r.coVsDefault)}</span> t below default.
-                </>
-              ) : (
-                <>
-                  but stays <span className="num">{fmtT(r.coVsDefault)}</span> t above default on actuals.
-                </>
-              )}
-            </li>
-            {r.lowest !== "default" && (
-              <li>
-                <span className="font-medium text-ink">
-                  Lowest {r.lowestFrom === r.maxX ? `at ${r.maxX}%` : `at ${r.lowestFrom}–${r.maxX}%`}:{" "}
-                </span>
-                {lower(r.lowest)}.
-              </li>
-            )}
-          </ul>
-          <Source className="mt-3">computed in the browser from /api/adoption-chart means</Source>
-        </div>
-      </section>
-
-      <CredibilityStrip meta={meta} day={day} forecast={forecast} />
+        <p className="text-sm leading-relaxed text-ink-2">
+          The herding effect itself is prior work (Martin, Powell &amp; Rajagopal, Nature
+          Communications, 2025, for EV charging). What is new here is coordination across
+          independent, competing companies with different load types, and paying each one only
+          for what coordination adds beyond what it could have done alone.
+        </p>
+        <CredibilityStrip meta={meta} day={day} forecast={forecast} />
+      </Details>
 
       <div className="flex justify-end">
         <Button onClick={onNext} testId="to-bids">
-          Build the bids <span aria-hidden>→</span>
+          See the results <span aria-hidden>→</span>
         </Button>
       </div>
     </div>
+  );
+}
+
+function ChartReading({ r }: { r: ReturnType<typeof adoptionReadout> }) {
+  const lower = (x: keyof typeof STRATEGY_LABEL) => STRATEGY_LABEL[x].toLowerCase();
+  return (
+    <ul className="space-y-3 text-sm text-ink-2" data-testid="chart-reading">
+      {r.flatUntil !== null && (
+        <li>
+          <span className="font-medium text-ink">Up to {r.flatUntil}% of peak: </span>
+          default, marginal-solo and coordinated add no CO2 over the no-flex day (
+          <span className="num">{fmtInt(r.baseline)}</span> t). The added load is absorbed by
+          curtailed renewables, so there is nothing to coordinate.
+        </li>
+      )}
+      <li>
+        <span className="font-medium text-ink">Average signal: </span>
+        {r.crossesAt === null ? (
+          <>never emits more than default up to {r.maxX}% of peak.</>
+        ) : (
+          <>emits more than default from {r.crossesAt}% of peak onward.</>
+        )}
+      </li>
+      {r.worst !== "default" && (
+        <li>
+          <span className="font-medium text-ink">From {r.worstFrom}% on: </span>
+          {lower(r.worst)} is the highest-emitting strategy
+          {r.worst === "independent_marginal" ? " (herding: everyone moves into the same hours)" : ""}; at{" "}
+          {r.maxX}% it is <span className="num">{fmtSignedT(r.worstVsDefault)}</span> t vs default.
+        </li>
+      )}
+      <li>
+        <span className="font-medium text-ink">Coordination at {r.maxX}%: </span>
+        {r.coVsIm < -r.tol ? (
+          <>
+            recovers <span className="num">{fmtT(-r.coVsIm)}</span> t vs {lower("independent_marginal")}
+          </>
+        ) : r.coVsIm > r.tol ? (
+          <>
+            emits <span className="num">{fmtT(r.coVsIm)}</span> t more than {lower("independent_marginal")}
+          </>
+        ) : (
+          <>equal to {lower("independent_marginal")}</>
+        )}
+        {", "}
+        {Math.abs(r.coVsDefault) <= r.tol ? (
+          <>and equals default.</>
+        ) : r.coVsDefault < 0 ? (
+          <>
+            ending <span className="num">{fmtT(-r.coVsDefault)}</span> t below default.
+          </>
+        ) : (
+          <>
+            but stays <span className="num">{fmtT(r.coVsDefault)}</span> t above default on actuals.
+          </>
+        )}
+      </li>
+      {r.lowest !== "default" && (
+        <li>
+          <span className="font-medium text-ink">
+            Lowest {r.lowestFrom === r.maxX ? `at ${r.maxX}%` : `at ${r.lowestFrom}–${r.maxX}%`}:{" "}
+          </span>
+          {lower(r.lowest)}.
+        </li>
+      )}
+    </ul>
   );
 }
 

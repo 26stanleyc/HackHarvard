@@ -40,6 +40,18 @@ export function Source({ children, className = "" }: { children: ReactNode; clas
   );
 }
 
+/** Closed-by-default box for method notes and secondary stats, so the main view stays short. */
+export function Details({ children, title = "How we got these numbers" }: { children: ReactNode; title?: string }) {
+  return (
+    <details className="card group" data-testid="details">
+      <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-ink-2 hover:text-ink sm:px-5">
+        {title}
+      </summary>
+      <div className="space-y-6 border-t border-line p-4 sm:p-5">{children}</div>
+    </details>
+  );
+}
+
 export function SectionTitle({
   kicker,
   title,

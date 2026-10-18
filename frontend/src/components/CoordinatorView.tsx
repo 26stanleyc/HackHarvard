@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { API_MODE, ApiError } from "@/lib/api";
-import { fallbackSentence, herdingGapPct, herdingNote, tieSentence } from "@/lib/explain";
+import { fallbackSentence, herdingGapPct, tieSentence } from "@/lib/explain";
 import { scheduleErrors } from "@/lib/feasibility";
 import { fmtInt, fmtNum1, fmtSignedT, fmtT } from "@/lib/format";
 import { STRATEGY_BLURB, STRATEGY_COLORS, STRATEGY_LABEL } from "@/lib/theme";
@@ -18,7 +18,7 @@ import type {
 import { LoadChart, MarginalStrip, type ChartCompany } from "./LoadChart";
 import { ScheduleGrid } from "./ScheduleGrid";
 import { forecastSourceText } from "./StoryScreen";
-import { Button, ErrorBanner, Segmented, SectionTitle, Source, Stat } from "./ui";
+import { Button, Details, ErrorBanner, Segmented, SectionTitle, Source, Stat } from "./ui";
 
 export type Act = "1" | "2" | "beat" | "3";
 
@@ -227,8 +227,7 @@ export function CoordinatorView({
   return (
     <div>
       <SectionTitle kicker="Step 3 · Watch the coordinator" title="Three ways to run the same bids">
-        Same companies, same real day, same forecast. Only the scheduling rule changes. Every
-        strategy is planned on the forecast and scored on the actual EIA-930 day.
+        Same companies, same day. Only the scheduling rule changes.
       </SectionTitle>
 
       <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-2">
@@ -346,15 +345,13 @@ export function CoordinatorView({
               </div>
               <div className="mt-2 text-xs text-ink-2">
                 {trace.idx === 0 ? (
-                  "The coordinator places blocks one at a time, round-robin by earliest deadline, each into the hour where it adds the least simulated CO2."
+                  "The coordinator places each block of energy in the hour where it adds the least CO2."
                 ) : trace.idx < N ? (
                   <TraceLine group={groups[trace.idx - 1]} companies={companies} />
                 ) : (
                   <span data-testid="trace-done">
-                    All blocks placed: {fmtInt(replayed.mwh)} MWh replayed from {steps.length} trace entries in {N} steps.{" "}
-                    {replayCheck.ok ? (
-                      <span className="text-accent">Matches the coordinated schedule hour by hour.</span>
-                    ) : (
+                    All {fmtInt(replayed.mwh)} MWh placed.{" "}
+                    {replayCheck.ok ? null : (
                       <span className="text-danger">
                         Replay differs from the coordinated schedule by up to {replayCheck.mismatch.toFixed(3)} MWh; the schedule
                         itself is shown.
@@ -366,12 +363,6 @@ export function CoordinatorView({
             </div>
           )}
 
-          <Source className="mt-3">
-            schedules: POST /api/clear strategies.{act === "beat" ? "default (start)" : s} · forecast:{" "}
-            {forecastSourceText(response.forecast)} · scored on actual EIA-930 day
-            {act === "3" &&
-              ` · animation replays coordinator_trace (${steps.length} entries in ${N} steps, aggregated by the engine)`}
-          </Source>
         </section>
 
         <aside className="min-w-0 space-y-4">
@@ -401,11 +392,29 @@ export function CoordinatorView({
               </Button>
             ) : (
               <Button onClick={onNext} testId="to-results">
-                See results and receipts <span aria-hidden>→</span>
+                Back to results <span aria-hidden>→</span>
               </Button>
             )}
           </div>
         </aside>
+      </div>
+
+      <div className="mt-6">
+        <Details>
+          {[tieSentence(response), fallbackSentence(response)].filter(Boolean).map((n) => (
+            <p key={n} className="text-sm leading-relaxed text-ink-2">{n}</p>
+          ))}
+          <p className="text-sm leading-relaxed text-ink-2">
+            Every strategy is planned on the forecast and scored on the actual EIA-930 day. The coordinator
+            places blocks one at a time, round-robin by earliest deadline; greedy is not guaranteed optimal.
+          </p>
+        <Source>
+            schedules: POST /api/clear strategies.{act === "beat" ? "default (start)" : s} · forecast:{" "}
+            {forecastSourceText(response.forecast)} · scored on actual EIA-930 day
+            {act === "3" &&
+              ` · animation replays coordinator_trace (${steps.length} entries in ${N} steps, aggregated by the engine)`}
+          </Source>
+        </Details>
       </div>
     </div>
   );
@@ -480,11 +489,11 @@ function Co2Counter({
             value={`${fmtInt(partial.mwh)}`}
             sub={`of ${fmtInt(partial.totalEnergy)} MWh`}
           />
-          <Stat label="Added CO2 so far" value={fmtT(partial.co2)} sub="t, sum of block increments (forecast)" />
+          <Stat label="Added CO2 so far" value={fmtT(partial.co2)} sub="t (forecast)" />
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          <Stat label="Grid CO2, whole day" value={fmtInt(total ?? 0)} sub="t, scored on actuals" testId="co2-total" />
+          <Stat label="Grid CO2, whole day" value={fmtInt(total ?? 0)} sub="t" testId="co2-total" />
           <Stat
             label="vs default"
             value={avoided === null ? "—" : strategy === "default" ? "0" : fmtSignedT(-avoided)}
@@ -530,8 +539,6 @@ function Narrative({
   if (act === "2") {
     const m = h[signal];
     const pct = herdingGapPct(m);
-    const note = herdingNote(m);
-    const tie = tieSentence(response);
     return (
       <div className="card space-y-3 p-4 text-sm leading-relaxed text-ink-2">
         <div className="kicker">Act 2 · Everyone chases the clean hour</div>
@@ -546,15 +553,8 @@ function Narrative({
             tone={m.gap_t > 0 && pct !== null ? "bad" : "default"}
           />
         </div>
-        {(note || tie) && (
-          <p className="text-xs leading-relaxed text-ink-2" data-testid="act2-note">
-            {tie ?? note}
-          </p>
-        )}
         <p className="text-xs text-muted">
-          Promised = what each company would save if it alone shifted. Realized = what they save
-          when all shift at once. Toggle the signal to compare the standard tool with the best
-          solo strategy ({STRATEGY_LABEL.independent_marginal.toLowerCase()}).
+          Promised: each company&apos;s solo savings, added up. Realized: what they save together.
         </p>
       </div>
     );
@@ -564,8 +564,7 @@ function Narrative({
       <div className="card space-y-2 p-4 text-sm leading-relaxed text-ink-2">
         <div className="kicker">Your turn · Beat the coordinator</div>
         <p>
-          Drag in each company&apos;s row to put megawatts into hours (inside its window, up to its
-          max power) until every company&apos;s energy is placed. Then score it on the actual day.
+          Drag in each row to place each company&apos;s energy, then score it.
         </p>
         <ScoreBoard response={response} evalState={evalState} act3Done={act3Done} />
       </div>
@@ -579,26 +578,15 @@ function Narrative({
       <p>{STRATEGY_BLURB.coordinated}</p>
       {act3Done && (
         <>
-          <p>
-            Versus the best each company could do alone ({STRATEGY_LABEL.independent_marginal.toLowerCase()}):{" "}
-            <span className={`num font-medium ${im - co >= 0 ? "text-accent" : "text-danger"}`}>
-              {fmtSignedT(co - im)} t
-            </span>
-            . This is the value of coordination that payouts are based on.
-          </p>
-          {tieSentence(response) && (
-            <p className="text-xs leading-relaxed text-ink-2" data-testid="act3-note">
-              {tieSentence(response)}
+          {im - co > 0.05 && (
+            <p>
+              Saves <span className="num font-medium text-accent">{fmtT(im - co)} t</span> more than each
+              company could alone. This is what payouts are based on.
             </p>
           )}
           <ScoreBoard response={response} evalState={evalState} act3Done={act3Done} />
         </>
       )}
-      <p className="text-xs text-muted" data-testid="fallback-note">
-        {fallbackSentence(response) ??
-          "Planning-time fallback not triggered: on the forecast the greedy schedule was no worse than the solo schedules."}{" "}
-        Greedy is not guaranteed optimal.
-      </p>
     </div>
   );
 }

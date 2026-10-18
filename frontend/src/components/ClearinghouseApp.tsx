@@ -23,20 +23,19 @@ import type {
   MetaResponse,
   Preset,
 } from "@/lib/types";
-import { BidBuilder, scenarioErrors, type Scenario } from "./BidBuilder";
+import { CompanySidebar, scenarioErrors, type Scenario } from "./BidBuilder";
 import { CoordinatorView, type Act, type EvalState, type TraceState } from "./CoordinatorView";
 import type { ChartCompany } from "./LoadChart";
-import { ResultsView } from "./ResultsView";
+import { ResultsLayout, ResultsView } from "./ResultsView";
 import { StoryScreen } from "./StoryScreen";
 import { Button, ErrorBanner, FixtureBadge } from "./ui";
 
-type Step = "story" | "bids" | "coordinator" | "results";
+type Step = "story" | "results" | "coordinator";
 
 const STEPS: { id: Step; n: number; label: string }[] = [
   { id: "story", n: 1, label: "The story" },
-  { id: "bids", n: 2, label: "Bids" },
+  { id: "results", n: 2, label: "Results" },
   { id: "coordinator", n: 3, label: "Coordinator" },
-  { id: "results", n: 4, label: "Results" },
 ];
 
 interface Boot {
@@ -63,6 +62,13 @@ function sameRequest(a: ClearRequest, b: ClearRequest): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
+/** Summer heat peak: little spare wind and solar, so the schedule decides which fossil plants run. */
+const EXAMPLE_DAY = "2024-08-20";
+
+function inputKey(scenario: Scenario | null, drafts: BidDraft[]): string {
+  return JSON.stringify([scenario, drafts]);
+}
+
 function copySchedule(s: Record<string, number[]>, bids: Bid[]): Record<string, number[]> {
   const out: Record<string, number[]> = {};
   for (const b of bids) out[b.id] = (s[b.id] ?? new Array(24).fill(0)).slice();
@@ -87,6 +93,8 @@ export function ClearinghouseApp() {
   const [userSchedule, setUserSchedule] = useState<Record<string, number[]>>({});
   const [evalState, setEvalState] = useState<EvalState>(EMPTY_EVAL);
   const [leftOut, setLeftOut] = useState<string | null>(null);
+  /** inputKey() of the companies and settings behind the results on screen */
+  const [lastRunKey, setLastRunKey] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -96,13 +104,16 @@ export function ClearinghouseApp() {
         if (cancelled) return;
         setBoot({ meta, presets, adoption });
         setBootError(null);
+        // start with the example companies; they are cleared once, below
+        const ex = EXAMPLE_CLEAR_REQUEST;
+        setDrafts((d) => (d.length ? d : ex.bids.map((b) => bidToDraft(b))));
         setScenario(
           (s) =>
             s ?? {
-              day: meta.default_day,
-              background_pct: meta.background_pct_default,
-              carbon_price: String(meta.carbon_price_default),
-              pool_usd: String(meta.pool_default_usd),
+              day: EXAMPLE_DAY,
+              background_pct: ex.background_pct,
+              carbon_price: String(ex.carbon_price),
+              pool_usd: String(ex.pool_usd),
             },
         );
       } catch (e) {
@@ -123,7 +134,7 @@ export function ClearinghouseApp() {
     const ex = EXAMPLE_CLEAR_REQUEST;
     setDrafts(ex.bids.map((b) => bidToDraft(b)));
     setScenario({
-      day: ex.day,
+      day: EXAMPLE_DAY,
       background_pct: ex.background_pct,
       carbon_price: String(ex.carbon_price),
       pool_usd: String(ex.pool_usd),
@@ -151,20 +162,30 @@ export function ClearinghouseApp() {
         const substituted = API_MODE === "fixture" && !sameRequest(req, EXAMPLE_CLEAR_REQUEST);
         const request = API_MODE === "fixture" ? EXAMPLE_CLEAR_REQUEST : req;
         setCleared({ request, response, substituted });
+        setLastRunKey(inputKey(sc, drafts));
         setAct("1");
         setTrace({ idx: 0, max: 0 });
         setUserSchedule(copySchedule(response.strategies.default.schedule, request.bids));
         setEvalState(EMPTY_EVAL);
         setLeftOut(null);
-        setStep("coordinator");
       } catch (e) {
         setClearError(toApiError(e));
       } finally {
         setClearing(false);
       }
     },
-    [scenario, clearing, drafts, setStep],
+    [scenario, clearing, drafts],
   );
+
+  // clear the example companies once, as soon as they are loaded
+  const [autoRun, setAutoRun] = useState(true);
+  useEffect(() => {
+    if (!autoRun || !boot || !scenario || drafts.length === 0) return;
+    setAutoRun(false);
+    void runClear();
+  }, [autoRun, boot, scenario, drafts, runClear]);
+
+  const dirty = !cleared || inputKey(scenario, drafts) !== lastRunKey;
 
   const companies = useMemo<ChartCompany[]>(
     () =>
@@ -240,9 +261,9 @@ export function ClearinghouseApp() {
           <FixtureBadge />
         </div>
         <nav aria-label="Steps" className="mx-auto max-w-[1180px] px-4 pb-2">
-          <ol className="grid grid-cols-4 gap-1.5">
+          <ol className="grid grid-cols-3 gap-1.5">
             {STEPS.map((s) => {
-              const enabled = s.id === "story" || s.id === "bids" ? !!ready : !!cleared;
+              const enabled = s.id === "coordinator" ? !!cleared : !!ready;
               const current = step === s.id;
               return (
                 <li key={s.id} className="min-w-0">
@@ -286,7 +307,7 @@ export function ClearinghouseApp() {
             {cleared.request.day}) instead of the bids you entered. Set NEXT_PUBLIC_API_MODE=live to clear your own bids.
           </div>
         )}
-        {ready && clearError && step !== "bids" && (
+        {ready && clearError && step === "coordinator" && (
           <div className="mb-5">
             <ErrorBanner
               title="Re-run failed"
@@ -303,22 +324,7 @@ export function ClearinghouseApp() {
             adoption={boot.adoption}
             day={cleared?.request.day ?? scenario.day}
             forecast={cleared?.response.forecast ?? null}
-            onNext={() => setStep("bids")}
-          />
-        )}
-        {ready && step === "bids" && (
-          <BidBuilder
-            meta={boot.meta}
-            presets={boot.presets}
-            drafts={drafts}
-            setDrafts={setDrafts}
-            scenario={scenario}
-            setScenario={(f) => setScenario((s) => (s ? f(s) : s))}
-            onLoadExample={loadExample}
-            onRun={() => void runClear()}
-            clearing={clearing}
-            clearError={clearError}
-            onDismissError={() => setClearError(null)}
+            onNext={() => setStep("results")}
           />
         )}
         {ready && cleared && step === "coordinator" && (
@@ -342,15 +348,39 @@ export function ClearinghouseApp() {
             onNext={() => setStep("results")}
           />
         )}
-        {ready && cleared && step === "results" && (
-          <ResultsView
-            request={cleared.request}
-            response={cleared.response}
-            bids={cleared.request.bids}
-            companies={companies}
-            leftOut={leftOut}
-            setLeftOut={setLeftOut}
-          />
+        {ready && step === "results" && (
+          <ResultsLayout
+            onNext={cleared ? () => setStep("coordinator") : undefined}
+            sidebar={
+              <CompanySidebar
+                meta={boot.meta}
+                presets={boot.presets}
+                drafts={drafts}
+                setDrafts={setDrafts}
+                scenario={scenario}
+                setScenario={(f) => setScenario((s) => (s ? f(s) : s))}
+                onLoadExample={loadExample}
+                onRun={() => void runClear()}
+                clearing={clearing}
+                clearError={clearError}
+                onDismissError={() => setClearError(null)}
+                dirty={dirty}
+              />
+            }
+          >
+            {cleared ? (
+              <ResultsView
+                request={cleared.request}
+                response={cleared.response}
+                bids={cleared.request.bids}
+                companies={companies}
+                leftOut={leftOut}
+                setLeftOut={setLeftOut}
+              />
+            ) : (
+              <div className="card h-[520px] animate-pulse" aria-busy="true" aria-label="Running the example companies" />
+            )}
+          </ResultsLayout>
         )}
       </main>
 
