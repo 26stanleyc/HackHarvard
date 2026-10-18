@@ -69,11 +69,15 @@ def _feasibility(payload: dict) -> str:
     bad = [b for b in bids if not b["feasible"]]
     if not bad:
         parts = []
-        for b in bids[:4]:
+        for b in bids[:3]:
             if b.get("min_run_hours") is not None:
                 parts.append(f"{b['name'] or b['id']} needs {b['min_run_hours']:g} h of its "
                              f"{b['window_hours']} h window")
-        return "All your bids are feasible. " + ("; ".join(parts) + "." if parts else "")
+        n = len(bids)
+        head = "Your bid is feasible. " if n == 1 else f"All {n} bids are feasible. "
+        if parts and len(bids) > len(parts):
+            return head + "For example, " + "; ".join(parts) + "."
+        return head + ("; ".join(parts) + "." if parts else "")
     return " ".join(f"{b['name'] or b['id']} is not feasible: {b['problem']}." for b in bad[:3])
 
 

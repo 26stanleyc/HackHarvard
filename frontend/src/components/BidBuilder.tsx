@@ -150,6 +150,7 @@ export function CompanySidebar({
 
   // Coordinator Guide: field help requests, and fields last set by an applied suggestion.
   const [help, setHelp] = useState<HelpRequest | null>(null);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const [suggested, setSuggested] = useState<Record<string, string[]>>({});
   const editByUser = (id: string, patch: Partial<BidDraft>) => {
     update(id, patch);
@@ -293,7 +294,7 @@ export function CompanySidebar({
       <ScenarioPanel meta={meta} scenario={scenario} setScenario={setScenario} />
 
       {modal === "add" && (
-        <Modal title="Add a company" onClose={() => setModal(null)}>
+        <Modal title="Add a company" onClose={() => setModal(null)} besidePanel={assistantOpen}>
           <p className="mb-3 text-sm text-ink-2">Start from a typical company, then adjust it.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {presets.map((p) => (
@@ -328,7 +329,7 @@ export function CompanySidebar({
       )}
 
       {editIdx >= 0 && (
-        <Modal title="Company bid" onClose={() => setModal(null)}>
+        <Modal title="Company bid" onClose={() => setModal(null)} besidePanel={assistantOpen}>
           <BidCard
             index={editIdx}
             draft={drafts[editIdx]}
@@ -372,6 +373,7 @@ export function CompanySidebar({
           scenario={assistantScenario}
           onApply={applySuggestion}
           help={help && help.field ? help : null}
+          onOpenChange={setAssistantOpen}
         />,
         document.body,
       )}
@@ -379,7 +381,17 @@ export function CompanySidebar({
   );
 }
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+function Modal({
+  title,
+  onClose,
+  besidePanel,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  besidePanel: boolean;
+  children: ReactNode;
+}) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -390,12 +402,15 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   // portal: the sticky sidebar is its own stacking context, which would trap the overlay under the header
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 p-4 pt-[12vh] backdrop-blur-[2px]"
+      // with the Coordinator Guide open, center the dialog in the space left of the panel (its width + p-4)
+      className={`fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 p-4 pt-[12vh] backdrop-blur-[2px] ${
+        besidePanel ? "sm:pr-[336px] lg:pr-[376px]" : ""
+      }`}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div role="dialog" aria-modal="true" aria-label={title} className="w-full max-w-2xl rounded-2xl bg-paper p-5 shadow-2xl sm:p-6">
+      <div role="dialog" aria-modal="true" aria-label={title} className="@container w-full max-w-2xl rounded-2xl bg-paper p-5 shadow-2xl sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-serif text-2xl font-semibold text-ink">{title}</h3>
           <button type="button" onClick={onClose} aria-label="Close" className="rounded px-2 text-xl text-muted hover:text-ink">
@@ -671,7 +686,7 @@ function BidCard({
           Remove
         </button>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 @lg:grid-cols-5">
         <div className="col-span-2 min-w-0 sm:col-span-1">
           <FieldLabel htmlFor={`${draft.id}-type`} label="Load type" onHelp={() => onHelp("load_type")} />
           <select
