@@ -1,18 +1,18 @@
 # Coordinator Guide evaluation (LLM via Chalk Model Gateway)
 
-Run `e29825cd-21b8-4b62-a510-d60d1730f065` on Chalk Evaluations (EvaluationRunStatus.SUCCEEDED), 2026-10-18 02:59, git `212652b`. Dataset `clearinghouse-assistant-v1`, 44 rows; evaluation `clearinghouse-assistant-llm (rescored)` (rescore of run `0a9478d4-8f0a-40fd-9f71-50ec33a547b0`: same task outputs, current scorers).
+Run `5089df6b-bf85-4277-9550-883bab2c5250` on Chalk Evaluations (EvaluationRunStatus.SUCCEEDED), 2026-10-18 03:10, git `f8cf76f`. Dataset `clearinghouse-assistant-v1`, 44 rows; evaluation `clearinghouse-assistant-llm`.
 
 Assistant path in the task: **chalk**.
 
 | Scorer | Chalk mean | Rows scored | Local re-score mean | Rows where Chalk = local |
 |---|---|---|---|---|
 | `suggestions_json_valid` | 1.000 | 44 | 1.000 | 44/44 |
-| `numbers_grounded` | 0.994 | 44 | 0.994 | 44/44 |
+| `numbers_grounded` | 0.991 | 44 | 0.991 | 44/44 |
 | `suggestion_matches` | 1.000 | 8 | 1.000 | 44/44 |
 | `answer_correct` | 1.000 | 44 | 1.000 | 44/44 |
-| `explanation-quality` (LLM judge) | 0.668 | 44 | — | — |
+| `explanation-quality` (LLM judge) | 0.750 | 44 | — | — |
 
-LLM judge: Chalk llm_judge with anthropic/claude-sonnet-5-5 via the Chalk Model Gateway (rescore).
+LLM judge: Chalk llm_judge with anthropic/claude-sonnet-5-5 via the Chalk Model Gateway.
 Task errors: 0.
 
 ## How to read this
@@ -26,12 +26,20 @@ Task errors: 0.
 
 ## Misses
 
-- `numbers_grounded` = 0.75 on "How should I set energy?" (2024-03-29, facilities): {"numbers": 4, "ungrounded": [1800.0]}  
-  answer: Energy is the total MWh your chillers and ice storage need inside the occupancy window. The coordinator decides when it's delivered, never how much, so the full amount is always scheduled. Set it to what the buildings actually need to be cool by occupancy.
+- `numbers_grounded` = 0.60 on "What does max power mean?" (2024-08-20, ev_fleet): {"numbers": 5, "ungrounded": [50.0, 7.5]}  
+  answer: Max power is the most your depot can draw in any single hour, which is your total charger capacity. In MW, it's roughly the number of chargers times their rating (for example, 50 chargers at 150 kW is 7.5 MW).
 
-Check it against chiller capacity: energy 
+It matters because energy divided by max power is the fewest hours you must charge. For y
 
 ## Earlier runs
+
+- Run `e29825cd-21b8-4b62-a510-d60d1730f065` on Chalk Evaluations (EvaluationRunStatus.SUCCEEDED), 2026-10-18 02:59, git `212652b`. Dataset `clearinghouse-assistant-v1`, 44 rows; evaluation `clearinghouse-assistant-llm (rescored)` (rescore of run `0a9478d4-8f0a-40fd-9f71-50ec33a547b0`: same task outputs, current scorers).
+  1 miss(es). Scores (Chalk mean / rows / local / agree):
+  | `suggestions_json_valid` | 1.000 | 44 | 1.000 | 44/44 |
+  | `numbers_grounded` | 0.994 | 44 | 0.994 | 44/44 |
+  | `suggestion_matches` | 1.000 | 8 | 1.000 | 44/44 |
+  | `answer_correct` | 1.000 | 44 | 1.000 | 44/44 |
+  | `explanation-quality` (LLM judge) | 0.668 | 44 | — | — |
 
 - Run `10426eba-1535-4b52-a2b8-1bee622a9b1e` on Chalk Evaluations (EvaluationRunStatus.SUCCEEDED), 2026-10-18 02:53, git `212652b`. Dataset `clearinghouse-assistant-v1`, 44 rows; evaluation `clearinghouse-assistant-llm (rescored)` (rescore of run `0a9478d4-8f0a-40fd-9f71-50ec33a547b0`: same task outputs, current scorers).
   2 miss(es). Scores (Chalk mean / rows / local / agree):

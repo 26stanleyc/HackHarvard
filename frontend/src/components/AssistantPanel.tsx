@@ -370,7 +370,7 @@ function CredibilityStrip({ status, failed }: { status: AssistantStatus | null; 
   if (failed) return <p className="border-b border-line bg-warn-soft px-4 py-1.5 text-[11px] text-warn">Assistant status unavailable (backend not reachable).</p>;
   if (!status) return <p className="border-b border-line px-4 py-1.5 text-[11px] text-muted">Checking assistant sources…</p>;
   const llm = status.gateway === "chalk" ? `Chalk Model Gateway (${status.model})` : "local rule-based";
-  const extract = status.extract === "chalk_function" ? "Chalk function" : status.extract === "local" ? "local" : "off";
+  const extract = status.extract === "chalk_function" ? "Chalk function" : status.extract === "gateway" ? "gateway direct" : "off";
   return (
     <p className="border-b border-line bg-surface-2 px-4 py-1.5 font-mono text-[10.5px] leading-relaxed text-muted" data-testid="assistant-strip" title={status.gateway_reason ?? undefined}>
       LLM: <span className="text-ink-2">{llm}</span> · Forecast: <span className="text-ink-2">{status.forecast}</span> · Extract:{" "}

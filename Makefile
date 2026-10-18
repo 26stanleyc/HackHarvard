@@ -1,5 +1,5 @@
 # Repo-level shortcuts. Backend commands run with uv from backend/.
-.PHONY: test lint eval eval-local
+.PHONY: test lint eval eval-local eval-extract
 
 test:
 	cd backend && uv run pytest -q
@@ -16,3 +16,8 @@ eval:
 
 eval-local:
 	cd backend && uv run python scripts/eval_assistant.py --path local
+
+# Bid extraction from images (Chalk Function extract-bid) on the 10 fixtures in fixtures/extract/;
+# writes docs/eval_results_extract.md (about 10 vision calls per run).
+eval-extract:
+	cd backend && uv run python scripts/eval_extract.py

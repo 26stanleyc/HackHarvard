@@ -12,6 +12,8 @@ Endpoints (the contract in ``schemas.py`` is frozen; every response validates ag
   ``scripts/build_adoption_chart.py``)
 * ``POST /api/clear``          -> ``ClearResponse``
 * ``POST /api/evaluate``       -> ``EvaluateResponse``
+* ``POST /api/assistant/{chat,suggest,extract}``, ``GET /api/assistant/status`` -> the
+  Coordinator Guide assistant (``clearinghouse/assistant/``)
 * ``POST /api/bid-features``   -> ``BidFeaturesBlock`` (bid profiles from the forecast provider;
   ``/api/clear`` also returns them as ``bid_features``)
 * ``GET  /api/health``         -> ``{status, params_source, forecast_source}`` (extra, not in B6)
@@ -50,14 +52,16 @@ from functools import lru_cache
 from typing import Any
 
 import numpy as np
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from clearinghouse import config
+from clearinghouse.assistant import extract_service
 from clearinghouse.assistant import service as assistant_service
+from clearinghouse.assistant.extract import MAX_IMAGE_BYTES, ExtractError
 from clearinghouse.assistant.models import ChatRequest, SuggestRequest
 from clearinghouse.clearing import (
     Background,
@@ -504,5 +508,21 @@ def post_assistant_suggest(req: SuggestRequest) -> dict:
 def get_assistant_status() -> dict:
     gw = assistant_service.gateway_status()
     return {"gateway": gw["gateway"], "gateway_reason": gw["reason"], "model": gw["model"],
-            "forecast": get_engine().provider.source, "extract": "unavailable",
-            "extract_reason": "Phase 3 not built yet"}
+            "forecast": get_engine().provider.source, **extract_service.status()}
+
+
+@app.post("/api/assistant/extract")
+def post_assistant_extract(file: UploadFile = File(...)) -> Any:  # noqa: B008 (FastAPI idiom)
+    """A bill / chart / schedule image -> a prefilled bid (never auto-applied by the UI).
+
+    ``path`` says what ran: ``chalk_function`` (the Chalk Function ``extract-bid``) or
+    ``gateway`` (same code in this process, direct to the Chalk Model Gateway). 422: the image
+    is unusable; 503: no extraction path is available.
+    """
+    data = file.file.read(MAX_IMAGE_BYTES + 1)
+    try:
+        return extract_service.extract(data, (file.content_type or "").lower())
+    except ExtractError as exc:
+        raise ApiRequestError([{"bid_id": None, "message": str(exc)}]) from None
+    except extract_service.ExtractUnavailable as exc:
+        return JSONResponse(status_code=503, content={"detail": f"Extraction unavailable: {exc}"})

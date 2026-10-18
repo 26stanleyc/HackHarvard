@@ -24,6 +24,7 @@ import {
 } from "@/lib/types";
 import { suggestionPatch, type Suggestion } from "@/lib/assistant";
 import { AssistantPanel, type HelpRequest } from "./AssistantPanel";
+import { ExtractDropzone } from "./ExtractDropzone";
 import { CompanyModal } from "./CompanyModal";
 import { Button, ErrorBanner, SectionTitle, Source } from "./ui";
 
@@ -149,6 +150,16 @@ export function BidBuilder({
     const t = setTimeout(() => setHelp((h) => (h && h.nonce === help.nonce ? { ...h, field: "", bidId: "" } : h)), 2500);
     return () => clearTimeout(t);
   }, [help]);
+  const addExtracted = (b: { earliest_hour: number; deadline_hour: number; energy_mwh: number; max_mw: number }, source: string) => {
+    const id = nextBidId(drafts);
+    const name = `From ${source.replace(/\.[a-z]+$/i, "")}`.slice(0, 60);
+    setDrafts((prev) =>
+      prev.length >= max
+        ? prev
+        : [...prev, { ...customDraft(id), name, energy_mwh: String(b.energy_mwh), max_mw: String(b.max_mw), earliest_hour: b.earliest_hour, deadline_hour: b.deadline_hour }],
+    );
+    setSuggested((prev) => ({ ...prev, [id]: ["energy_mwh", "max_mw", "earliest_hour", "deadline_hour"] }));
+  };
   const dayLabel = meta.days.find((d) => d.date === scenario.day)?.label ?? scenario.day;
   const assistantScenario = {
     carbon_price: Number.isFinite(Number(scenario.carbon_price)) && scenario.carbon_price.trim() !== "" ? Number(scenario.carbon_price) : null,
@@ -195,6 +206,8 @@ export function BidBuilder({
             )}
             <Source className="mt-3">presets (inside Add company): GET /api/presets · sizes are reference values, see each preset&apos;s note</Source>
           </div>
+
+          <ExtractDropzone disabled={full} onAdd={addExtracted} />
 
           {drafts.length === 0 && (
             <div className="card border-dashed p-8 text-center text-sm text-muted">

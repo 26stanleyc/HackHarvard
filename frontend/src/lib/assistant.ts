@@ -41,7 +41,7 @@ export interface AssistantStatus {
   gateway_reason: string | null;
   model: string | null;
   forecast: "chalk" | "local";
-  extract: "chalk_function" | "local" | "unavailable";
+  extract: "chalk_function" | "gateway" | "unavailable";
   extract_reason?: string | null;
 }
 
@@ -175,4 +175,43 @@ export async function streamChat(
       else if (event === "error") h.onError?.(String(payload.message ?? "assistant error"));
     }
   }
+}
+
+// --- POST /api/assistant/extract ---------------------------------------------
+
+export interface ExtractedBid {
+  earliest_hour: number;
+  deadline_hour: number;
+  energy_mwh: number;
+  max_mw: number;
+  /** 0..1, the model's own estimate */
+  confidence: number;
+  notes: string;
+  feasible: boolean;
+  model?: string;
+}
+
+export interface ExtractResponse {
+  bid: ExtractedBid;
+  /** chalk_function: the Chalk Function extract-bid ran it; gateway: direct to the Model Gateway */
+  path: "chalk_function" | "gateway";
+  fallback_reason: string | null;
+  latency_ms: number;
+}
+
+export const EXTRACT_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+export const EXTRACT_MAX_BYTES = 5 * 1024 * 1024;
+
+/** Upload one image; throws Error with the backend's message on 422 / 503. */
+export async function postExtract(file: File, signal?: AbortSignal): Promise<ExtractResponse> {
+  const form = new FormData();
+  form.append("file", file);
+  const r = await fetch(`${API_BASE}/api/assistant/extract`, { method: "POST", body: form, signal });
+  const body = await r.json().catch(() => null);
+  if (!r.ok) {
+    const d = body?.detail;
+    const msg = Array.isArray(d) ? d.map((x: { message?: string }) => x.message).join("; ") : d;
+    throw new Error(typeof msg === "string" && msg ? msg : `extract HTTP ${r.status}`);
+  }
+  return body as ExtractResponse;
 }
