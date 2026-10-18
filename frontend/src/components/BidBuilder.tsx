@@ -13,7 +13,7 @@ import {
   presetToDraft,
   type BidDraft,
 } from "@/lib/bids";
-import { fmtInt, fmtPct, hh, windowLabel } from "@/lib/format";
+import { fmtInt, fmtPct, fmtUsd, hh, windowLabel } from "@/lib/format";
 import { companyColor } from "@/lib/theme";
 import {
   SHAPLEY_MAX_BIDS_DEFAULT,
@@ -79,6 +79,11 @@ function useBidProfiles(day: string, bids: Bid[]) {
  * Results sidebar: run button, the company list with Edit links, "Add a company" (opens the
  * editor modal) and the day / price settings. Edits only take effect on the next run.
  */
+export interface CompanyResult {
+  hours: string;
+  payout: number | null;
+}
+
 export function CompanySidebar({
   meta,
   presets,
@@ -92,6 +97,7 @@ export function CompanySidebar({
   clearError,
   onDismissError,
   dirty,
+  results,
 }: {
   meta: MetaResponse;
   presets: Preset[];
@@ -106,6 +112,8 @@ export function CompanySidebar({
   onDismissError: () => void;
   /** the companies or settings changed since the last run */
   dirty: boolean;
+  /** per company, from the last run: scheduled hours and payout (null when payouts were skipped) */
+  results: Map<string, CompanyResult> | null;
 }) {
   const max = meta.max_bids;
   const shapleyMax = meta.shapley_max_bids ?? SHAPLEY_MAX_BIDS_DEFAULT;
@@ -140,6 +148,7 @@ export function CompanySidebar({
   };
   const loadTypes = loadTypeOptions(presets);
   const editIdx = drafts.findIndex((d) => d.id === modal);
+  const editResult = editIdx >= 0 ? results?.get(drafts[editIdx].id) : undefined;
   const day = meta.days.find((d) => d.date === scenario.day);
 
   return (
@@ -190,35 +199,38 @@ export function CompanySidebar({
 
       <div>
         <div className="mb-2 flex items-baseline justify-between">
-          <div className="kicker">Companies</div>
+          <div className="kicker">
+            Companies <span className="num">{drafts.length}</span>
+          </div>
           <button type="button" onClick={onLoadExample} className="text-[11px] text-muted hover:text-ink" data-testid="load-example">
             Reset to example
           </button>
         </div>
-        <ul className="space-y-2">
+        <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
           {drafts.map((d, i) => {
-            const bid = draftToBid(d);
             const bad = errors[i] !== null || serverErrByBid.has(d.id);
+            const out = results?.get(d.id);
             return (
               <li key={d.id}>
                 <button
                   type="button"
                   onClick={() => setModal(d.id)}
                   data-testid={`company-row-${d.id}`}
-                  className={`flex w-full items-start gap-2.5 rounded-lg border bg-surface px-3 py-2.5 text-left hover:border-line-strong ${
-                    bad ? "border-danger/50" : "border-line"
-                  }`}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-2"
                 >
-                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: companyColor(i) }} aria-hidden />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-ink">{d.name || "Unnamed company"}</span>
-                    <span className="num block text-[11px] text-muted">
-                      {bad
-                        ? "needs a fix"
-                        : `${fmtInt(bid.energy_mwh)} MWh · ${fmtInt(bid.max_mw)} MW · ${windowLabel(bid.earliest_hour, bid.deadline_hour)}`}
-                    </span>
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: companyColor(i) }} aria-hidden />
+                  <span className={`min-w-0 flex-1 truncate text-[13px] ${bad ? "text-danger" : "text-ink"}`}>
+                    {d.name || "Unnamed company"}
                   </span>
-                  <span className="shrink-0 text-xs text-accent">Edit</span>
+                  {bad ? (
+                    <span className="shrink-0 text-[11px] text-danger">fix</span>
+                  ) : (
+                    out?.payout != null && (
+                      <span className={`num shrink-0 text-[11px] ${out.payout > 0 ? "text-accent" : "text-muted"}`}>
+                        {fmtUsd(out.payout)}
+                      </span>
+                    )
+                  )}
                 </button>
               </li>
             );
@@ -233,9 +245,11 @@ export function CompanySidebar({
         >
           + Add a company
         </button>
-        {drafts.length > shapleyMax && (
+        {drafts.length > SHAPLEY_MAX_BIDS_DEFAULT && (
           <p className="mt-2 text-xs text-muted" data-testid="shapley-limit-hint">
-            Payouts are computed for up to {shapleyMax} companies.
+            {drafts.length > shapleyMax
+              ? `No payouts above ${shapleyMax} companies.`
+              : `Above ${SHAPLEY_MAX_BIDS_DEFAULT} companies, payouts are estimates, not exact Shapley values.`}
           </p>
         )}
       </div>
@@ -286,6 +300,18 @@ export function CompanySidebar({
             onChange={(patch) => update(drafts[editIdx].id, patch)}
             onRemove={() => remove(drafts[editIdx].id)}
           />
+          {editResult && (
+            <dl className="mt-3 grid grid-cols-2 gap-3 rounded-lg border border-line bg-surface p-3 text-sm" data-testid="company-result">
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-wider text-muted">Scheduled (last run)</dt>
+                <dd className="num text-ink">{editResult.hours}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-wider text-muted">Payout</dt>
+                <dd className="num text-ink">{editResult.payout == null ? "—" : fmtUsd(editResult.payout)}</dd>
+              </div>
+            </dl>
+          )}
           <div className="mt-4 flex items-center justify-between gap-3">
             {API_MODE !== "fixture" ? <ProfileSourceNote block={profiles.block} failed={profiles.failed} /> : <span />}
             <Button onClick={() => setModal(null)} testId="company-done">
@@ -349,7 +375,11 @@ function ScenarioPanel({
   const id = useId();
   const day = meta.days.find((d) => d.date === scenario.day);
   return (
-    <div className="card space-y-4 p-4">
+    <details className="card group">
+      <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-ink-2 hover:text-ink">
+        Settings <span className="font-normal text-muted">· {day?.label ?? scenario.day}</span>
+      </summary>
+      <div className="space-y-4 border-t border-line p-4">
       <div>
         <label htmlFor={`${id}-day`} className="mb-1 block text-xs font-medium uppercase tracking-wider text-muted">
           Real day
@@ -415,7 +445,8 @@ function ScenarioPanel({
           onChange={(v) => setScenario((s) => ({ ...s, pool_usd: v }))}
         />
       </div>
-    </div>
+      </div>
+    </details>
   );
 }
 

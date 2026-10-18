@@ -110,8 +110,10 @@ function Headline({ response }: { response: ClearResponse }) {
   const gap = response.herding.independent_marginal.gap_t;
   const paid = response.settlement.per_bid.reduce((a, p) => a + p.payout_usd, 0);
   const paidTo = response.settlement.per_bid.filter((p) => p.payout_usd > 0).length;
+  const estimated = response.settlement.method === "monte_carlo";
   return (
-    <section className="card grid gap-4 p-4 sm:grid-cols-3 sm:p-5" data-testid="headline">
+    <section className="card p-4 sm:p-5" data-testid="headline">
+      <div className="grid gap-4 sm:grid-cols-3">
       <Stat
         label="CO2 avoided"
         value={`${fmtT(saved)} t`}
@@ -128,9 +130,16 @@ function Headline({ response }: { response: ClearResponse }) {
       <Stat
         label="Paid out"
         value={response.settlement.method === "skipped" ? "—" : fmtUsd(paid)}
-        sub={response.settlement.method === "skipped" ? `payouts skipped above ${SHAPLEY_MAX_BIDS_DEFAULT} companies` : `to ${paidTo} of ${response.settlement.per_bid.length} companies`}
+        sub={response.settlement.method === "skipped" ? `payouts skipped above ${SHAPLEY_MAX_BIDS_DEFAULT} companies` : `to ${paidTo} of ${response.settlement.per_bid.length} companies${estimated ? " · estimated" : ""}`}
         testId="headline-paid"
       />
+      </div>
+      {estimated && (
+        <p className="mt-3 border-t border-line pt-2.5 text-xs text-muted" data-testid="payout-disclaimer">
+          Payouts are estimates. Exact Shapley payouts are only practical up to {SHAPLEY_MAX_BIDS_DEFAULT} companies, so
+          with {response.settlement.per_bid.length} they are sampled and may shift slightly between runs.
+        </p>
+      )}
     </section>
   );
 }

@@ -249,6 +249,7 @@ export function FleetView({
         noPayoutNote={noPayoutNote}
         totalPaid={totalPaid}
         carbonPrice={request.carbon_price}
+        estimated={response.settlement.method === "monte_carlo"}
       />
     </section>
   );
@@ -794,6 +795,7 @@ function CompanyTable({
   noPayoutNote,
   totalPaid,
   carbonPrice,
+  estimated,
 }: {
   rows: FleetRow[];
   hovered: string | null;
@@ -802,6 +804,7 @@ function CompanyTable({
   noPayoutNote: string;
   totalPaid: number;
   carbonPrice: number;
+  estimated: boolean;
 }) {
   return (
     <div className="border-t border-line px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
@@ -810,7 +813,9 @@ function CompanyTable({
           Payouts for the day
         </div>
         <div className="num text-xs text-muted">
-          {hasPayouts ? `${fmtUsd(totalPaid)} paid · ${fmtUsd(carbonPrice)}/t` : noPayoutNote}
+          {hasPayouts
+            ? `${fmtUsd(totalPaid)} paid · ${fmtUsd(carbonPrice)}/t${estimated ? " · estimated (sampled Shapley)" : ""}`
+            : noPayoutNote}
         </div>
       </div>
       <div className="max-h-72 overflow-auto">

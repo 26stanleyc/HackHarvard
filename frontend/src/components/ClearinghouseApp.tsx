@@ -13,6 +13,8 @@ import {
   postEvaluate,
 } from "@/lib/api";
 import { bidToDraft, draftError, draftToBid, type BidDraft } from "@/lib/bids";
+import { DEFAULT_BIDS } from "@/lib/defaultCompanies";
+import { activeRuns, hh } from "@/lib/format";
 import { scheduleErrors } from "@/lib/feasibility";
 import { companyColor } from "@/lib/theme";
 import type {
@@ -23,7 +25,7 @@ import type {
   MetaResponse,
   Preset,
 } from "@/lib/types";
-import { CompanySidebar, scenarioErrors, type Scenario } from "./BidBuilder";
+import { CompanySidebar, scenarioErrors, type CompanyResult, type Scenario } from "./BidBuilder";
 import { CoordinatorView, type Act, type EvalState, type TraceState } from "./CoordinatorView";
 import type { ChartCompany } from "./LoadChart";
 import { ResultsLayout, ResultsView } from "./ResultsView";
@@ -104,9 +106,9 @@ export function ClearinghouseApp() {
         if (cancelled) return;
         setBoot({ meta, presets, adoption });
         setBootError(null);
-        // start with the example companies; they are cleared once, below
+        // start with the 20 default companies; they are cleared once, below
         const ex = EXAMPLE_CLEAR_REQUEST;
-        setDrafts((d) => (d.length ? d : ex.bids.map((b) => bidToDraft(b))));
+        setDrafts((d) => (d.length ? d : DEFAULT_BIDS.map((b) => bidToDraft(b))));
         setScenario(
           (s) =>
             s ?? {
@@ -132,7 +134,7 @@ export function ClearinghouseApp() {
 
   const loadExample = useCallback(() => {
     const ex = EXAMPLE_CLEAR_REQUEST;
-    setDrafts(ex.bids.map((b) => bidToDraft(b)));
+    setDrafts(DEFAULT_BIDS.map((b) => bidToDraft(b)));
     setScenario({
       day: EXAMPLE_DAY,
       background_pct: ex.background_pct,
@@ -192,6 +194,24 @@ export function ClearinghouseApp() {
       (cleared?.request.bids ?? []).map((b, i) => ({ id: b.id, name: b.name, color: companyColor(i) })),
     [cleared],
   );
+
+  const companyResults = useMemo(() => {
+    if (!cleared) return null;
+    const { request, response } = cleared;
+    const pay = new Map(response.settlement.per_bid.map((p) => [p.bid_id, p.payout_usd]));
+    return new Map<string, CompanyResult>(
+      request.bids.map((b) => {
+        const runs = activeRuns(response.strategies.coordinated.schedule[b.id] ?? []);
+        return [
+          b.id,
+          {
+            hours: runs.length ? runs.map((r) => `${hh(r.start)}–${hh(r.end)}`).join(", ") : "none",
+            payout: response.settlement.method === "skipped" ? null : (pay.get(b.id) ?? 0),
+          },
+        ];
+      }),
+    );
+  }, [cleared]);
 
   const updateUserSchedule = useCallback((bidId: string, f: (prev: number[]) => number[]) => {
     setUserSchedule((s) => {
@@ -365,6 +385,7 @@ export function ClearinghouseApp() {
                 clearError={clearError}
                 onDismissError={() => setClearError(null)}
                 dirty={dirty}
+                results={companyResults}
               />
             }
           >
