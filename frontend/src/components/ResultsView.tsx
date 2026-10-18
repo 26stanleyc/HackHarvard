@@ -25,6 +25,7 @@ import {
   type ClearResponse,
   type HerdingMetric,
 } from "@/lib/types";
+import type { PendingCompany } from "./FleetView";
 import type { ChartCompany } from "./LoadChart";
 import { forecastSourceText } from "./StoryScreen";
 import { Button, Details, LoadTypeTag, SectionTitle, Source, Stat } from "./ui";
@@ -34,7 +35,7 @@ const FleetView = dynamic(() => import("./FleetView").then((m) => m.FleetView), 
   ssr: false,
   loading: () => <div className="card h-[520px] animate-pulse" />,
 });
-// warm that bundle and the car model in the background, so Results opens without a wait
+// warm that bundle in the background, so Results opens without a wait
 if (typeof window !== "undefined") setTimeout(() => void import("./FleetView"), 2000);
 
 /** Results page frame: the results on the left, the company sidebar on the right. */
@@ -72,6 +73,7 @@ export function ResultsView({
   companies,
   leftOut,
   setLeftOut,
+  pending,
 }: {
   request: ClearRequest;
   response: ClearResponse;
@@ -79,11 +81,13 @@ export function ResultsView({
   companies: ChartCompany[];
   leftOut: string | null;
   setLeftOut: (id: string | null) => void;
+  /** companies added in the sidebar since the last run */
+  pending?: PendingCompany[];
 }) {
   return (
     <div className="space-y-6">
       <Headline response={response} />
-      <FleetView request={request} response={response} bids={bids} companies={companies} />
+      <FleetView request={request} response={response} bids={bids} companies={companies} pending={pending} />
       <Details>
         <ResultNotes response={response} />
         <ValueBreakdown response={response} />

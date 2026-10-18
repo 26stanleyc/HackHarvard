@@ -28,6 +28,7 @@ import type {
 import { CompanySidebar, scenarioErrors, type CompanyResult, type Scenario } from "./BidBuilder";
 import { CoordinatorView, type Act, type EvalState, type TraceState } from "./CoordinatorView";
 import type { ChartCompany } from "./LoadChart";
+import type { PendingCompany } from "./FleetView";
 import { ResultsLayout, ResultsView } from "./ResultsView";
 import { StoryScreen } from "./StoryScreen";
 import { Button, ErrorBanner, FixtureBadge } from "./ui";
@@ -194,6 +195,16 @@ export function ClearinghouseApp() {
       (cleared?.request.bids ?? []).map((b, i) => ({ id: b.id, name: b.name, color: companyColor(i) })),
     [cleared],
   );
+
+  // companies added in the sidebar since the last run: the replay shows them as new buildings
+  const pendingCompanies = useMemo<PendingCompany[]>(() => {
+    const ran = new Set((cleared?.request.bids ?? []).map((b) => b.id));
+    return drafts.flatMap((d, i) =>
+      ran.has(d.id)
+        ? []
+        : [{ id: d.id, name: d.name.trim(), load_type: d.load_type, max_mw: Number(d.max_mw), color: companyColor(i) }],
+    );
+  }, [cleared, drafts]);
 
   const companyResults = useMemo(() => {
     if (!cleared) return null;
@@ -397,6 +408,7 @@ export function ClearinghouseApp() {
                 companies={companies}
                 leftOut={leftOut}
                 setLeftOut={setLeftOut}
+                pending={pendingCompanies}
               />
             ) : (
               <div className="card h-[520px] animate-pulse" aria-busy="true" aria-label="Running the example companies" />
